@@ -43,4 +43,4 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Push Images
-      run: docker push docker.io/odpf/meteor:latest
+      run: docker push docker.io/gotocompany/meteor:latest
