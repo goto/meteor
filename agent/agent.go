@@ -182,7 +182,7 @@ func (r *Agent) Run(ctx context.Context, recipe recipe.Recipe) (run Run) {
 				fmt.Sprintf("retrying extractor in %s", d),
 				"retry_delay_ms", d.Milliseconds(),
 				"extractor", recipe.Source.Name,
-				"error", e.Error(),
+				"error", e,
 			)
 		}
 
