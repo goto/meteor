@@ -540,7 +540,58 @@ func TestAgentRun(t *testing.T) {
 			ProcessorFactory: pf,
 			SinkFactory:      sf,
 			Logger:           utils.Logger,
-			StopOnSinkError:  true,
+			StopOnSinkError:  false,
+			Monitor:          monitor,
+		})
+
+		run := r.Run(ctx, validRecipe)
+		assert.False(t, run.Success)
+		assert.Error(t, run.Error)
+	})
+
+	t.Run("should return error when sink fails to close", func(t *testing.T) {
+		data := []models.Record{
+			models.NewRecord(&v1beta2.Asset{}),
+		}
+
+		extr := mocks.NewExtractor()
+		extr.SetEmit(data)
+		extr.On("Init", mockCtx, buildPluginConfig(validRecipe.Source)).Return(nil).Once()
+		extr.On("Extract", mockCtx, mock.AnythingOfType("plugins.Emit")).Return(nil)
+		ef := registry.NewExtractorFactory()
+		if err := ef.Register("test-extractor", newExtractor(extr)); err != nil {
+			t.Fatal(err)
+		}
+
+		proc := mocks.NewProcessor()
+		proc.On("Init", mockCtx, buildPluginConfig(validRecipe.Processors[0])).Return(nil).Once()
+		proc.On("Process", mockCtx, data[0]).Return(data[0], nil)
+		defer proc.AssertExpectations(t)
+		pf := registry.NewProcessorFactory()
+		if err := pf.Register("test-processor", newProcessor(proc)); err != nil {
+			t.Fatal(err)
+		}
+
+		sink := mocks.NewSink()
+		sink.On("Init", mockCtx, buildPluginConfig(validRecipe.Sinks[0])).Return(nil).Once()
+		sink.On("Sink", mockCtx, data).Return(nil)
+		sink.On("Close").Return(errors.New("some error"))
+		defer sink.AssertExpectations(t)
+		sf := registry.NewSinkFactory()
+		if err := sf.Register("test-sink", newSink(sink)); err != nil {
+			t.Fatal(err)
+		}
+
+		monitor := newMockMonitor()
+		monitor.On("RecordRun", mock.AnythingOfType("agent.Run")).Once()
+		defer monitor.AssertExpectations(t)
+
+		r := agent.NewAgent(agent.Config{
+			ExtractorFactory: ef,
+			ProcessorFactory: pf,
+			SinkFactory:      sf,
+			Logger:           utils.Logger,
+			StopOnSinkError:  false,
 			Monitor:          monitor,
 		})
 
