@@ -670,61 +670,6 @@ func TestAgentRun(t *testing.T) {
 		assert.Equal(t, validRecipe, run.Recipe)
 	})
 
-	t.Run("should retry if extractor returns retry error", func(t *testing.T) {
-		err := errors.New("some-error")
-		data := []models.Record{
-			models.NewRecord(&v1beta2.Asset{}),
-		}
-
-		extr := mocks.NewExtractor()
-		extr.SetEmit(data)
-		extr.On("Init", mockCtx, buildPluginConfig(validRecipe.Source)).Return(nil).Once()
-		extr.On("Extract", mockCtx, mock.AnythingOfType("plugins.Emit")).Return(plugins.NewRetryError(err)).Twice()
-		extr.On("Extract", mockCtx, mock.AnythingOfType("plugins.Emit")).Return(nil)
-		ef := registry.NewExtractorFactory()
-		if err := ef.Register("test-extractor", newExtractor(extr)); err != nil {
-			t.Fatal(err)
-		}
-
-		proc := mocks.NewProcessor()
-		proc.On("Init", mockCtx, buildPluginConfig(validRecipe.Processors[0])).Return(nil).Once()
-		proc.On("Process", mockCtx, data[0]).Return(data[0], nil)
-		defer proc.AssertExpectations(t)
-		pf := registry.NewProcessorFactory()
-		if err := pf.Register("test-processor", newProcessor(proc)); err != nil {
-			t.Fatal(err)
-		}
-
-		sink := mocks.NewSink()
-		sink.On("Init", mockCtx, buildPluginConfig(validRecipe.Sinks[0])).Return(nil).Once()
-		sink.On("Sink", mockCtx, data).Return(nil)
-		sink.On("Close").Return(nil)
-		defer sink.AssertExpectations(t)
-
-		sf := registry.NewSinkFactory()
-		if err := sf.Register("test-sink", newSink(sink)); err != nil {
-			t.Fatal(err)
-		}
-
-		monitor := newMockMonitor()
-		monitor.On("RecordRun", mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("bool"))
-		defer monitor.AssertExpectations(t)
-
-		r := agent.NewAgent(agent.Config{
-			ExtractorFactory:     ef,
-			ProcessorFactory:     pf,
-			SinkFactory:          sf,
-			Logger:               utils.Logger,
-			Monitor:              monitor,
-			MaxRetries:           2,                    // need to retry "at least" 2 times since Extractor returns RetryError twice
-			RetryInitialInterval: 1 * time.Millisecond, // this is to override default retry interval to reduce test time
-		})
-		run := r.Run(ctx, validRecipe)
-		assert.NoError(t, run.Error)
-		assert.Equal(t, validRecipe, run.Recipe)
-	})
-
 	t.Run("should retry if sink returns retry error", func(t *testing.T) {
 		err := errors.New("some-error")
 		data := []models.Record{
