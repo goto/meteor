@@ -118,7 +118,7 @@ func (e *Extractor) extractTables(emit plugins.Emit) (err error) {
 	return
 }
 
-func (e *Extractor) getColumnsInfo(dbName string, tableName string) (result []*v1beta2.Column, err error) {
+func (e *Extractor) getColumnsInfo(dbName, tableName string) (result []*v1beta2.Column, err error) {
 	sqlStr := fmt.Sprintf("DESCRIBE TABLE %s.%s", dbName, tableName)
 
 	rows, err := e.db.Query(sqlStr)

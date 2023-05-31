@@ -73,7 +73,6 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error)
 // The data is returned as a list of assets.Asset
 func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) (err error) {
 	users, _, err := e.client.Organizations.ListMembers(ctx, e.config.Org, nil)
-
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch organizations")
 	}

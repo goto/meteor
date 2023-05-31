@@ -151,7 +151,6 @@ func (e *Extractor) getTablesInfo(ctx context.Context, emit plugins.Emit) error 
 					Data:    tableMeta,
 				}
 				emit(models.NewRecord(&asset))
-
 			}(table)
 		}
 		wg.Wait()
@@ -171,7 +170,7 @@ func createInstanceAdminClient(ctx context.Context, config Config) (*bigtable.In
 	return bigtable.NewInstanceAdminClient(ctx, config.ProjectID, config.clientOptions()...)
 }
 
-func (e *Extractor) createAdminClient(ctx context.Context, instance string, projectID string) (*bigtable.AdminClient, error) {
+func (e *Extractor) createAdminClient(ctx context.Context, instance, projectID string) (*bigtable.AdminClient, error) {
 	return bigtable.NewAdminClient(ctx, projectID, instance, e.config.clientOptions()...)
 }
 

@@ -17,7 +17,7 @@ type gcsWriter struct {
 	writer *storage.Writer
 }
 
-func newWriter(ctx context.Context, serviceAccountJSON []byte, bucketname string, filepath string) (*gcsWriter, error) {
+func newWriter(ctx context.Context, serviceAccountJSON []byte, bucketname, filepath string) (*gcsWriter, error) {
 	client, err := storage.NewClient(ctx, option.WithCredentialsJSON(serviceAccountJSON))
 	if err != nil {
 		return nil, errors.Wrap(err, "error in creating client")
@@ -39,5 +39,5 @@ func (c *gcsWriter) WriteData(data []byte) error {
 }
 
 func (c *gcsWriter) Close() error {
-	return  c.writer.Close()
+	return c.writer.Close()
 }

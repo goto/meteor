@@ -125,7 +125,7 @@ func (e *Extractor) getUserName(db *sql.DB) (userName string, err error) {
 }
 
 // Prepares the list of tables and the attached metadata
-func (e *Extractor) getTableMetadata(db *sql.DB, dbName string, tableName string) (result *v1beta2.Asset, err error) {
+func (e *Extractor) getTableMetadata(db *sql.DB, dbName, tableName string) (result *v1beta2.Asset, err error) {
 	var columns []*v1beta2.Column
 	columns, err = e.getColumnMetadata(db, dbName, tableName)
 	if err != nil {
@@ -169,7 +169,7 @@ func (e *Extractor) getTableMetadata(db *sql.DB, dbName string, tableName string
 }
 
 // Prepares the list of columns and the attached metadata
-func (e *Extractor) getColumnMetadata(db *sql.DB, dbName string, tableName string) (result []*v1beta2.Column, err error) {
+func (e *Extractor) getColumnMetadata(db *sql.DB, dbName, tableName string) (result []*v1beta2.Column, err error) {
 	sqlStr := `select utc.column_name, utc.data_type, 
 			decode(utc.char_used, 'C', utc.char_length, utc.data_length) as data_length,
 			utc.nullable, nvl(ucc.comments, '') as col_comment

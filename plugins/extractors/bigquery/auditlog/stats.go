@@ -74,7 +74,7 @@ func (b *TableStats) populateTableUsage(tableURN string) {
 	b.TableUsage[tableURN]++
 }
 
-func (b *TableStats) populateJoinDetail(tableURN string, refTablesURN []string, jcs []string) {
+func (b *TableStats) populateJoinDetail(tableURN string, refTablesURN, jcs []string) {
 	if _, exist := b.JoinDetail[tableURN]; !exist {
 		b.JoinDetail[tableURN] = map[string]JoinDetail{}
 	}
@@ -111,7 +111,6 @@ func (b *TableStats) populateJoinDetail(tableURN string, refTablesURN []string, 
 		}
 
 	}
-
 }
 
 func (b *TableStats) populateFilterConditions(tableURN string, fcs []string) {

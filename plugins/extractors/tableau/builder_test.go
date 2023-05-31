@@ -159,7 +159,6 @@ func TestBuildLineageResource(t *testing.T) {
 		res, err := e.buildLineageResources(table)
 		assert.EqualError(t, err, "cannot build lineage resource, database structure unknown")
 		assert.Nil(t, res)
-
 	})
 }
 

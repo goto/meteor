@@ -114,7 +114,6 @@ func (l *AuditLog) Collect(ctx context.Context, tableID string) (tableStats *Tab
 }
 
 func (l *AuditLog) buildFilter(tableID string) string {
-
 	timeNow := time.Now().UTC()
 	dayDuration := time.Duration(24*l.config.UsagePeriodInDay) * time.Hour
 	timeFrom := timeNow.Add(-1 * dayDuration)
@@ -126,7 +125,6 @@ func (l *AuditLog) buildFilter(tableID string) string {
 }
 
 func parsePayload(payload interface{}) (ld *LogData, err error) {
-
 	ad := &loggingpb.AuditData{}
 	pl, ok := payload.(*auditpb.AuditLog)
 	if !ok {
@@ -166,7 +164,6 @@ func getAuditDataFromServiceData(pl *auditpb.AuditLog, ad *loggingpb.AuditData) 
 }
 
 func getAuditDataFromMetadata(pl *auditpb.AuditLog, ad *loggingpb.AuditData) error {
-
 	if pl.GetMetadata() == nil {
 		return errors.New("metadata field is nil")
 	}

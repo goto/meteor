@@ -1,7 +1,9 @@
 package stencil
 
-type JsonType string
-type AvroType string
+type (
+	JsonType string
+	AvroType string
+)
 
 const (
 	JsonTypeObject  JsonType = "object"

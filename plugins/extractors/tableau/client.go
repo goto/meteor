@@ -107,7 +107,7 @@ type Client interface {
 	Init(ctx context.Context, cfg Config) (err error)
 	GetAllProjects(ctx context.Context) (ps []*Project, err error)
 	GetDetailedWorkbooksByProjectName(ctx context.Context, projectName string) (wbs []*Workbook, err error)
-	makeRequest(method, url string, payload interface{}, data interface{}) (err error)
+	makeRequest(method, url string, payload, data interface{}) (err error)
 }
 
 type client struct {
@@ -118,7 +118,6 @@ type client struct {
 }
 
 func NewClient(httpClient *http.Client) Client {
-
 	c := &client{
 		httpClient: httpClient,
 	}
@@ -149,7 +148,7 @@ func (c *client) Init(ctx context.Context, cfg Config) (err error) {
 	return nil
 }
 
-func (c *client) getProjectsWithPagination(ctx context.Context, pageNum int, pageSize int) (ps []*Project, totalItem int, err error) {
+func (c *client) getProjectsWithPagination(ctx context.Context, pageNum, pageSize int) (ps []*Project, totalItem int, err error) {
 	var response responseProject
 	projectPath := fmt.Sprintf("sites/%s/projects?pageSize=%d&pageNumber=%d", c.siteID, pageSize, pageNum)
 	projectURL := c.buildURL(projectPath)
@@ -167,7 +166,7 @@ func (c *client) getProjectsWithPagination(ctx context.Context, pageNum int, pag
 }
 
 func (c *client) GetAllProjects(ctx context.Context) (ps []*Project, err error) {
-	var pageNum = 1
+	pageNum := 1
 	for {
 		partialProjects, totalItem, errGet := c.getProjectsWithPagination(ctx, pageNum, projectPageSize)
 		if err != nil {
@@ -196,7 +195,7 @@ func (c *client) GetDetailedWorkbooksByProjectName(ctx context.Context, projectN
 	return
 }
 
-func (c *client) getAuthToken() (authToken string, siteID string, err error) {
+func (c *client) getAuthToken() (authToken, siteID string, err error) {
 	payload := map[string]interface{}{
 		"credentials": map[string]interface{}{
 			"name":     c.config.Username,
@@ -221,7 +220,7 @@ func (c *client) buildURL(path string) string {
 }
 
 // helper function to avoid rewriting a request
-func (c *client) makeRequest(method, url string, payload interface{}, data interface{}) (err error) {
+func (c *client) makeRequest(method, url string, payload, data interface{}) (err error) {
 	jsonBytes, err := json.Marshal(payload)
 	if err != nil {
 		return errors.Wrap(err, "failed to encode the payload JSON")

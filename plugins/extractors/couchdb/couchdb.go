@@ -124,7 +124,7 @@ func (e *Extractor) extractTables(ctx context.Context, dbName string) (err error
 }
 
 // Build and push document to output channel
-func (e *Extractor) processTable(ctx context.Context, dbName string, docID string) (err error) {
+func (e *Extractor) processTable(ctx context.Context, dbName, docID string) (err error) {
 	var columns []*v1beta2.Column
 	columns, err = e.extractColumns(ctx, docID)
 	if err != nil {

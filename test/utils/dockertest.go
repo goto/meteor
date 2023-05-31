@@ -7,11 +7,11 @@ import (
 	"github.com/ory/dockertest/v3"
 )
 
-//CreateContainer will create a docker container using the RunOptions given
+// CreateContainer will create a docker container using the RunOptions given
 //
-//"opts" is the configuration for docker
+// "opts" is the configuration for docker
 //
-//"retryOp" is an exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+// "retryOp" is an exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 func CreateContainer(opts dockertest.RunOptions, retryOp func(r *dockertest.Resource) error) (purgeFn func() error, err error) {
 	pool, err := dockertest.NewPool("")
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet

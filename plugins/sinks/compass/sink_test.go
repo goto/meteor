@@ -25,9 +25,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-var (
-	host = "http://compass.com"
-)
+var host = "http://compass.com"
 
 // sample metadata
 var (
@@ -625,7 +623,7 @@ func (m *mockHTTPClient) Assert(t *testing.T) {
 		headersMap[hdrKey] = strings.Join(hdrVals, ",")
 	}
 	assert.Equal(t, m.Headers, headersMap)
-	var bodyBytes = []byte("")
+	bodyBytes := []byte("")
 	if m.req.Body != nil {
 		var err error
 		bodyBytes, err = io.ReadAll(m.req.Body)

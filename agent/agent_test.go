@@ -1093,7 +1093,7 @@ func TestValidate(t *testing.T) {
 		assert.Equal(t, expectedErrs, errs)
 	})
 	t.Run("", func(t *testing.T) {
-		var invalidRecipe = recipe.Recipe{
+		invalidRecipe := recipe.Recipe{
 			Name: "sample",
 			Source: recipe.PluginRecipe{
 				Name: "test-extractor",

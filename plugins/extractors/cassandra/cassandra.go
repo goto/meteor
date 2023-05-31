@@ -152,7 +152,7 @@ func (e *Extractor) extractTables(keyspace string) (err error) {
 }
 
 // processTable build and push table to out channel
-func (e *Extractor) processTable(keyspace string, tableName string) (err error) {
+func (e *Extractor) processTable(keyspace, tableName string) (err error) {
 	var columns []*v1beta2.Column
 	columns, err = e.extractColumns(keyspace, tableName)
 	if err != nil {
@@ -180,7 +180,7 @@ func (e *Extractor) processTable(keyspace string, tableName string) (err error) 
 }
 
 // extractColumns extract columns from a given table
-func (e *Extractor) extractColumns(keyspace string, tableName string) (columns []*v1beta2.Column, err error) {
+func (e *Extractor) extractColumns(keyspace, tableName string) (columns []*v1beta2.Column, err error) {
 	query := `SELECT column_name, type 
               FROM system_schema.columns 
               WHERE keyspace_name = ?

@@ -8,9 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	recipeEnvVarPrefix = "METEOR_"
-)
+var recipeEnvVarPrefix = "METEOR_"
 
 func populateData(pathToConfig string) map[string]string {
 	viper.AddConfigPath(".")

@@ -7,9 +7,6 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/dynamicpb"
-
 	"github.com/goto/meteor/models"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/registry"
@@ -17,6 +14,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 //go:embed README.md

@@ -153,7 +153,6 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error)
 
 // Extract checks if the table is valid and extracts the table schema
 func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) (err error) {
-
 	// Fetch and iterate over datasets
 	it := e.client.Datasets(ctx)
 	it.PageInfo().MaxSize = e.getMaxPageSize()

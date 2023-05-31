@@ -25,7 +25,7 @@ func (e *Extractor) buildLineageResources(t *Table) (resource *v1beta2.Resource,
 		err = errors.New("no table found")
 		return
 	}
-	var table = *t
+	table := *t
 
 	upstreamDB := t.Database
 	if _, found := upstreamDB["hostName"]; found {

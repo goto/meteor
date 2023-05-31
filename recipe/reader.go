@@ -19,9 +19,7 @@ type Reader struct {
 	log  log.Logger
 }
 
-var (
-	ErrInvalidRecipeVersion = errors.New("recipe version is invalid or not found")
-)
+var ErrInvalidRecipeVersion = errors.New("recipe version is invalid or not found")
 
 // NewReader returns a new Reader.
 func NewReader(lg log.Logger, pathToConfig string) *Reader {

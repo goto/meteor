@@ -126,7 +126,7 @@ func (e *Extractor) extractTables(database string) (err error) {
 }
 
 // processTable builds and push table to emitter
-func (e *Extractor) processTable(database string, tableName string) (err error) {
+func (e *Extractor) processTable(database, tableName string) (err error) {
 	var columns []*v1beta2.Column
 	if columns, err = e.extractColumns(tableName); err != nil {
 		return errors.Wrap(err, "failed to extract columns")

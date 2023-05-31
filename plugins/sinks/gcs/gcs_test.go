@@ -26,7 +26,6 @@ var validConfig = map[string]interface{}{
 }
 
 func TestInit(t *testing.T) {
-
 	t.Run("should return error if config is invalid", func(t *testing.T) {
 		gcsSink := g.New(testUtils.Logger)
 		actualError := gcsSink.Init(context.TODO(), plugins.Config{RawConfig: map[string]interface{}{
@@ -36,7 +35,6 @@ func TestInit(t *testing.T) {
 	})
 
 	t.Run("should retun error if service account json and service account base64 missing", func(t *testing.T) {
-
 		gcsSink := g.New(testUtils.Logger)
 		actualError := gcsSink.Init(context.TODO(), plugins.Config{RawConfig: map[string]interface{}{
 			"project_id": "google-project-id",
@@ -46,7 +44,6 @@ func TestInit(t *testing.T) {
 	})
 
 	t.Run("should retun error if unable to decode base64 service account key", func(t *testing.T) {
-
 		gcsSink := g.New(testUtils.Logger)
 		actualError := gcsSink.Init(context.TODO(), plugins.Config{RawConfig: map[string]interface{}{
 			"project_id":             "google-project-id",
@@ -58,7 +55,6 @@ func TestInit(t *testing.T) {
 }
 
 func TestSink(t *testing.T) {
-
 	t.Run("should write data in bucket and return nil error on success", func(t *testing.T) {
 		u := &v1beta2.User{
 			FullName: "John Doe",

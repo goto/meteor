@@ -12,13 +12,11 @@ import (
 
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
-
-	testutils "github.com/goto/meteor/test/utils"
-	"github.com/pkg/errors"
-
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/metabase"
 	"github.com/goto/meteor/test/mocks"
+	testutils "github.com/goto/meteor/test/utils"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -101,7 +99,8 @@ func TestExtract(t *testing.T) {
 				"username":       "test-user",
 				"password":       "test-pass",
 				"instance_label": "my-metabase",
-			}})
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -200,7 +199,7 @@ func (m *mockClient) GetTable(id int) (metabase.Table, error) {
 }
 
 // This function compares two slices without concerning about the order
-func assertResults(t *testing.T, expected []models.Record, result []models.Record) {
+func assertResults(t *testing.T, expected, result []models.Record) {
 	assert.Len(t, result, len(expected))
 
 	expectedMap := make(map[string]*v1beta2.Asset)

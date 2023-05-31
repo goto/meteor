@@ -8,20 +8,18 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/pkg/errors"
-	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/structpb"
-
 	// used to register the postgres driver
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
-	"github.com/goto/meteor/plugins/sqlutil"
-	_ "github.com/lib/pq"
-
 	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
+	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 //go:embed README.md
@@ -107,7 +105,7 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) (err error) 
 
 	// Iterate through all tables and databases
 	for _, database := range dbs {
-		//skip dbs meant to be excluded
+		// skip dbs meant to be excluded
 		if e.isExcludedDB(database) {
 			continue
 		}
@@ -151,7 +149,7 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) (err error) 
 }
 
 // Prepares the list of tables and the attached metadata
-func (e *Extractor) getTableMetadata(db *sql.DB, dbName string, tableName string) (result *v1beta2.Asset, err error) {
+func (e *Extractor) getTableMetadata(db *sql.DB, dbName, tableName string) (result *v1beta2.Asset, err error) {
 	var columns []*v1beta2.Column
 	columns, err = e.getColumnMetadata(db, dbName, tableName)
 	if err != nil {
@@ -182,7 +180,7 @@ func (e *Extractor) getTableMetadata(db *sql.DB, dbName string, tableName string
 }
 
 // Prepares the list of columns and the attached metadata
-func (e *Extractor) getColumnMetadata(db *sql.DB, dbName string, tableName string) (result []*v1beta2.Column, err error) {
+func (e *Extractor) getColumnMetadata(db *sql.DB, dbName, tableName string) (result []*v1beta2.Column, err error) {
 	sqlStr := `SELECT COLUMN_NAME,DATA_TYPE,
 				IS_NULLABLE,coalesce(CHARACTER_MAXIMUM_LENGTH,0)
 				FROM information_schema.columns
@@ -209,7 +207,7 @@ func (e *Extractor) getColumnMetadata(db *sql.DB, dbName string, tableName strin
 	return result, nil
 }
 
-func (e *Extractor) userPrivilegesInfo(db *sql.DB, dbName string, tableName string) (result *structpb.Struct, err error) {
+func (e *Extractor) userPrivilegesInfo(db *sql.DB, dbName, tableName string) (result *structpb.Struct, err error) {
 	query := `SELECT grantee, string_agg(privilege_type, ',') 
 	FROM information_schema.role_table_grants 
 	WHERE table_name='%s' AND table_catalog='%s'

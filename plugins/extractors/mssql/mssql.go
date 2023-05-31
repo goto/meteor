@@ -112,7 +112,7 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) (err error) 
 }
 
 // processTable builds and push table to emitter
-func (e *Extractor) processTable(database string, tableName string) (err error) {
+func (e *Extractor) processTable(database, tableName string) (err error) {
 	columns, err := e.getColumns(database, tableName)
 	if err != nil {
 		return errors.Wrap(err, "failed to get columns")

@@ -14,13 +14,12 @@ import (
 
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
-	"github.com/goto/meteor/plugins/sinks/stencil"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/anypb"
-
 	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/sinks/stencil"
 	testUtils "github.com/goto/meteor/test/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -636,7 +635,7 @@ func (m *mockHTTPClient) Assert(t *testing.T) {
 	)
 	assert.Equal(t, m.URL, actualURL)
 
-	var bodyBytes = []byte("")
+	bodyBytes := []byte("")
 	if m.req.Body != nil {
 		var err error
 		bodyBytes, err = io.ReadAll(m.req.Body)

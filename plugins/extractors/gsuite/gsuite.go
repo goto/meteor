@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/goto/meteor/models"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
@@ -15,8 +16,6 @@ import (
 	admin "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/protobuf/types/known/anypb"
-
-	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 )
 
 //go:embed README.md
@@ -116,7 +115,7 @@ func (e *Extractor) buildAsset(gsuiteUser *admin.User) (*v1beta2.Asset, error) {
 		status = "suspended"
 	}
 
-	var userAttributes = make(map[string]interface{})
+	userAttributes := make(map[string]interface{})
 	userAttributes["organizations"] = e.buildMapFromGsuiteSlice(gsuiteUser.Organizations)
 	userAttributes["relations"] = e.buildMapFromGsuiteSlice(gsuiteUser.Relations)
 	userAttributes["custom_schemas"] = e.buildMapFromGsuiteMapRawMessage(gsuiteUser.CustomSchemas)

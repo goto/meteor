@@ -10,14 +10,13 @@ import (
 	"net/http"
 	"time"
 
-	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
-	"google.golang.org/protobuf/types/known/anypb"
-
 	"github.com/goto/meteor/models"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 //go:embed README.md
@@ -137,7 +136,7 @@ func (e *Extractor) getDashboardsList() (dashboards []Results, err error) {
 }
 
 // makeRequest helper function to avoid rewriting a request
-func (e *Extractor) makeRequest(method, url string, payload interface{}, data interface{}) (err error) {
+func (e *Extractor) makeRequest(method, url string, payload, data interface{}) (err error) {
 	jsonifyPayload, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to encode the payload JSON: %w", err)
@@ -148,7 +147,7 @@ func (e *Extractor) makeRequest(method, url string, payload interface{}, data in
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	var key = e.config.ApiKey
+	key := e.config.ApiKey
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Set("Authorization", key)
 	req.Header.Set("Referer", url)

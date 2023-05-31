@@ -15,21 +15,19 @@ import (
 	"testing"
 	"time"
 
-	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
-	"google.golang.org/protobuf/types/known/anypb"
-
-	"github.com/goto/meteor/test/utils"
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
-
 	"github.com/goto/meteor/cmd"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	_ "github.com/goto/meteor/plugins/extractors"
 	_ "github.com/goto/meteor/plugins/processors"
 	_ "github.com/goto/meteor/plugins/sinks"
+	"github.com/goto/meteor/test/utils"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -149,7 +147,6 @@ func listenToTopic(ctx context.Context, topic string, data *[]*v1beta2.Asset) er
 		msg, err := reader.ReadMessage(ctx)
 		if err != nil {
 			break
-
 		}
 		var convertMsg v1beta2.Asset
 		if err := proto.Unmarshal(msg.Value, &convertMsg); err != nil {

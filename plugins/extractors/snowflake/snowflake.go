@@ -26,13 +26,15 @@ type Config struct {
 	ConnectionURL string `mapstructure:"connection_url" validate:"required"`
 }
 
-var sampleConfig = `connection_url: "user:password@my_organization-my_account/mydb"`
-var info = plugins.Info{
-	Description:  "Table metadata from Snowflake server.",
-	SampleConfig: sampleConfig,
-	Summary:      summary,
-	Tags:         []string{"oss", "extractor"},
-}
+var (
+	sampleConfig = `connection_url: "user:password@my_organization-my_account/mydb"`
+	info         = plugins.Info{
+		Description:  "Table metadata from Snowflake server.",
+		SampleConfig: sampleConfig,
+		Summary:      summary,
+		Tags:         []string{"oss", "extractor"},
+	}
+)
 
 // Extractor manages the extraction of data from snowflake
 type Extractor struct {
@@ -150,7 +152,7 @@ func (e *Extractor) extractTables(database string) (err error) {
 }
 
 // processTable builds and push table to out channel
-func (e *Extractor) processTable(database string, tableName string) (err error) {
+func (e *Extractor) processTable(database, tableName string) (err error) {
 	var columns []*v1beta2.Column
 	columns, err = e.extractColumns(database, tableName)
 	if err != nil {
@@ -177,7 +179,7 @@ func (e *Extractor) processTable(database string, tableName string) (err error) 
 }
 
 // extractColumns extracts columns from a given table
-func (e *Extractor) extractColumns(database string, tableName string) (result []*v1beta2.Column, err error) {
+func (e *Extractor) extractColumns(database, tableName string) (result []*v1beta2.Column, err error) {
 	// extract columns
 	_, err = e.db.Exec(fmt.Sprintf("USE %s;", database))
 	if err != nil {

@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"google.golang.org/grpc/credentials/insecure"
-
 	pb "github.com/goto/optimus/protos/gotocompany/optimus/core/v1beta1"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -13,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (

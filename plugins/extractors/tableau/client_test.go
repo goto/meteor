@@ -53,7 +53,6 @@ func TestInit(t *testing.T) {
 		})
 		assert.EqualError(t, err, "failed to fetch auth token: failed to generate response: Post \"invalidhost/api/3.12/auth/signin\": unsupported protocol scheme \"\"")
 	})
-
 }
 
 func TestGetAllProjects(t *testing.T) {

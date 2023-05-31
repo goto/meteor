@@ -199,7 +199,7 @@ func (e *Extractor) getCsrfToken() (csrfToken string, err error) {
 }
 
 // makeRequest helper function to avoid rewriting a request
-func (e *Extractor) makeRequest(method, url string, payload interface{}, data interface{}) (err error) {
+func (e *Extractor) makeRequest(method, url string, payload, data interface{}) (err error) {
 	jsonifyPayload, err := json.Marshal(payload)
 	if err != nil {
 		return errors.Wrap(err, "failed to encode the payload JSON")
@@ -209,7 +209,7 @@ func (e *Extractor) makeRequest(method, url string, payload interface{}, data in
 	if err != nil {
 		return errors.Wrap(err, "failed to create request")
 	}
-	var bearer = "Bearer " + e.accessToken
+	bearer := "Bearer " + e.accessToken
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", bearer)
 	req.Header.Set("X-CSRFToken", e.csrfToken)

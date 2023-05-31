@@ -8,12 +8,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-type streamMiddleware func(src models.Record) (dst models.Record, err error)
-type subscriber struct {
-	callback  func([]models.Record) error
-	channel   chan models.Record
-	batchSize int
-}
+type (
+	streamMiddleware func(src models.Record) (dst models.Record, err error)
+	subscriber       struct {
+		callback  func([]models.Record) error
+		channel   chan models.Record
+		batchSize int
+	}
+)
 
 type stream struct {
 	middlewares []streamMiddleware

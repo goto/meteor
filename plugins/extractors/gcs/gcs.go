@@ -121,7 +121,7 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) (err error) 
 	return
 }
 
-func (e *Extractor) extractBlobs(ctx context.Context, bucketName string, projectID string) (blobs []*v1beta2.Blob, err error) {
+func (e *Extractor) extractBlobs(ctx context.Context, bucketName, projectID string) (blobs []*v1beta2.Blob, err error) {
 	it := e.client.Bucket(bucketName).Objects(ctx, nil)
 
 	object, err := it.Next()

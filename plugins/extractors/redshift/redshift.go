@@ -87,7 +87,7 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error)
 
 	if e.client != nil {
 		// Create session
-		var sess = session.Must(session.NewSession())
+		sess := session.Must(session.NewSession())
 
 		// Initialize the redshift client
 		e.client = redshiftdataapiservice.New(sess, aws.NewConfig().WithRegion(e.config.AWSRegion))
@@ -170,7 +170,7 @@ func (e *Extractor) GetTables(dbName string) (list []string, err error) {
 }
 
 // getTableMetadata prepares the list of tables and the attached metadata
-func (e *Extractor) getTableMetadata(dbName string, tableName string) (result *v1beta2.Asset, err error) {
+func (e *Extractor) getTableMetadata(dbName, tableName string) (result *v1beta2.Asset, err error) {
 	var columns []*v1beta2.Column
 	colMetadata, err := e.GetColumn(dbName, tableName)
 	if err != nil {
@@ -200,7 +200,7 @@ func (e *Extractor) getTableMetadata(dbName string, tableName string) (result *v
 }
 
 // GetColumn returns the column metadata of particular table in a database
-func (e *Extractor) GetColumn(dbName string, tableName string) (result []*redshiftdataapiservice.ColumnMetadata, err error) {
+func (e *Extractor) GetColumn(dbName, tableName string) (result []*redshiftdataapiservice.ColumnMetadata, err error) {
 	descTable, err := e.client.DescribeTable(&redshiftdataapiservice.DescribeTableInput{
 		ClusterIdentifier: aws.String(e.config.ClusterID),
 		ConnectedDatabase: aws.String(e.config.DBName),

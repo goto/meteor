@@ -153,7 +153,7 @@ func (e *Extractor) getCatalogs() (list []string, err error) {
 }
 
 // processTable builds and push table to out channel
-func (e *Extractor) processTable(db *sql.DB, catalog string, database string, tableName string) (result *v1beta2.Asset, err error) {
+func (e *Extractor) processTable(db *sql.DB, catalog, database, tableName string) (result *v1beta2.Asset, err error) {
 	var columns []*v1beta2.Column
 	columns, err = e.extractColumns(db, catalog)
 	if err != nil {

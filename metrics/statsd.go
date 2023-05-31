@@ -5,11 +5,10 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/pkg/errors"
-
 	statsd "github.com/etsy/statsd/examples/go"
 	"github.com/goto/meteor/agent"
 	"github.com/goto/meteor/recipe"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -65,7 +64,7 @@ func (m *StatsdMonitor) RecordPlugin(recipeName, pluginName, pluginType string, 
 
 // createMetricName creates a metric name for a given recipe and success
 func (m *StatsdMonitor) createMetricName(metricName string, recipe recipe.Recipe, success bool) string {
-	var successText = "false"
+	successText := "false"
 	if success {
 		successText = "true"
 	}

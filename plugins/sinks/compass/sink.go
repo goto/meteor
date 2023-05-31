@@ -264,7 +264,7 @@ func (s *Sink) buildLabelValue(template string, asset *v1beta2.Asset) (value str
 	return
 }
 
-func (s *Sink) getLabelValueFromProperties(field1 string, field2 string, asset *v1beta2.Asset) (value string, err error) {
+func (s *Sink) getLabelValueFromProperties(field1, field2 string, asset *v1beta2.Asset) (value string, err error) {
 	switch field1 {
 	case "$attributes":
 		attr := utils.GetAttributes(asset)

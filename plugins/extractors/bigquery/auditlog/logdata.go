@@ -24,7 +24,6 @@ func (ld *LogData) GetReferencedTablesURN() (refTablesURN []string) {
 }
 
 func (ld *LogData) GetQuery() (sqlQuery string, err error) {
-
 	if jobConfig := ld.GetJobCompletedEvent().GetJob().GetJobConfiguration(); jobConfig == nil {
 		err = errors.New("jobConfiguration is nil")
 		return

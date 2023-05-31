@@ -214,8 +214,7 @@ func buildJsonProperties(asset *v1beta2.Asset, table *v1beta2.Table) map[string]
 }
 
 // typeToJsonSchemaType converts particular service type to Json type
-func typeToJsonSchemaType(service string, columnType string) (dataType JsonType) {
-
+func typeToJsonSchemaType(service, columnType string) (dataType JsonType) {
 	if service == "bigquery" {
 		switch columnType {
 		case "STRING", "DATE", "DATETIME", "TIME", "TIMESTAMP", "GEOGRAPHY":
@@ -276,8 +275,7 @@ func buildAvroFields(asset *v1beta2.Asset, table *v1beta2.Table) (fields []AvroF
 }
 
 // typeToAvroSchemaType converts particular service type to avro type
-func typeToAvroSchemaType(service string, columnType string) (dataType AvroType) {
-
+func typeToAvroSchemaType(service, columnType string) (dataType AvroType) {
 	if service == "bigquery" {
 		switch columnType {
 		case "STRING", "DATE", "DATETIME", "TIME", "TIMESTAMP", "GEOGRAPHY":

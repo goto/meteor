@@ -116,7 +116,7 @@ func (c *client) getSessionID() (sessionID string, err error) {
 	return data.ID, nil
 }
 
-func (c *client) makeRequest(method, url string, payload interface{}, data interface{}) (err error) {
+func (c *client) makeRequest(method, url string, payload, data interface{}) (err error) {
 	jsonBytes, err := json.Marshal(payload)
 	if err != nil {
 		return errors.Wrap(err, "failed to encode the payload JSON")

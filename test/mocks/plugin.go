@@ -4,10 +4,9 @@ import (
 	"context"
 
 	"github.com/goto/meteor/models"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/stretchr/testify/mock"
-
-	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 )
 
 type Plugin struct {

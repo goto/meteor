@@ -93,8 +93,8 @@ func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
 
 func (s *Sink) Close() (err error) {
 	return
-	//TODO: Connection closes even when some records are unpiblished
-	//TODO: return s.client.Close()
+	// TODO: Connection closes even when some records are unpiblished
+	// TODO: return s.client.Close()
 }
 
 func (s *Sink) send(ctx context.Context, userRequestBody *sh.UserRequestBody) error {

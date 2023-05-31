@@ -13,7 +13,6 @@ import (
 )
 
 func TestValidateAuditData(t *testing.T) {
-
 	t.Run("return error if AuditData does not have JobCompletedEvent data", func(t *testing.T) {
 		ld := &LogData{
 			&loggingpb.AuditData{},

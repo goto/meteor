@@ -115,7 +115,7 @@ func (e *Extractor) grafanaDashboardToMeteorDashboard(dashboard DashboardDetail)
 }
 
 // grafanaPanelToMeteorChart converts a grafana panel to a meteor chart
-func (e *Extractor) grafanaPanelToMeteorChart(panel Panel, dashboardUID string, metaURL string) v1beta2.Chart {
+func (e *Extractor) grafanaPanelToMeteorChart(panel Panel, dashboardUID, metaURL string) v1beta2.Chart {
 	var rawQuery string
 	if len(panel.Targets) > 0 {
 		rawQuery = panel.Targets[0].RawSQL

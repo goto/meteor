@@ -191,7 +191,6 @@ func (r *Agent) Run(ctx context.Context, recipe recipe.Recipe) (run Run) {
 			func() error { return runExtractor() },
 			retryNotification,
 		)
-
 		if err != nil {
 			run.Error = errors.Wrap(err, "failed to run extractor")
 		}
