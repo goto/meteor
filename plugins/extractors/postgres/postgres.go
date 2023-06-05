@@ -16,8 +16,7 @@ import (
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
-	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
+	_ "github.com/lib/pq" // register postgres driver
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -70,8 +69,8 @@ func New(logger log.Logger) *Extractor {
 }
 
 // Init initializes the extractor
-func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error) {
-	if err = e.BaseExtractor.Init(ctx, config); err != nil {
+func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
+	if err := e.BaseExtractor.Init(ctx, config); err != nil {
 		return err
 	}
 
@@ -80,27 +79,27 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error)
 	e.excludedDbs = sqlutil.BuildBoolMap(excludeList)
 
 	// Create database connection
+	var err error
 	e.client, err = sql.Open("postgres", e.config.ConnectionURL)
 	if err != nil {
-		return errors.Wrap(err, "failed to create connection")
+		return fmt.Errorf("create connection: %w", err)
 	}
 
-	if err = e.extractConnectionComponents(e.config.ConnectionURL); err != nil {
-		err = errors.Wrap(err, "failed to split host from connection string")
-		return
+	if err := e.extractConnectionComponents(e.config.ConnectionURL); err != nil {
+		return fmt.Errorf("split host from connection string: %w", err)
 	}
 
-	return
+	return nil
 }
 
 // Extract collects metadata from the source. Metadata is collected through the emitter
-func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) (err error) {
+func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 	defer e.client.Close()
 
 	// Get list of databases
 	dbs, err := sqlutil.FetchDBs(e.client, e.logger, "SELECT datname FROM pg_database WHERE datistemplate = false;")
 	if err != nil {
-		return errors.Wrap(err, "failed to fetch databases")
+		return fmt.Errorf("fetch databases: %w", err)
 	}
 
 	// Iterate through all tables and databases
@@ -149,11 +148,10 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) (err error) 
 }
 
 // Prepares the list of tables and the attached metadata
-func (e *Extractor) getTableMetadata(db *sql.DB, dbName, tableName string) (result *v1beta2.Asset, err error) {
-	var columns []*v1beta2.Column
-	columns, err = e.getColumnMetadata(db, dbName, tableName)
+func (e *Extractor) getTableMetadata(db *sql.DB, dbName, tableName string) (*v1beta2.Asset, error) {
+	columns, err := e.getColumnMetadata(db, tableName)
 	if err != nil {
-		return result, nil
+		return nil, err
 	}
 
 	usrPrivilegeInfo, err := e.userPrivilegesInfo(db, dbName, tableName)
@@ -166,30 +164,30 @@ func (e *Extractor) getTableMetadata(db *sql.DB, dbName, tableName string) (resu
 		Attributes: usrPrivilegeInfo,
 	})
 	if err != nil {
-		err = fmt.Errorf("error creating Any struct: %w", err)
-		return nil, err
+		return nil, fmt.Errorf("create Any struct: %w", err)
 	}
-	result = &v1beta2.Asset{
+	return &v1beta2.Asset{
 		Urn:     models.NewURN("postgres", e.UrnScope, "table", fmt.Sprintf("%s.%s", dbName, tableName)),
 		Name:    tableName,
 		Service: "postgres",
 		Type:    "table",
 		Data:    table,
-	}
-	return
+	}, nil
 }
 
 // Prepares the list of columns and the attached metadata
-func (e *Extractor) getColumnMetadata(db *sql.DB, dbName, tableName string) (result []*v1beta2.Column, err error) {
+func (e *Extractor) getColumnMetadata(db *sql.DB, tableName string) ([]*v1beta2.Column, error) {
 	sqlStr := `SELECT COLUMN_NAME,DATA_TYPE,
 				IS_NULLABLE,coalesce(CHARACTER_MAXIMUM_LENGTH,0)
 				FROM information_schema.columns
 				WHERE TABLE_NAME = '%s' ORDER BY COLUMN_NAME ASC;`
 	rows, err := db.Query(fmt.Sprintf(sqlStr, tableName))
 	if err != nil {
-		err = errors.Wrap(err, "failed to fetch data from query")
-		return
+		return nil, fmt.Errorf("execute query: %w", err)
 	}
+	defer rows.Close()
+
+	var result []*v1beta2.Column
 	for rows.Next() {
 		var fieldName, dataType, isNullableString string
 		var length int
@@ -204,10 +202,14 @@ func (e *Extractor) getColumnMetadata(db *sql.DB, dbName, tableName string) (res
 			Length:     int64(length),
 		})
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate over table columns: %w", err)
+	}
+
 	return result, nil
 }
 
-func (e *Extractor) userPrivilegesInfo(db *sql.DB, dbName, tableName string) (result *structpb.Struct, err error) {
+func (e *Extractor) userPrivilegesInfo(db *sql.DB, dbName, tableName string) (*structpb.Struct, error) {
 	query := `SELECT grantee, string_agg(privilege_type, ',') 
 	FROM information_schema.role_table_grants 
 	WHERE table_name='%s' AND table_catalog='%s'
@@ -215,15 +217,14 @@ func (e *Extractor) userPrivilegesInfo(db *sql.DB, dbName, tableName string) (re
 
 	rows, err := db.Query(fmt.Sprintf(query, tableName, dbName))
 	if err != nil {
-		err = errors.Wrap(err, "failed to fetch data from query")
-		return
+		return nil, fmt.Errorf("execute query: %w", err)
 	}
+	defer rows.Close()
 
 	var usrs []interface{}
 	for rows.Next() {
 		var grantee, privilege_type string
-
-		if err = rows.Scan(&grantee, &privilege_type); err != nil {
+		if err := rows.Scan(&grantee, &privilege_type); err != nil {
 			e.logger.Error("failed to get fields", "error", err)
 			continue
 		}
@@ -233,11 +234,14 @@ func (e *Extractor) userPrivilegesInfo(db *sql.DB, dbName, tableName string) (re
 			"privilege_types": ConvertStringListToInterface(strings.Split(privilege_type, ",")),
 		})
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate over user privileges: %w", err)
+	}
+
 	grants := map[string]interface{}{
 		"grants": usrs,
 	}
-	result = utils.TryParseMapToProto(grants)
-	return
+	return utils.TryParseMapToProto(grants), nil
 }
 
 // Convert nullable string to a boolean
@@ -246,24 +250,23 @@ func isNullable(value string) bool {
 }
 
 // connection generates a connection string
-func (e *Extractor) connection(database string) (db *sql.DB, err error) {
+func (e *Extractor) connection(database string) (*sql.DB, error) {
 	connStr := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s", e.username, e.password, e.host, database, e.sslmode)
 	return sql.Open("postgres", connStr)
 }
 
 // extractConnectionComponents extracts the components from the connection URL
-func (e *Extractor) extractConnectionComponents(connectionURL string) (err error) {
+func (e *Extractor) extractConnectionComponents(connectionURL string) error {
 	connectionStr, err := url.Parse(connectionURL)
 	if err != nil {
-		err = errors.Wrap(err, "failed to parse connection url")
-		return
+		return fmt.Errorf("parse connection URL: %w", err)
 	}
 	e.host = connectionStr.Host
 	e.username = connectionStr.User.Username()
 	e.password, _ = connectionStr.User.Password()
 	e.sslmode = connectionStr.Query().Get("sslmode")
 
-	return
+	return nil
 }
 
 // isExcludedDB checks if the given db is in the list of excluded databases

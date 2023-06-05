@@ -53,7 +53,7 @@ func TestInit(t *testing.T) {
 func TestSink(t *testing.T) {
 	t.Run("should return error if compass host returns error", func(t *testing.T) {
 		compassError := `{"reason":"no asset found"}`
-		errMessage := "error sending data: compass returns 404: {\"reason\":\"no asset found\"}"
+		errMessage := "send data: compass returns 404: {\"reason\":\"no asset found\"}"
 
 		// setup mock client
 		url := fmt.Sprintf("%s/v1beta1/assets", host)

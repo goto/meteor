@@ -98,11 +98,10 @@ func (m *Emitter) Get() []models.Record {
 	return m.data
 }
 
-func (m *Emitter) GetAllData() (data []*v1beta2.Asset) {
-	records := m.Get()
-	for _, r := range records {
+func (m *Emitter) GetAllData() []*v1beta2.Asset {
+	var data []*v1beta2.Asset
+	for _, r := range m.Get() {
 		data = append(data, r.Data())
 	}
-
-	return
+	return data
 }

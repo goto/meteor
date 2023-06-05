@@ -53,7 +53,7 @@ func TestSink(t *testing.T) {
 	t.Run("should return error if stencil host returns error", func(t *testing.T) {
 		stencilError := `{"code": 0,"message": "string","details": [{"typeUrl": "string","value": "string"}]}`
 
-		errMessage := "error sending data: stencil returns 404: {\"code\": 0,\"message\": \"string\",\"details\": [{\"typeUrl\": \"string\",\"value\": \"string\"}]}"
+		errMessage := `send stencil payload: stencil returns 404: {"code": 0,"message": "string","details": [{"typeUrl": "string","value": "string"}]}`
 		// setup mock client
 		url := fmt.Sprintf("%s/v1beta1/namespaces/%s/schemas/%s", host, namespaceID, tableURN)
 		client := newMockHTTPClient(map[string]interface{}{}, http.MethodPost, url, stencil.JsonSchema{})
@@ -237,31 +237,31 @@ func TestSink(t *testing.T) {
 				Type:   "object",
 				Properties: map[string]stencil.JsonProperty{
 					"id": {
-						Type:        []stencil.JsonType{stencil.JsonTypeNumber, stencil.JsonTypeNull},
+						Type:        []stencil.JSONType{stencil.JSONTypeNumber, stencil.JSONTypeNull},
 						Description: "It is the ID",
 					},
 					"user_id": {
-						Type:        []stencil.JsonType{stencil.JsonTypeString},
+						Type:        []stencil.JSONType{stencil.JSONTypeString},
 						Description: "It is the user ID",
 					},
 					"email_id": {
-						Type:        []stencil.JsonType{stencil.JsonTypeString, stencil.JsonTypeNull},
+						Type:        []stencil.JSONType{stencil.JSONTypeString, stencil.JSONTypeNull},
 						Description: "It is the email ID",
 					},
 					"description": {
-						Type:        []stencil.JsonType{stencil.JsonTypeString, stencil.JsonTypeNull},
+						Type:        []stencil.JSONType{stencil.JSONTypeString, stencil.JSONTypeNull},
 						Description: "It is the description",
 					},
 					"is_active": {
-						Type:        []stencil.JsonType{stencil.JsonTypeBoolean},
+						Type:        []stencil.JSONType{stencil.JSONTypeBoolean},
 						Description: "It shows user regularity",
 					},
 					"address": {
-						Type:        []stencil.JsonType{stencil.JsonTypeObject},
+						Type:        []stencil.JSONType{stencil.JSONTypeObject},
 						Description: "It shows user address",
 					},
 					"range": {
-						Type:        []stencil.JsonType{stencil.JsonTypeArray},
+						Type:        []stencil.JSONType{stencil.JSONTypeArray},
 						Description: "It is the range",
 					},
 				},
@@ -287,27 +287,27 @@ func TestSink(t *testing.T) {
 				Type:   "object",
 				Properties: map[string]stencil.JsonProperty{
 					"id": {
-						Type:        []stencil.JsonType{stencil.JsonTypeNumber, stencil.JsonTypeNull},
+						Type:        []stencil.JSONType{stencil.JSONTypeNumber, stencil.JSONTypeNull},
 						Description: "It is the ID",
 					},
 					"user_id": {
-						Type:        []stencil.JsonType{stencil.JsonTypeString},
+						Type:        []stencil.JSONType{stencil.JSONTypeString},
 						Description: "It is the user ID",
 					},
 					"email_id": {
-						Type:        []stencil.JsonType{stencil.JsonTypeString, stencil.JsonTypeNull},
+						Type:        []stencil.JSONType{stencil.JSONTypeString, stencil.JSONTypeNull},
 						Description: "It is the email ID",
 					},
 					"description": {
-						Type:        []stencil.JsonType{stencil.JsonTypeString, stencil.JsonTypeNull},
+						Type:        []stencil.JSONType{stencil.JSONTypeString, stencil.JSONTypeNull},
 						Description: "It is the description",
 					},
 					"is_active": {
-						Type:        []stencil.JsonType{stencil.JsonTypeBoolean},
+						Type:        []stencil.JSONType{stencil.JSONTypeBoolean},
 						Description: "It shows user regularity",
 					},
 					"range": {
-						Type:        []stencil.JsonType{stencil.JsonTypeArray},
+						Type:        []stencil.JSONType{stencil.JSONTypeArray},
 						Description: "It is the range",
 					},
 				},
@@ -333,11 +333,11 @@ func TestSink(t *testing.T) {
 				Type:   "object",
 				Properties: map[string]stencil.JsonProperty{
 					"id": {
-						Type:        []stencil.JsonType{stencil.JsonTypeNumber, stencil.JsonTypeNull},
+						Type:        []stencil.JSONType{stencil.JSONTypeNumber, stencil.JSONTypeNull},
 						Description: "It is the ID",
 					},
 					"user_id": {
-						Type:        []stencil.JsonType{stencil.JsonTypeString},
+						Type:        []stencil.JSONType{stencil.JSONTypeString},
 						Description: "It is the user ID",
 					},
 				},

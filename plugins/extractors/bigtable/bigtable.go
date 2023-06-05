@@ -97,20 +97,16 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 // Extract checks if the extractor is configured and
 // if so, then extracts the metadata and
 // returns the assets.
-func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) (err error) {
-	err = e.getTablesInfo(ctx, emit)
-	if err != nil {
-		return
-	}
-
-	return
+func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
+	return e.getTablesInfo(ctx, emit)
 }
 
-func getInstancesInfo(ctx context.Context, client InstancesFetcher) (instanceNames []string, err error) {
+func getInstancesInfo(ctx context.Context, client InstancesFetcher) ([]string, error) {
 	instanceInfos, err := client.Instances(ctx)
 	if err != nil {
-		return
+		return nil, err
 	}
+	var instanceNames []string
 	for i := 0; i < len(instanceInfos); i++ {
 		instanceNames = append(instanceNames, instanceInfos[i].Name)
 	}

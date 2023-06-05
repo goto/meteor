@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/goto/meteor/models"
-	"github.com/pkg/errors"
 )
 
 type (
@@ -96,7 +95,7 @@ func (s *stream) broadcast() error {
 func (s *stream) push(data models.Record) {
 	data, err := s.runMiddlewares(data)
 	if err != nil {
-		s.closeWithError(errors.Wrap(err, "emitter: error running middleware"))
+		s.closeWithError(fmt.Errorf("emitter: error running middleware: %w", err))
 		return
 	}
 

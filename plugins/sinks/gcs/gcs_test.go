@@ -50,7 +50,7 @@ func TestInit(t *testing.T) {
 			"url":                    "gcs://bucket_name/target_folder",
 			"service_account_base64": "----", // invalid
 		}})
-		assert.ErrorContains(t, actualError, "failed to decode base64 service account")
+		assert.ErrorContains(t, actualError, "decode base64 service account")
 	})
 }
 

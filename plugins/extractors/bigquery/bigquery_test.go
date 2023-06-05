@@ -52,7 +52,7 @@ func TestInit(t *testing.T) {
 			},
 		})
 
-		assert.ErrorContains(t, err, "failed to decode base64 service account")
+		assert.ErrorContains(t, err, "decode base64 service account")
 	})
 }
 

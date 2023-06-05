@@ -1213,8 +1213,8 @@ func (p *panicProcessor) Process(_ context.Context, _ models.Record) (dst models
 
 // enrichInvalidConfigError enrich the error with plugin information
 func enrichInvalidConfigError(err error, pluginName string, pluginType plugins.PluginType) error {
-	if errors.As(err, &plugins.InvalidConfigError{}) {
-		icErr := err.(plugins.InvalidConfigError)
+	var icErr plugins.InvalidConfigError
+	if errors.As(err, &icErr) {
 		icErr.PluginName = pluginName
 		icErr.Type = pluginType
 
