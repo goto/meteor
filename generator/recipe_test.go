@@ -53,10 +53,10 @@ func TestRecipe(t *testing.T) {
 		p generator.RecipeParams
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *generator.TemplateData
-		wantErr bool
+		name        string
+		args        args
+		expected    *generator.TemplateData
+		expectedErr string
 	}{
 		{
 			name: "success with minimal params",
@@ -65,11 +65,10 @@ func TestRecipe(t *testing.T) {
 					Name: "test-name",
 				},
 			},
-			want: &generator.TemplateData{
+			expected: &generator.TemplateData{
 				Name:    "test-name",
 				Version: recipeVersions[len(recipeVersions)-1],
 			},
-			wantErr: false,
 		},
 		{
 			name: "success with full params",
@@ -81,7 +80,7 @@ func TestRecipe(t *testing.T) {
 					Processors: []string{"test-processor"},
 				},
 			},
-			want: &generator.TemplateData{
+			expected: &generator.TemplateData{
 				Name:    "test-name",
 				Version: recipeVersions[len(recipeVersions)-1],
 				Source: struct {
@@ -98,7 +97,6 @@ func TestRecipe(t *testing.T) {
 					"test-processor": "",
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "error with invalid source",
@@ -108,8 +106,8 @@ func TestRecipe(t *testing.T) {
 					Source: "invalid-source",
 				},
 			},
-			want:    nil,
-			wantErr: true,
+			expected:    nil,
+			expectedErr: "provide extractor information: could not find extractor",
 		},
 		{
 			name: "error with invalid sinks",
@@ -119,8 +117,8 @@ func TestRecipe(t *testing.T) {
 					Sinks: []string{"invalid-sink"},
 				},
 			},
-			want:    nil,
-			wantErr: true,
+			expected:    nil,
+			expectedErr: "provide sink information: could not find sink",
 		},
 		{
 			name: "error with invalid processors",
@@ -130,19 +128,21 @@ func TestRecipe(t *testing.T) {
 					Processors: []string{"invalid-processor"},
 				},
 			},
-			want:    nil,
-			wantErr: true,
+			expected:    nil,
+			expectedErr: "provide processor information: could not find processor",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := generator.Recipe(tt.args.p)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Recipe() error = %v, wantErr %v", err, tt.wantErr)
+			actual, err := generator.Recipe(tt.args.p)
+			if tt.expectedErr != "" {
+				assert.ErrorContains(t, err, tt.expectedErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Recipe() = %v, want %v", got, tt.want)
+			assert.NoError(t, err)
+
+			if !reflect.DeepEqual(actual, tt.expected) {
+				t.Errorf("Recipe() = %v, want %v", actual, tt.expected)
 			}
 		})
 	}

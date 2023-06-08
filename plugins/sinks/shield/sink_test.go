@@ -78,7 +78,7 @@ func TestSink(t *testing.T) {
 				"org_unit_path": "/",
 			}),
 		})
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		data := &v1beta2.Asset{
 			Data: user,
@@ -94,9 +94,7 @@ func TestSink(t *testing.T) {
 			err = shieldSink.Init(ctx, plugins.Config{RawConfig: map[string]interface{}{
 				"host": validConfig["host"],
 			}})
-			if err != nil {
-				t.Fatal(err)
-			}
+			assert.NoError(t, err)
 
 			err = shieldSink.Sink(ctx, []models.Record{models.NewRecord(data)})
 			require.Error(t, err)
@@ -111,9 +109,8 @@ func TestSink(t *testing.T) {
 			err = shieldSink.Init(ctx, plugins.Config{RawConfig: map[string]interface{}{
 				"host": validConfig["host"],
 			}})
-			if err != nil {
-				t.Fatal(err)
-			}
+
+			assert.NoError(t, err)
 
 			err = shieldSink.Sink(ctx, []models.Record{models.NewRecord(data)})
 			assert.ErrorContains(t, err, fmt.Sprintf("shield returns code %d", codes.Internal))
@@ -127,9 +124,8 @@ func TestSink(t *testing.T) {
 			err = shieldSink.Init(ctx, plugins.Config{RawConfig: map[string]interface{}{
 				"host": validConfig["host"],
 			}})
-			if err != nil {
-				t.Fatal(err)
-			}
+
+			assert.NoError(t, err)
 
 			err = shieldSink.Sink(ctx, []models.Record{models.NewRecord(data)})
 			assert.ErrorContains(t, err, "unable to parse error returned")
@@ -164,9 +160,8 @@ func TestSink(t *testing.T) {
 				"X-Other-Header": "value1, value2",
 			},
 		}})
-		if err != nil {
-			t.Fatal(err)
-		}
+
+		assert.NoError(t, err)
 
 		err = shieldSink.Sink(ctx, []models.Record{models.NewRecord(data)})
 		assert.Equal(t, nil, err)
@@ -190,9 +185,7 @@ func TestSink(t *testing.T) {
 		err := shieldSink.Init(ctx, plugins.Config{RawConfig: map[string]interface{}{
 			"host": validConfig["host"],
 		}})
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err)
 
 		err = shieldSink.Sink(ctx, []models.Record{
 			models.NewRecord(buildData(v1beta2.User{FullName: ""})),
