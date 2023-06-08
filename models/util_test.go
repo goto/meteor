@@ -40,10 +40,10 @@ func TestToJSON(t *testing.T) {
 		asset *assetsv1beta2.Asset
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
+		name        string
+		args        args
+		expected    []byte
+		expectedErr string
 	}{
 		{
 			name: "should return the json representation of the asset",
@@ -52,18 +52,18 @@ func TestToJSON(t *testing.T) {
 					Name: "test",
 				},
 			},
-			want:    []byte(`{"urn":"", "name":"test", "service":"", "type":"", "url":"", "description":"", "data":null, "owners":[], "lineage":null, "labels":{}, "event":null, "create_time":null, "update_time":null}`),
-			wantErr: false,
+			expected: []byte(`{"urn":"", "name":"test", "service":"", "type":"", "url":"", "description":"", "data":null, "owners":[], "lineage":null, "labels":{}, "event":null, "create_time":null, "update_time":null}`),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := models.ToJSON(tt.args.asset)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ToJSON() error = %v, wantErr %v", err, tt.wantErr)
+			actual, err := models.ToJSON(tt.args.asset)
+			if tt.expectedErr != "" {
+				assert.ErrorContains(t, err, tt.expectedErr)
 				return
 			}
-			assert.Equal(t, tt.want, got)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, actual)
 		})
 	}
 }

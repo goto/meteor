@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goto/meteor/config"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLoad(t *testing.T) {
@@ -12,17 +13,17 @@ func TestLoad(t *testing.T) {
 		configFile string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    config.Config
-		wantErr bool
+		name        string
+		args        args
+		expected    config.Config
+		expectedErr string
 	}{
 		{
 			name: "should return a config",
 			args: args{
 				configFile: "testdata/valid-config.yaml",
 			},
-			want: config.Config{
+			expected: config.Config{
 				LogLevel:                    "info",
 				StatsdEnabled:               false,
 				StatsdHost:                  "localhost:8125",
@@ -37,7 +38,7 @@ func TestLoad(t *testing.T) {
 			args: args{
 				configFile: "not-found.yaml",
 			},
-			want: config.Config{
+			expected: config.Config{
 				LogLevel:                    "info",
 				StatsdEnabled:               false,
 				StatsdHost:                  "localhost:8125",
@@ -45,26 +46,28 @@ func TestLoad(t *testing.T) {
 				MaxRetries:                  5,
 				RetryInitialIntervalSeconds: 5,
 			},
-			wantErr: false,
+			expectedErr: "",
 		},
 		{
 			name: "config invalid",
 			args: args{
 				configFile: "testdata/invalid-config.yaml",
 			},
-			want:    config.Config{},
-			wantErr: true,
+			expected:    config.Config{},
+			expectedErr: "unable to load config to struct",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := config.Load(tt.args.configFile)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
+			actual, err := config.Load(tt.args.configFile)
+			if tt.expectedErr != "" {
+				assert.ErrorContains(t, err, tt.expectedErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Load() = %v, want %v", got, tt.want)
+
+			assert.NoError(t, err)
+			if !reflect.DeepEqual(actual, tt.expected) {
+				t.Errorf("Load() = %v, want %v", actual, tt.expected)
 			}
 		})
 	}

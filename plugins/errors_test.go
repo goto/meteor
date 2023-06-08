@@ -90,9 +90,7 @@ func TestNotFoundError(t *testing.T) {
 				Type: tt.fields.Type,
 				Name: tt.fields.Name,
 			}
-			if got := err.Error(); got != tt.expected {
-				t.Errorf("NotFoundError.Error() = %v, want %v", got, tt.expected)
-			}
+			assert.EqualError(t, err, tt.expected)
 		})
 	}
 }
@@ -128,7 +126,7 @@ func TestRetryError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			e := NewRetryError(tt.fields.Err)
 			if tt.fields.Err != nil {
-				assert.Equal(t, tt.expected, e.Error())
+				assert.EqualError(t, e, tt.expected, e)
 				assert.Equal(t, tt.expectedUnwrapped, e.(RetryError).Unwrap())
 			}
 		})
