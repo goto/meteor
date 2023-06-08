@@ -141,9 +141,7 @@ func TestRecipe(t *testing.T) {
 			}
 			assert.NoError(t, err)
 
-			if !reflect.DeepEqual(actual, tt.expected) {
-				t.Errorf("Recipe() = %v, want %v", actual, tt.expected)
-			}
+			assert.Equal(t, actual, tt.expected)
 		})
 	}
 }
@@ -153,10 +151,10 @@ func TestRecipeWriteTo(t *testing.T) {
 		p generator.RecipeParams
 	}
 	tests := []struct {
-		name       string
-		args       args
-		wantWriter string
-		wantErr    bool
+		name           string
+		args           args
+		expectedWriter string
+		expectedErr    bool
 	}{
 		{
 			name: "success with minimal params",
@@ -165,42 +163,42 @@ func TestRecipeWriteTo(t *testing.T) {
 					Name: "test-name",
 				},
 			},
-			wantWriter: `name: test-name
+			expectedWriter: `name: test-name
 version: v1beta1
 source:
   name: 
   config:     
     
 `,
-			wantErr: false,
+			expectedErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			writer := &bytes.Buffer{}
-			if err := generator.RecipeWriteTo(tt.args.p, writer); (err != nil) != tt.wantErr {
-				t.Errorf("RecipeWriteTo() error = %v, wantErr %v", err, tt.wantErr)
+			if err := generator.RecipeWriteTo(tt.args.p, writer); (err != nil) != tt.expectedErr {
+				t.Errorf("RecipeWriteTo() error = %v, wantErr %v", err, tt.expectedErr)
 				return
 			}
-			assert.Equal(t, tt.wantWriter, writer.String())
+			assert.Equal(t, tt.expectedWriter, writer.String())
 		})
 	}
 }
 
 func TestGetRecipeVersions(t *testing.T) {
 	tests := []struct {
-		name string
-		want [1]string
+		name     string
+		expected [1]string
 	}{
 		{
-			name: "success",
-			want: recipeVersions,
+			name:     "success",
+			expected: recipeVersions,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := generator.GetRecipeVersions(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetRecipeVersions() = %v, want %v", got, tt.want)
+			if actual := generator.GetRecipeVersions(); !reflect.DeepEqual(actual, tt.expected) {
+				t.Errorf("GetRecipeVersions() = %v, want %v", actual, tt.expected)
 			}
 		})
 	}
