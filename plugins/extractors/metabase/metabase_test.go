@@ -74,7 +74,7 @@ func TestInit(t *testing.T) {
 		})
 		assert.NoError(t, err)
 	})
-	t.Run("should return error when authenticate", func(t *testing.T) {
+	t.Run("should return error on authentication failure", func(t *testing.T) {
 		config := map[string]interface{}{
 			"host":           "sample-host",
 			"instance_label": "my-metabase",
@@ -118,9 +118,7 @@ func TestExtract(t *testing.T) {
 				"instance_label": "my-metabase",
 			},
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err)
 
 		err = extr.Extract(context.TODO(), emitter.Push)
 		assert.NoError(t, err)
@@ -146,9 +144,7 @@ func TestExtract(t *testing.T) {
 				"instance_label": "my-metabase",
 			},
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err)
 
 		err = extr.Extract(context.TODO(), emitter.Push)
 		assert.ErrorContains(t, err, "fetch dashboard list")
@@ -174,9 +170,7 @@ func TestExtract(t *testing.T) {
 				"instance_label": "my-metabase",
 			},
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err)
 
 		err = extr.Extract(context.TODO(), emitter.Push)
 		assert.NoError(t, err)
