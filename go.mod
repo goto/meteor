@@ -26,6 +26,7 @@ require (
 	github.com/gocql/gocql v0.0.0-20210817081954-bc256bbb90de
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v37 v37.0.0
+	github.com/googleapis/google-cloud-go-testing v0.0.0-20200911160855-bcd43fbb19e8
 	github.com/goto/optimus v0.6.0-rc.6.0.20230315121505-734e3d9dda98
 	github.com/goto/salt v0.3.0
 	github.com/goto/shield v0.6.0

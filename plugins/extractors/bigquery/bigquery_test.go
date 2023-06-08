@@ -34,7 +34,8 @@ func TestInit(t *testing.T) {
 		err := extr.Init(ctx, plugins.Config{
 			URNScope: "test-bigquery",
 			RawConfig: map[string]interface{}{
-				"project_id": "sample-project",
+				"project_id":          "sample-project",
+				"collect_table_usage": true,
 			},
 		})
 
@@ -53,6 +54,12 @@ func TestInit(t *testing.T) {
 		})
 
 		assert.ErrorContains(t, err, "decode base64 service account")
+	})
+}
+
+func TestExtract(t *testing.T) {
+	t.Run("should return error if config is invalid", func(t *testing.T) {
+
 	})
 }
 

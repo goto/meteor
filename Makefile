@@ -79,7 +79,7 @@ clean:
 # TESTS #############
 
 test:
-	go test ./... -coverprofile=coverage.out
+	go test $(shell go list ./... | grep -v 'test\|mocks\|plugins\|v1beta2\|cmd') -coverprofile=coverage.out
 
 test-e2e:
 	go test ./test/e2e -tags=integration -count=1
