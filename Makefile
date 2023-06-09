@@ -86,7 +86,7 @@ test-e2e:
 
 test-plugins:
 	@echo " > Testing plugins with tag 'plugins'"
-	go test ./plugins... -tags=plugins -coverprofile=coverage-plugins.out -parallel=1
+	go test $(if $(PLUGIN),./plugins/$(PLUGIN)...,./plugins...) -tags=plugins -coverprofile=coverage-plugins-$(subst /,-,$(if $(PLUGIN),$(PLUGIN),plugins)).out -parallel=1
 
 test-coverage: # test test-plugins
 	cp coverage.out coverage-all.out
