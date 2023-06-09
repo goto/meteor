@@ -70,7 +70,6 @@ func TestInit(t *testing.T) {
 func TestProcess(t *testing.T) {
 	cases := []struct {
 		name     string
-		ctx      context.Context
 		script   string
 		input    *v1beta2.Asset
 		expected *v1beta2.Asset

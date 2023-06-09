@@ -52,7 +52,23 @@ func TestToJSON(t *testing.T) {
 					Name: "test",
 				},
 			},
-			expected: []byte(`{"urn":"","name":"test","service":"","type":"","url":"","description":"","data":null,"owners":[],"lineage":null,"labels":{},"event":null,"create_time":null,"update_time":null}`),
+			expected: []byte(`
+				{
+					"name": "test",
+					"urn": "",
+					"service": "",
+					"type": "",
+					"url": "",
+					"description": "",
+					"data": null,
+					"owners": [],
+					"lineage": null,
+					"labels": {},
+					"event": null,
+					"create_time": null,
+					"update_time": null
+				}
+			`),
 		},
 	}
 	for _, tt := range tests {
@@ -63,7 +79,7 @@ func TestToJSON(t *testing.T) {
 				return
 			}
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expected, actual)
+			assert.JSONEq(t, string(tt.expected), string(actual))
 		})
 	}
 }

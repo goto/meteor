@@ -102,14 +102,18 @@ type Extractor struct {
 	config          Config
 	galClient       *auditlog.AuditLog
 	policyTagClient *datacatalog.PolicyTagManagerClient
+	newClient       NewClientFunc
 }
 
-func New(logger log.Logger) *Extractor {
+type NewClientFunc func(ctx context.Context, logger log.Logger, config Config) (*bigquery.Client, error)
+
+func New(logger log.Logger, newClient NewClientFunc) *Extractor {
 	galc := auditlog.New(logger)
 
 	e := &Extractor{
 		logger:    logger,
 		galClient: galc,
+		newClient: newClient,
 	}
 	e.BaseExtractor = plugins.NewBaseExtractor(info, &e.config)
 	e.ScopeNotRequired = true
@@ -124,7 +128,7 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 	}
 
 	var err error
-	e.client, err = e.createClient(ctx)
+	e.client, err = e.newClient(ctx, e.logger, e.config)
 	if err != nil {
 		return fmt.Errorf("create client: %w", err)
 	}
@@ -175,23 +179,23 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 	return nil
 }
 
-// Create big query client
-func (e *Extractor) createClient(ctx context.Context) (*bigquery.Client, error) {
-	if e.config.ServiceAccountBase64 == "" && e.config.ServiceAccountJSON == "" {
-		e.logger.Info("credentials are not specified, creating bigquery client using default credentials...")
-		return bigquery.NewClient(ctx, e.config.ProjectID)
+// CreateClient creates a bigquery client
+func CreateClient(ctx context.Context, logger log.Logger, config Config) (*bigquery.Client, error) {
+	if config.ServiceAccountBase64 == "" && config.ServiceAccountJSON == "" {
+		logger.Info("credentials are not specified, creating bigquery client using default credentials...")
+		return bigquery.NewClient(ctx, config.ProjectID)
 	}
 
-	if e.config.ServiceAccountBase64 != "" {
-		serviceAccountJSON, err := base64.StdEncoding.DecodeString(e.config.ServiceAccountBase64)
+	if config.ServiceAccountBase64 != "" {
+		serviceAccountJSON, err := base64.StdEncoding.DecodeString(config.ServiceAccountBase64)
 		if err != nil || len(serviceAccountJSON) == 0 {
 			return nil, fmt.Errorf("decode base64 service account: %w", err)
 		}
 		// overwrite ServiceAccountJSON with credentials from ServiceAccountBase64 value
-		e.config.ServiceAccountJSON = string(serviceAccountJSON)
+		config.ServiceAccountJSON = string(serviceAccountJSON)
 	}
 
-	return bigquery.NewClient(ctx, e.config.ProjectID, option.WithCredentialsJSON([]byte(e.config.ServiceAccountJSON)))
+	return bigquery.NewClient(ctx, config.ProjectID, option.WithCredentialsJSON([]byte(config.ServiceAccountJSON)))
 }
 
 func (e *Extractor) createPolicyTagClient(ctx context.Context) (*datacatalog.PolicyTagManagerClient, error) {
@@ -573,7 +577,7 @@ func (e *Extractor) getMaxPageSize() int {
 // Register the extractor to catalog
 func init() {
 	if err := registry.Extractors.Register("bigquery", func() plugins.Extractor {
-		return New(plugins.GetLog())
+		return New(plugins.GetLog(), CreateClient)
 	}); err != nil {
 		panic(err)
 	}
