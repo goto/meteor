@@ -79,7 +79,7 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	// clean tests
-	_ = client.Close()
+	client.Close()
 	if err := purgeFn(); err != nil {
 		log.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestExtract(t *testing.T) {
 			URNScope: "test-bigquery",
 			RawConfig: map[string]interface{}{
 				"project_id":       projectID,
-				"max_preview_rows": "1",
+				"max_preview_rows": "0",
 				"exclude": map[string]interface{}{
 					"datasets": []string{"exclude_this_dataset"},
 					"tables":   []string{"exclude_this_table"},
