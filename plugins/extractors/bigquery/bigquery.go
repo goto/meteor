@@ -384,7 +384,8 @@ func (e *Extractor) buildColumn(ctx context.Context, field *bigquery.FieldSchema
 }
 
 func (e *Extractor) buildPreview(ctx context.Context, t *bigquery.Table) (fields []string, rows *structpb.ListValue, err error) {
-	if e.config.MaxPreviewRows == 0 {
+	maxPreviewRows := e.config.MaxPreviewRows
+	if maxPreviewRows == 0 {
 		return nil, nil, nil
 	}
 
@@ -393,13 +394,13 @@ func (e *Extractor) buildPreview(ctx context.Context, t *bigquery.Table) (fields
 	ri := t.Read(ctx)
 	// fetch only the required amount of rows
 	maxPageSize := e.getMaxPageSize()
-	if maxPageSize > e.config.MaxPreviewRows {
-		ri.PageInfo().MaxSize = e.config.MaxPreviewRows
+	if maxPageSize > maxPreviewRows {
+		ri.PageInfo().MaxSize = maxPreviewRows
 	} else {
 		ri.PageInfo().MaxSize = maxPageSize
 	}
 
-	for totalRows < e.config.MaxPreviewRows {
+	for totalRows < maxPreviewRows {
 		var row []bigquery.Value
 		err := ri.Next(&row)
 		if errors.Is(err, iterator.Done) {

@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	bq "cloud.google.com/go/bigquery"
 	"github.com/goto/meteor/plugins"
@@ -151,13 +152,13 @@ func TestInit(t *testing.T) {
 func TestExtract(t *testing.T) {
 	t.Run("should return no error", func(t *testing.T) {
 		extr := bigquery.New(utils.Logger, mockClient)
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
 			URNScope: "test-bigquery",
 			RawConfig: map[string]interface{}{
 				"project_id":       projectID,
-				"max_preview_rows": "0",
+				"max_preview_rows": "1",
 				"exclude": map[string]interface{}{
 					"datasets": []string{"exclude_this_dataset"},
 					"tables":   []string{"exclude_this_table"},
