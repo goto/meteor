@@ -88,7 +88,7 @@ func mockClient(context.Context, slog.Logger, Config) (*storage.Client, error) {
 
 func TestInit(t *testing.T) {
 	t.Run("should return error if no project_id in config", func(t *testing.T) {
-		err := New(utils.Logger, nil).Init(context.TODO(), plugins.Config{
+		err := New(utils.Logger, createClient).Init(context.TODO(), plugins.Config{
 			URNScope: "test",
 			RawConfig: map[string]interface{}{
 				"wrong-config": "sample-project",
