@@ -13,6 +13,7 @@ import (
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/redshift"
 	"github.com/goto/meteor/test/mocks"
+	"github.com/goto/meteor/test/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -353,8 +354,11 @@ func TestExtract(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		err = extractor.Extract(ctx, mocks.NewEmitter().Push)
+		emitter := mocks.NewEmitter()
+		err = extractor.Extract(ctx, emitter.Push)
 		assert.NoError(t, err)
 
+		actual := emitter.GetAllData()
+		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets.json", actual)
 	})
 }

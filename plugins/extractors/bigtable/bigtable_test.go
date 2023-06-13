@@ -160,8 +160,12 @@ func TestExtract(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		err = extr.Extract(ctx, mocks.NewEmitter().Push)
+		emitter := mocks.NewEmitter()
+		err = extr.Extract(ctx, emitter.Push)
 		assert.NoError(t, err)
+
+		actual := emitter.GetAllData()
+		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets.json", actual)
 	})
 
 	t.Run("should return error when failed to create instance admin client", func(t *testing.T) {
