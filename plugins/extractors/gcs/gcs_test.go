@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/test/mocks"
 	"github.com/goto/meteor/test/utils"
@@ -22,6 +23,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var client *storage.Client
@@ -71,6 +74,8 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
+	os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "testdata/test-credentials.json")
+	defer os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
 	// run tests
 	code := m.Run()
 
@@ -147,6 +152,23 @@ func TestExtract(t *testing.T) {
 
 		actual := emitter.GetAllData()
 
-		utils.AssertProtosWithJSONFile(t, "./testdata/expected-assets.json", actual)
+		// the fake gcs server returning dynamics timestamp
+		// patching the timestamp for easier assertion
+		patchBlobTimestamp(t, actual)
+
+		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets.json", actual)
 	})
+}
+
+func patchBlobTimestamp(t *testing.T, actual []*v1beta2.Asset) {
+	b := new(v1beta2.Bucket)
+	err := actual[0].Data.UnmarshalTo(b)
+	assert.NoError(t, err)
+
+	time, err := time.Parse(time.RFC3339, "2023-06-13T03:46:12.372974Z")
+	assert.NoError(t, err)
+	b.Blobs[0].CreateTime = timestamppb.New(time)
+	b.Blobs[0].UpdateTime = timestamppb.New(time)
+
+	actual[0].Data, err = anypb.New(b)
 }
