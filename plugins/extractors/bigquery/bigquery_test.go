@@ -160,8 +160,9 @@ func TestExtract(t *testing.T) {
 		err := extr.Init(ctx, plugins.Config{
 			URNScope: "test-bigquery",
 			RawConfig: map[string]interface{}{
-				"project_id":       projectID,
-				"max_preview_rows": "1",
+				"project_id":             projectID,
+				"max_preview_rows":       "1",
+				"include_column_profile": "true",
 				"exclude": map[string]interface{}{
 					"datasets": []string{"exclude_this_dataset"},
 					"tables":   []string{"dataset1.exclude_this_table"},

@@ -24,7 +24,15 @@
                     "is_nullable": false,
                     "length": "0",
                     "name": "id",
-                    "profile": null
+                    "profile": {
+                        "avg": 0,
+                        "count": "0",
+                        "max": "",
+                        "med": 0,
+                        "min": "",
+                        "top": "",
+                        "unique": "0"
+                    }
                 },
                 {
                     "attributes": {
@@ -36,7 +44,15 @@
                     "is_nullable": false,
                     "length": "0",
                     "name": "name",
-                    "profile": null
+                    "profile": {
+                        "avg": 0,
+                        "count": "0",
+                        "max": "",
+                        "med": 0,
+                        "min": "",
+                        "top": "",
+                        "unique": "0"
+                    }
                 },
                 {
                     "attributes": {
@@ -85,7 +101,15 @@
                     "is_nullable": true,
                     "length": "0",
                     "name": "birthday",
-                    "profile": null
+                    "profile": {
+                        "avg": 0,
+                        "count": "0",
+                        "max": "",
+                        "med": 0,
+                        "min": "",
+                        "top": "",
+                        "unique": "0"
+                    }
                 },
                 {
                     "attributes": {
@@ -97,7 +121,15 @@
                     "is_nullable": true,
                     "length": "0",
                     "name": "skillNum",
-                    "profile": null
+                    "profile": {
+                        "avg": 0,
+                        "count": "0",
+                        "max": "",
+                        "med": 0,
+                        "min": "",
+                        "top": "",
+                        "unique": "0"
+                    }
                 },
                 {
                     "attributes": {
@@ -109,7 +141,15 @@
                     "is_nullable": true,
                     "length": "0",
                     "name": "created_at",
-                    "profile": null
+                    "profile": {
+                        "avg": 0,
+                        "count": "0",
+                        "max": "",
+                        "med": 0,
+                        "min": "",
+                        "top": "",
+                        "unique": "0"
+                    }
                 }
             ],
             "create_time": "2023-06-13T03:46:12.372974Z",
