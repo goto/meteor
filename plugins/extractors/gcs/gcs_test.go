@@ -5,18 +5,86 @@ package gcs
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"log"
+	"os"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/googleapis/google-cloud-go-testing/storage/stiface"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/test/mocks"
 	"github.com/goto/meteor/test/utils"
-	"github.com/goto/salt/log"
+	slog "github.com/goto/salt/log"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
 )
+
+var client *storage.Client
+
+func TestMain(m *testing.M) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	// setup test
+	opts := dockertest.RunOptions{
+		Repository: "fsouza/fake-gcs-server",
+		Tag:        "1.45",
+		Env:        []string{},
+		Mounts: []string{
+			fmt.Sprintf("%s/testdata:/data", pwd),
+		},
+		Cmd: []string{
+			"-scheme", "http",
+		},
+		ExposedPorts: []string{"4443"},
+		PortBindings: map[docker.Port][]docker.PortBinding{
+			"4443": {
+				{HostIP: "0.0.0.0", HostPort: "4443"},
+			},
+		},
+	}
+	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+	retryFn := func(resource *dockertest.Resource) error {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		client, err = storage.NewClient(ctx,
+			option.WithEndpoint("http://localhost:4443/storage/v1/"),
+		)
+		if err != nil {
+			return err
+		}
+		it := client.Bucket("test-bucket").Objects(ctx, nil)
+		_, err := it.Next()
+		if !errors.Is(err, iterator.Done) {
+			return err
+		}
+		return nil
+	}
+	purgeFn, err := utils.CreateContainer(opts, retryFn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// run tests
+	code := m.Run()
+
+	// clean tests
+	client.Close()
+	if err := purgeFn(); err != nil {
+		log.Fatal(err)
+	}
+	os.Exit(code)
+}
+
+func mockClient(context.Context, slog.Logger, Config) (*storage.Client, error) {
+	return client, nil
+}
 
 func TestInit(t *testing.T) {
 	t.Run("should return error if no project_id in config", func(t *testing.T) {
@@ -46,9 +114,7 @@ func TestInit(t *testing.T) {
 	})
 
 	t.Run("should return no error", func(t *testing.T) {
-		extr := New(utils.Logger, func(context.Context, log.Logger, Config) (stiface.Client, error) {
-			return mockClient{}, nil
-		})
+		extr := New(utils.Logger, mockClient)
 		ctx := context.Background()
 		err := extr.Init(ctx, plugins.Config{
 			URNScope: "test-gcs",
@@ -63,26 +129,7 @@ func TestInit(t *testing.T) {
 
 func TestExtract(t *testing.T) {
 	t.Run("should return no error", func(t *testing.T) {
-		extr := New(utils.Logger, func(context.Context, log.Logger, Config) (stiface.Client, error) {
-			return mockClient{
-				mockBuckets: &mockBucketIterator{
-					next: []storage.BucketAttrs{
-						{Name: "bucket-1"},
-					},
-				},
-				mockBucket: mockBucketHandle{
-					it: &mockObjectIterator{
-						next: []storage.ObjectAttrs{
-							{
-								Name:   "object-1",
-								Bucket: "bucket-1",
-								Owner:  "owner-1",
-							},
-						},
-					},
-				},
-			}, nil
-		})
+		extr := New(utils.Logger, mockClient)
 		ctx := context.Background()
 		err := extr.Init(ctx, plugins.Config{
 			URNScope: "test-gcs",
@@ -97,123 +144,4 @@ func TestExtract(t *testing.T) {
 		err = extr.Extract(context.TODO(), mocks.NewEmitter().Push)
 		assert.NoError(t, err)
 	})
-
-	t.Run("should return error when bucket iterator returns error", func(t *testing.T) {
-		extr := New(utils.Logger, func(context.Context, log.Logger, Config) (stiface.Client, error) {
-			return mockClient{
-				mockBuckets: &mockBucketIterator{
-					err: errors.New("some error"),
-					next: []storage.BucketAttrs{
-						{Name: "bucket-1"},
-					},
-				},
-			}, nil
-		})
-		ctx := context.Background()
-		err := extr.Init(ctx, plugins.Config{
-			URNScope: "test-gcs",
-			RawConfig: map[string]interface{}{
-				"project_id": "google-project-id",
-			},
-		})
-
-		assert.NoError(t, err)
-
-		err = extr.Extract(context.TODO(), mocks.NewEmitter().Push)
-		assert.ErrorContains(t, err, "iterate over")
-	})
-
-	t.Run("should return error when extract blob", func(t *testing.T) {
-		extr := New(utils.Logger, func(context.Context, log.Logger, Config) (stiface.Client, error) {
-			return mockClient{
-				mockBuckets: &mockBucketIterator{
-					next: []storage.BucketAttrs{
-						{Name: "bucket-1"},
-					},
-				},
-				mockBucket: mockBucketHandle{
-					it: &mockObjectIterator{
-						err: errors.New("some error"),
-						next: []storage.ObjectAttrs{
-							{
-								Name:   "object-1",
-								Bucket: "bucket-1",
-								Owner:  "owner-1",
-							},
-						},
-					},
-				},
-			}, nil
-		})
-		ctx := context.Background()
-		err := extr.Init(ctx, plugins.Config{
-			URNScope: "test-gcs",
-			RawConfig: map[string]interface{}{
-				"project_id":   "google-project-id",
-				"extract_blob": "true",
-			},
-		})
-
-		assert.NoError(t, err)
-
-		err = extr.Extract(context.TODO(), mocks.NewEmitter().Push)
-		assert.ErrorContains(t, err, "extract blobs from")
-	})
-}
-
-type mockClient struct {
-	stiface.Client
-	mockBuckets stiface.BucketIterator
-	mockBucket  stiface.BucketHandle
-}
-
-type mockBucketIterator struct {
-	stiface.BucketIterator
-	i    int
-	next []storage.BucketAttrs
-	err  error
-}
-
-func (it *mockBucketIterator) Next() (*storage.BucketAttrs, error) {
-	if it.i >= len(it.next) {
-		return nil, iterator.Done
-	}
-
-	nextAttr := &it.next[it.i]
-	it.i++
-	return nextAttr, it.err
-}
-
-func (c mockClient) Buckets(ctx context.Context, projectID string) stiface.BucketIterator {
-	return c.mockBuckets
-}
-
-func (c mockClient) Bucket(name string) stiface.BucketHandle {
-	return c.mockBucket
-}
-
-type mockBucketHandle struct {
-	stiface.BucketHandle
-	it stiface.ObjectIterator
-}
-
-func (h mockBucketHandle) Objects(ctx context.Context, query *storage.Query) stiface.ObjectIterator {
-	return h.it
-}
-
-type mockObjectIterator struct {
-	stiface.ObjectIterator
-	i    int
-	next []storage.ObjectAttrs
-	err  error
-}
-
-func (it *mockObjectIterator) Next() (*storage.ObjectAttrs, error) {
-	if it.i >= len(it.next) {
-		return nil, iterator.Done
-	}
-
-	nextAttr := &it.next[it.i]
-	it.i++
-	return nextAttr, it.err
 }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
-	"github.com/googleapis/google-cloud-go-testing/storage/stiface"
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
@@ -63,13 +62,13 @@ var info = plugins.Info{
 // from the google cloud storage
 type Extractor struct {
 	plugins.BaseExtractor
-	client    stiface.Client
+	client    *storage.Client
 	logger    log.Logger
 	config    Config
 	newClient NewClientFunc
 }
 
-type NewClientFunc func(ctx context.Context, logger log.Logger, config Config) (stiface.Client, error)
+type NewClientFunc func(ctx context.Context, logger log.Logger, config Config) (*storage.Client, error)
 
 // New returns a pointer to an initialized Extractor Object
 func New(logger log.Logger, newClient NewClientFunc) *Extractor {
@@ -181,11 +180,10 @@ func (e *Extractor) buildBlob(blob *storage.ObjectAttrs, projectID string) *v1be
 	}
 }
 
-func createClient(ctx context.Context, logger log.Logger, config Config) (stiface.Client, error) {
+func createClient(ctx context.Context, logger log.Logger, config Config) (*storage.Client, error) {
 	if config.ServiceAccountBase64 == "" && config.ServiceAccountJSON == "" {
 		logger.Info("credentials are not specified, creating google cloud storage client using Default Credentials...")
-		c, err := storage.NewClient(ctx)
-		return stiface.AdaptClient(c), err
+		return storage.NewClient(ctx)
 	}
 
 	if config.ServiceAccountBase64 != "" {
@@ -197,9 +195,7 @@ func createClient(ctx context.Context, logger log.Logger, config Config) (stifac
 		config.ServiceAccountJSON = string(serviceAccountJSON)
 	}
 
-	c, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(config.ServiceAccountJSON)))
-
-	return stiface.AdaptClient(c), err
+	return storage.NewClient(ctx, option.WithCredentialsJSON([]byte(config.ServiceAccountJSON)))
 }
 
 // Register the extractor to catalog

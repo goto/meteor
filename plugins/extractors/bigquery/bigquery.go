@@ -457,10 +457,10 @@ func (e *Extractor) getColumnProfile(ctx context.Context, col *bigquery.FieldSch
 	}
 
 	it, err := query.Read(ctx)
-	it.PageInfo().MaxSize = e.getMaxPageSize()
 	if err != nil {
 		return nil, err
 	}
+	it.PageInfo().MaxSize = e.getMaxPageSize()
 
 	// fetch first row for column profile result
 	var row struct {
