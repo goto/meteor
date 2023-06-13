@@ -103,6 +103,7 @@ func TestRetryError(t *testing.T) {
 		name              string
 		fields            fields
 		expected          string
+		expectedErr       error
 		expectedUnwrapped error
 	}{
 		{
@@ -111,6 +112,7 @@ func TestRetryError(t *testing.T) {
 				Err: fmt.Errorf("some error"),
 			},
 			expected:          "some error",
+			expectedErr:       RetryError{Err: fmt.Errorf("some error")},
 			expectedUnwrapped: fmt.Errorf("some error"),
 		},
 		{
@@ -118,15 +120,16 @@ func TestRetryError(t *testing.T) {
 			fields: fields{
 				Err: nil,
 			},
-			expected:          "",
+			expectedErr:       nil,
 			expectedUnwrapped: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := NewRetryError(tt.fields.Err)
-			if tt.fields.Err != nil {
-				assert.EqualError(t, e, tt.expected, e)
+			assert.Equal(t, e, tt.expectedErr, e)
+			if e != nil {
+				assert.Equal(t, tt.expected, e.Error())
 				assert.Equal(t, tt.expectedUnwrapped, e.(RetryError).Unwrap())
 			}
 		})
