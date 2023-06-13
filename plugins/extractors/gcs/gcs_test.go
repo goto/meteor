@@ -141,7 +141,12 @@ func TestExtract(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		err = extr.Extract(context.TODO(), mocks.NewEmitter().Push)
+		emitter := mocks.NewEmitter()
+		err = extr.Extract(context.TODO(), emitter.Push)
 		assert.NoError(t, err)
+
+		actual := emitter.GetAllData()
+
+		utils.AssertProtosWithJSONFile(t, "./testdata/expected-assets.json", actual)
 	})
 }
