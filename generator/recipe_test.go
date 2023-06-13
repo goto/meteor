@@ -3,7 +3,6 @@ package generator_test
 import (
 	"bytes"
 	_ "embed"
-	"reflect"
 	"testing"
 
 	"github.com/goto/meteor/generator"
@@ -16,38 +15,36 @@ import (
 var recipeVersions = [1]string{"v1beta1"}
 
 func TestRecipe(t *testing.T) {
-	if err := registry.Extractors.Register("test-extractor", func() plugins.Extractor {
+	var err error
+	err = registry.Extractors.Register("test-extractor", func() plugins.Extractor {
 		extr := mocks.NewExtractor()
 		mockInfo := plugins.Info{
 			Description: "Mock Extractor 1",
 		}
 		extr.On("Info").Return(mockInfo, nil).Once()
 		return extr
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
+	assert.NoError(t, err)
 
-	if err := registry.Sinks.Register("test-sink", func() plugins.Syncer {
+	err = registry.Sinks.Register("test-sink", func() plugins.Syncer {
 		mockSink := mocks.NewSink()
 		mockInfo := plugins.Info{
 			Description: "Mock Sink 1",
 		}
 		mockSink.On("Info").Return(mockInfo, nil).Once()
 		return mockSink
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
+	assert.NoError(t, err)
 
-	if err := registry.Processors.Register("test-processor", func() plugins.Processor {
+	err = registry.Processors.Register("test-processor", func() plugins.Processor {
 		mockProcessor := mocks.NewProcessor()
 		mockInfo := plugins.Info{
 			Description: "Mock Processor 1",
 		}
 		mockProcessor.On("Info").Return(mockInfo, nil).Once()
 		return mockProcessor
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
+	assert.NoError(t, err)
 
 	type args struct {
 		p generator.RecipeParams
@@ -154,7 +151,7 @@ func TestRecipeWriteTo(t *testing.T) {
 		name           string
 		args           args
 		expectedWriter string
-		expectedErr    bool
+		expectedErr    string
 	}{
 		{
 			name: "success with minimal params",
@@ -170,14 +167,15 @@ source:
   config:     
     
 `,
-			expectedErr: false,
+			expectedErr: "",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			writer := &bytes.Buffer{}
-			if err := generator.RecipeWriteTo(tt.args.p, writer); (err != nil) != tt.expectedErr {
-				t.Errorf("RecipeWriteTo() error = %v, wantErr %v", err, tt.expectedErr)
+			err := generator.RecipeWriteTo(tt.args.p, writer)
+			if tt.expectedErr != "" {
+				assert.ErrorContains(t, err, tt.expectedErr)
 				return
 			}
 			assert.Equal(t, tt.expectedWriter, writer.String())
@@ -197,9 +195,8 @@ func TestGetRecipeVersions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if actual := generator.GetRecipeVersions(); !reflect.DeepEqual(actual, tt.expected) {
-				t.Errorf("GetRecipeVersions() = %v, want %v", actual, tt.expected)
-			}
+			actual := generator.GetRecipeVersions()
+			assert.Equal(t, tt.expected, actual)
 		})
 	}
 }

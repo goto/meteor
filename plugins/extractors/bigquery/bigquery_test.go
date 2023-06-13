@@ -12,6 +12,7 @@ import (
 	"time"
 
 	bq "cloud.google.com/go/bigquery"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/bigquery"
 	"github.com/goto/meteor/test/mocks"
@@ -21,6 +22,8 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/option"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -161,16 +164,50 @@ func TestExtract(t *testing.T) {
 				"max_preview_rows": "1",
 				"exclude": map[string]interface{}{
 					"datasets": []string{"exclude_this_dataset"},
-					"tables":   []string{"exclude_this_table"},
+					"tables":   []string{"dataset1.exclude_this_table"},
 				},
 			},
 		})
 
 		assert.NoError(t, err)
 
-		err = extr.Extract(ctx, mocks.NewEmitter().Push)
+		emitter := mocks.NewEmitter()
+		err = extr.Extract(ctx, emitter.Push)
 		assert.NoError(t, err)
+
+		actual := getAllData(emitter, t)
+
+		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets.json", actual)
 	})
+}
+
+func getAllData(emitter *mocks.Emitter, t *testing.T) []*v1beta2.Asset {
+	actual := emitter.GetAllData()
+
+	// the emulator appending 1 random dataset
+	// we can't assert it, so we remove it from the list
+	actual = actual[:len(actual)-1]
+
+	// the emulator returning dynamic timestamps
+	// replace them with static ones
+	for _, asset := range actual {
+		replaceWithStaticTimestamp(t, asset)
+	}
+	return actual
+}
+
+func replaceWithStaticTimestamp(t *testing.T, asset *v1beta2.Asset) {
+	b := new(v1beta2.Table)
+	err := asset.Data.UnmarshalTo(b)
+	assert.NoError(t, err)
+
+	time, err := time.Parse(time.RFC3339, "2023-06-13T03:46:12.372974Z")
+	assert.NoError(t, err)
+	b.CreateTime = timestamppb.New(time)
+	b.UpdateTime = timestamppb.New(time)
+
+	asset.Data, err = anypb.New(b)
+	assert.NoError(t, err)
 }
 
 func TestIsExcludedTable(t *testing.T) {

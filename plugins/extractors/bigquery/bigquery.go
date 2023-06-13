@@ -213,7 +213,7 @@ func (e *Extractor) extractTable(ctx context.Context, ds *bigquery.Dataset, emit
 	tb.PageInfo().MaxSize = e.getMaxPageSize()
 	for {
 		table, err := tb.Next()
-		if errors.Is(err, iterator.Done) || errors.Is(err, context.Canceled) {
+		if errors.Is(err, iterator.Done) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			break
 		} else if err != nil {
 			e.logger.Error("failed to get table, skipping table", "err", err)

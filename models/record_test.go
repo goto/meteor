@@ -1,11 +1,11 @@
 package models_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewRecord(t *testing.T) {
@@ -27,9 +27,8 @@ func TestNewRecord(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := models.NewRecord(tt.args.data); !reflect.DeepEqual(got, tt.expected) {
-				t.Errorf("NewRecord() = %v, want %v", got, tt.expected)
-			}
+			actual := models.NewRecord(tt.args.data)
+			assert.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -58,9 +57,8 @@ func TestRecord_Data(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := models.NewRecord(tt.fields.data)
-			if actual := r.Data(); !reflect.DeepEqual(actual, tt.expected) {
-				t.Errorf("Record.Data() = %v, want %v", actual, tt.expected)
-			}
+			actual := r.Data()
+			assert.Equal(t, tt.expected, actual)
 		})
 	}
 }

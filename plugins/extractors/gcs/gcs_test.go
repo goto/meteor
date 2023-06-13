@@ -58,6 +58,7 @@ func TestMain(m *testing.M) {
 		defer cancel()
 		client, err = storage.NewClient(ctx,
 			option.WithEndpoint("http://localhost:4443/storage/v1/"),
+			option.WithoutAuthentication(),
 		)
 		if err != nil {
 			return err
@@ -74,8 +75,6 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "testdata/test-credentials.json")
-	defer os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
 	// run tests
 	code := m.Run()
 
@@ -152,15 +151,15 @@ func TestExtract(t *testing.T) {
 
 		actual := emitter.GetAllData()
 
-		// the fake gcs server returning dynamics timestamp
-		// patching the timestamp for easier assertion
-		patchBlobTimestamp(t, actual)
+		// the emulator returning dynamic timestamps
+		// replace them with static ones
+		replaceWithStaticTimestamp(t, actual)
 
 		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets.json", actual)
 	})
 }
 
-func patchBlobTimestamp(t *testing.T, actual []*v1beta2.Asset) {
+func replaceWithStaticTimestamp(t *testing.T, actual []*v1beta2.Asset) {
 	b := new(v1beta2.Bucket)
 	err := actual[0].Data.UnmarshalTo(b)
 	assert.NoError(t, err)
@@ -171,4 +170,5 @@ func patchBlobTimestamp(t *testing.T, actual []*v1beta2.Asset) {
 	b.Blobs[0].UpdateTime = timestamppb.New(time)
 
 	actual[0].Data, err = anypb.New(b)
+	assert.NoError(t, err)
 }

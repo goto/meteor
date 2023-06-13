@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/goto/meteor/config"
@@ -66,9 +65,7 @@ func TestLoad(t *testing.T) {
 			}
 
 			assert.NoError(t, err)
-			if !reflect.DeepEqual(actual, tt.expected) {
-				t.Errorf("Load() = %v, want %v", actual, tt.expected)
-			}
+			assert.Equal(t, tt.expected, actual)
 		})
 	}
 }

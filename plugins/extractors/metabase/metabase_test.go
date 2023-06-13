@@ -174,6 +174,8 @@ func TestExtract(t *testing.T) {
 
 		err = extr.Extract(context.TODO(), emitter.Push)
 		assert.NoError(t, err)
+		actuals := emitter.GetAllData()
+		testutils.AssertEqualProtos(t, []*v1beta2.Asset{}, actuals)
 	})
 }
 

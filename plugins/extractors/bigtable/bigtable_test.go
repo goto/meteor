@@ -195,8 +195,10 @@ func TestExtract(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		err = extr.Extract(ctx, mocks.NewEmitter().Push)
+		emitter := mocks.NewEmitter()
+		err = extr.Extract(ctx, emitter.Push)
 		assert.ErrorIs(t, err, expectedErr)
+		assert.Len(t, emitter.GetAllData(), 0)
 	})
 
 	t.Run("should return no error when failed get table info", func(t *testing.T) {
@@ -229,7 +231,10 @@ func TestExtract(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		err = extr.Extract(ctx, mocks.NewEmitter().Push)
+		emitter := mocks.NewEmitter()
+		err = extr.Extract(ctx, emitter.Push)
 		assert.NoError(t, err)
+
+		assert.Len(t, emitter.GetAllData(), 0)
 	})
 }
