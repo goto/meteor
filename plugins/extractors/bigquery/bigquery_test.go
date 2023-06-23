@@ -5,6 +5,7 @@ package bigquery_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -228,6 +229,13 @@ func TestExtract(t *testing.T) {
 			utils.AssertJSONFile(t, "testdata/expected-assets-mixed.json", actual, jsondiff.NoMatch)
 		})
 
+		t.Run("should not build preview rows when randomFn fails", func(t *testing.T) {
+			actual := runTest(t, cfg, func(max int64) (int64, error) {
+				return 0, errors.New("randomizer failed")
+			})
+			utils.AssertJSONFile(t, "testdata/expected-assets-no-preview.json", actual, jsondiff.FullMatch)
+		})
+
 		t.Run("should not randomize if rows < 2", func(t *testing.T) {
 			seed := int64(42)
 			randomizer := randFn(seed)
@@ -235,7 +243,7 @@ func TestExtract(t *testing.T) {
 			newCfg := cfg
 			newCfg.RawConfig["max_preview_rows"] = "1"
 
-			actual := runTest(t, cfg, randomizer)
+			actual := runTest(t, newCfg, randomizer)
 			utils.AssertJSONFile(t, "testdata/expected-assets.json", actual, jsondiff.FullMatch)
 		})
 	})
