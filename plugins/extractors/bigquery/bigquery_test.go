@@ -12,6 +12,11 @@ import (
 	"time"
 
 	bq "cloud.google.com/go/bigquery"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/extractors/bigquery"
+	"github.com/goto/meteor/test/mocks"
+	"github.com/goto/meteor/test/utils"
 	slog "github.com/goto/salt/log"
 	"github.com/nsf/jsondiff"
 	"github.com/ory/dockertest/v3"
@@ -20,12 +25,6 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
-	"github.com/goto/meteor/plugins"
-	"github.com/goto/meteor/plugins/extractors/bigquery"
-	"github.com/goto/meteor/test/mocks"
-	"github.com/goto/meteor/test/utils"
 )
 
 const (

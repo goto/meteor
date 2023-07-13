@@ -14,6 +14,12 @@ import (
 	"cloud.google.com/go/bigquery"
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
 	"cloud.google.com/go/datacatalog/apiv1/datacatalogpb"
+	"github.com/goto/meteor/models"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/extractors/bigquery/auditlog"
+	"github.com/goto/meteor/registry"
+	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	"github.com/pkg/errors"
 	"google.golang.org/api/iterator"
@@ -21,13 +27,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	"github.com/goto/meteor/models"
-	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
-	"github.com/goto/meteor/plugins"
-	"github.com/goto/meteor/plugins/extractors/bigquery/auditlog"
-	"github.com/goto/meteor/registry"
-	"github.com/goto/meteor/utils"
 )
 
 //go:embed README.md
@@ -443,12 +442,9 @@ func (e *Extractor) buildPreview(ctx context.Context, t *bigquery.Table, md *big
 		totalRows++
 	}
 
-	// if mix values true, then randomize the values
-	if e.config.MixValues {
-		tempRows, err = e.mixValues(tempRows, md.LastModifiedTime.Unix())
-		if err != nil {
-			return nil, nil, fmt.Errorf("mix values: %w", err)
-		}
+	tempRows, err = e.mixValuesIfNeeded(tempRows, md.LastModifiedTime.Unix())
+	if err != nil {
+		return nil, nil, fmt.Errorf("mix values: %w", err)
 	}
 
 	rows, err = structpb.NewList(tempRows)
@@ -459,9 +455,10 @@ func (e *Extractor) buildPreview(ctx context.Context, t *bigquery.Table, md *big
 	return fields, rows, nil
 }
 
-func (e *Extractor) mixValues(rows []interface{}, rndSeed int64) ([]interface{}, error) {
+func (e *Extractor) mixValuesIfNeeded(rows []interface{}, rndSeed int64) ([]interface{}, error) {
 	numRows := len(rows)
-	if numRows < 2 {
+
+	if !e.config.MixValues || numRows < 2 {
 		return rows, nil
 	}
 
@@ -625,13 +622,13 @@ func (e *Extractor) getMaxPageSize() int {
 // Register the extractor to catalog
 func init() {
 	if err := registry.Extractors.Register("bigquery", func() plugins.Extractor {
-		return New(plugins.GetLog(), CreateClient, cryptoRandom)
+		return New(plugins.GetLog(), CreateClient, seededRandom)
 	}); err != nil {
 		panic(err)
 	}
 }
 
-func cryptoRandom(max, rndSeed int64) int64 {
-	rnd := rand.New(rand.NewSource(rndSeed))
+func seededRandom(max, rndSeed int64) int64 {
+	rnd := rand.New(rand.NewSource(rndSeed)) //nolint:gosec
 	return rnd.Int63n(max)
 }
