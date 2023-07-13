@@ -5,20 +5,13 @@ package bigquery_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"testing"
 	"time"
 
 	bq "cloud.google.com/go/bigquery"
-	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
-	"github.com/goto/meteor/plugins"
-	"github.com/goto/meteor/plugins/extractors/bigquery"
-	"github.com/goto/meteor/test/mocks"
-	"github.com/goto/meteor/test/utils"
 	slog "github.com/goto/salt/log"
 	"github.com/nsf/jsondiff"
 	"github.com/ory/dockertest/v3"
@@ -27,6 +20,12 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/extractors/bigquery"
+	"github.com/goto/meteor/test/mocks"
+	"github.com/goto/meteor/test/utils"
 )
 
 const (
@@ -156,7 +155,7 @@ func TestInit(t *testing.T) {
 }
 
 func TestExtract(t *testing.T) {
-	runTest := func(t *testing.T, cfg plugins.Config, randomizer func(int64) (int64, error)) []*v1beta2.Asset {
+	runTest := func(t *testing.T, cfg plugins.Config, randomizer func(max, seed int64) int64) []*v1beta2.Asset {
 		extr := bigquery.New(utils.Logger, mockClient, randomizer)
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
@@ -204,46 +203,34 @@ func TestExtract(t *testing.T) {
 			},
 		}
 
-		randFn := func(seed int64) func(max int64) (int64, error) {
-			randomizer := rand.New(rand.NewSource(seed))
-
-			return func(max int64) (int64, error) {
-				return randomizer.Int63n(max), nil
+		randFn := func(randVal int64) func(max, seed int64) int64 {
+			return func(max, seed int64) int64 {
+				return randVal
 			}
 		}
 
 		t.Run("should return preview rows with mixed values", func(t *testing.T) {
-			seed := int64(42)
-			randomizer := randFn(seed)
+			actual := runTest(t, cfg, randFn(3))
 
-			actual := runTest(t, cfg, randomizer)
+			utils.AssertJSONFile(t, "testdata/expected-assets-mixed.json", actual, jsondiff.FullMatch)
+		})
+
+		t.Run("should return preview rows with mixed values", func(t *testing.T) {
+			actual := runTest(t, cfg, randFn(3))
 
 			utils.AssertJSONFile(t, "testdata/expected-assets-mixed.json", actual, jsondiff.FullMatch)
 		})
 
 		t.Run("with different seed should not equal to expected", func(t *testing.T) {
-			seed := int64(99)
-			randomizer := randFn(seed)
-
-			actual := runTest(t, cfg, randomizer)
+			actual := runTest(t, cfg, randFn(2))
 			utils.AssertJSONFile(t, "testdata/expected-assets-mixed.json", actual, jsondiff.NoMatch)
 		})
 
-		t.Run("should not build preview rows when randomFn fails", func(t *testing.T) {
-			actual := runTest(t, cfg, func(max int64) (int64, error) {
-				return 0, errors.New("randomizer failed")
-			})
-			utils.AssertJSONFile(t, "testdata/expected-assets-no-preview.json", actual, jsondiff.FullMatch)
-		})
-
 		t.Run("should not randomize if rows < 2", func(t *testing.T) {
-			seed := int64(42)
-			randomizer := randFn(seed)
-
 			newCfg := cfg
 			newCfg.RawConfig["max_preview_rows"] = "1"
 
-			actual := runTest(t, newCfg, randomizer)
+			actual := runTest(t, newCfg, randFn(3))
 			utils.AssertJSONFile(t, "testdata/expected-assets.json", actual, jsondiff.FullMatch)
 		})
 	})
