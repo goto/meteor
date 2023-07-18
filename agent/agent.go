@@ -26,18 +26,28 @@ type Agent struct {
 	extractorFactory *registry.ExtractorFactory
 	processorFactory *registry.ProcessorFactory
 	sinkFactory      *registry.SinkFactory
-	monitor          Monitor
+	monitor          []Monitor
 	logger           log.Logger
 	retrier          *retrier
 	stopOnSinkError  bool
 	timerFn          TimerFn
 }
 
+type PluginInfo struct {
+	RecipeName string
+	PluginName string
+	PluginType string
+	Success    bool
+	StartTime  time.Time
+	Retries    int64
+	BatchSize  int
+}
+
 // NewAgent returns an Agent with plugin factories.
 func NewAgent(config Config) *Agent {
 	mt := config.Monitor
 	if isNilMonitor(mt) {
-		mt = new(defaultMonitor)
+		mt = append(mt, new(defaultMonitor))
 	}
 
 	timerFn := config.TimerFn
@@ -122,14 +132,17 @@ func (r *Agent) Run(ctx context.Context, recipe recipe.Recipe) (run Run) {
 	r.logger.Info("running recipe", "recipe", run.Recipe.Name)
 
 	var (
-		getDuration = r.timerFn()
-		stream      = newStream()
-		recordCnt   int64
+		getDuration       = r.timerFn()
+		stream            = newStream()
+		recordCnt         int64
+		extractorRetryCnt int64
 	)
 
 	defer func() {
 		run.DurationInMs = getDuration()
-		r.logAndRecordMetrics(run)
+		run.ExtractorRetries = int(extractorRetryCnt)
+		run.AssetsExtracted = int(recordCnt)
+		r.logAndRecordMetrics(ctx, run)
 	}()
 
 	runExtractor, err := r.setupExtractor(ctx, recipe.Source, stream)
@@ -139,14 +152,14 @@ func (r *Agent) Run(ctx context.Context, recipe recipe.Recipe) (run Run) {
 	}
 
 	for _, pr := range recipe.Processors {
-		if err := r.setupProcessor(ctx, pr, stream); err != nil {
+		if err := r.setupProcessor(ctx, pr, stream, recipe.Name); err != nil {
 			run.Error = fmt.Errorf("setup processor: %w", err)
 			return run
 		}
 	}
 
 	for _, sr := range recipe.Sinks {
-		err := r.setupSink(ctx, sr, stream, recipe)
+		err := r.setupSink(ctx, sr, stream, recipe.Name)
 		if err != nil {
 			run.Error = fmt.Errorf("setup sink: %w", err)
 			return run
@@ -180,6 +193,7 @@ func (r *Agent) Run(ctx context.Context, recipe recipe.Recipe) (run Run) {
 		}()
 
 		retryNotification := func(e error, d time.Duration) {
+			atomic.AddInt64(&extractorRetryCnt, 1)
 			r.logger.Warn(
 				fmt.Sprintf("retrying extractor in %s", d),
 				"retry_delay_ms", d.Milliseconds(),
@@ -228,7 +242,22 @@ func (r *Agent) setupExtractor(ctx context.Context, sr recipe.PluginRecipe, str 
 	}, nil
 }
 
-func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream) error {
+func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream, recipeName string) error {
+	var pluginInfo = PluginInfo{
+		RecipeName: recipeName,
+		PluginName: pr.Name,
+		PluginType: "processor",
+		StartTime:  time.Now(),
+	}
+	var err error
+
+	defer func() {
+		pluginInfo.Success = err == nil
+		for _, monitor := range r.monitor {
+			monitor.RecordPlugin(ctx, pluginInfo)
+		}
+	}()
+
 	proc, err := r.processorFactory.Get(pr.Name)
 	if err != nil {
 		return fmt.Errorf("find processor %q: %w", pr.Name, err)
@@ -249,7 +278,14 @@ func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str 
 	return nil
 }
 
-func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *stream, recipe recipe.Recipe) error {
+func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *stream, recipeName string) error {
+	var pluginInfo = PluginInfo{
+		RecipeName: recipeName,
+		PluginName: sr.Name,
+		PluginType: "sink",
+		StartTime:  time.Now(),
+	}
+
 	sink, err := r.sinkFactory.Get(sr.Name)
 	if err != nil {
 		return fmt.Errorf("find sink %q: %w", sr.Name, err)
@@ -259,6 +295,7 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 	}
 
 	retryNotification := func(e error, d time.Duration) {
+		atomic.AddInt64(&pluginInfo.Retries, 1)
 		r.logger.Warn(
 			fmt.Sprintf("retrying sink in %s", d),
 			"retry_delay_ms", d.Milliseconds(),
@@ -273,8 +310,15 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 			retryNotification,
 		)
 
-		success := err == nil
-		r.monitor.RecordPlugin(recipe.Name, sr.Name, "sink", success)
+		pluginInfo.Success = err == nil
+		for _, val := range stream.subscribers {
+			pluginInfo.BatchSize += val.batchSize
+		}
+
+		for _, monitor := range r.monitor {
+			monitor.RecordPlugin(ctx, pluginInfo)
+		}
+
 		if err != nil {
 			// once it reaches here, it means that the retry has been exhausted and still got error
 			r.logger.Error("error running sink", "sink", sr.Name, "error", err.Error())
@@ -284,7 +328,7 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 			return nil
 		}
 
-		r.logger.Info("Successfully published record", "sink", sr.Name, "recipe", recipe.Name)
+		r.logger.Info("Successfully published record", "sink", sr.Name, "recipe", recipeName)
 		return nil
 	}, defaultBatchSize)
 
@@ -297,19 +341,21 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 	return nil
 }
 
-func (r *Agent) logAndRecordMetrics(run Run) {
-	r.monitor.RecordRun(run)
-	if run.Success {
-		r.logger.Info("done running recipe",
-			"recipe", run.Recipe.Name,
-			"duration_ms", run.DurationInMs,
-			"record_count", run.RecordCount)
-	} else {
-		r.logger.Error("error running recipe",
-			"recipe", run.Recipe.Name,
-			"duration_ms", run.DurationInMs,
-			"records_count", run.RecordCount,
-			"err", run.Error)
+func (r *Agent) logAndRecordMetrics(ctx context.Context, run Run) {
+	for _, monitor := range r.monitor {
+		monitor.RecordRun(ctx, run)
+		if run.Success {
+			r.logger.Info("done running recipe",
+				"recipe", run.Recipe.Name,
+				"duration_ms", run.DurationInMs,
+				"record_count", run.RecordCount)
+		} else {
+			r.logger.Error("error running recipe",
+				"recipe", run.Recipe.Name,
+				"duration_ms", run.DurationInMs,
+				"records_count", run.RecordCount,
+				"err", run.Error)
+		}
 	}
 }
 
