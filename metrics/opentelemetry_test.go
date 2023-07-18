@@ -37,7 +37,6 @@ func TestOtelMonitor_RecordRun(t *testing.T) {
 		assert.NotNil(t, monitor)
 		assert.NotNil(t, done)
 	})
-
 }
 
 func TestOtelMonitor_RecordPlugin(t *testing.T) {

@@ -243,13 +243,15 @@ func (r *Agent) setupExtractor(ctx context.Context, sr recipe.PluginRecipe, str 
 }
 
 func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream, recipeName string) error {
-	var pluginInfo = PluginInfo{
-		RecipeName: recipeName,
-		PluginName: pr.Name,
-		PluginType: "processor",
-		StartTime:  time.Now(),
-	}
-	var err error
+	var (
+		pluginInfo = PluginInfo{
+			RecipeName: recipeName,
+			PluginName: pr.Name,
+			PluginType: "processor",
+			StartTime:  time.Now(),
+		}
+		err error
+	)
 
 	defer func() {
 		pluginInfo.Success = err == nil
@@ -279,7 +281,7 @@ func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str 
 }
 
 func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *stream, recipeName string) error {
-	var pluginInfo = PluginInfo{
+	pluginInfo := PluginInfo{
 		RecipeName: recipeName,
 		PluginName: sr.Name,
 		PluginType: "sink",

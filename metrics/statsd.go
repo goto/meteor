@@ -33,7 +33,7 @@ func NewStatsdMonitor(client statsdClient, prefix string) *StatsdMonitor {
 }
 
 // RecordRun records a run behavior
-func (m *StatsdMonitor) RecordRun(ctx context.Context, run agent.Run) {
+func (m *StatsdMonitor) RecordRun(_ context.Context, run agent.Run) {
 	m.client.Timing(
 		m.createMetricName(runDurationMetricName, run.Recipe, run.Success),
 		int64(run.DurationInMs),
@@ -48,7 +48,7 @@ func (m *StatsdMonitor) RecordRun(ctx context.Context, run agent.Run) {
 }
 
 // RecordPlugin records a individual plugin behavior in a run
-func (m *StatsdMonitor) RecordPlugin(ctx context.Context, pluginInfo agent.PluginInfo) {
+func (m *StatsdMonitor) RecordPlugin(_ context.Context, pluginInfo agent.PluginInfo) {
 	m.client.Increment(
 		fmt.Sprintf(
 			"%s.%s,recipe_name=%s,name=%s,type=%s,success=%t",

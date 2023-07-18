@@ -13,10 +13,10 @@ type Monitor interface {
 // defaultMonitor is the default implementation of Monitor.
 type defaultMonitor struct{}
 
-func (m *defaultMonitor) RecordRun(ctx context.Context, run Run) {
+func (*defaultMonitor) RecordRun(context.Context, Run) {
 }
 
-func (m *defaultMonitor) RecordPlugin(ctx context.Context, pluginInfo PluginInfo) {
+func (*defaultMonitor) RecordPlugin(context.Context, PluginInfo) {
 }
 
 func isNilMonitor(monitor []Monitor) bool {

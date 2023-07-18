@@ -57,7 +57,6 @@ func NewOTLP(ctx context.Context, cfg config.Config, logger *log.Logrus, appVers
 			semconv.ServiceName(cfg.AppName),
 			semconv.ServiceVersion(appVersion),
 		))
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("create resource: %w", err)
 	}
@@ -225,7 +224,6 @@ func (m *OtelMonitor) RecordRun(ctx context.Context, run agent.Run) {
 			attribute.StringSlice("processors", getSliceStringPluginNames(run.Recipe.Processors)),
 			attribute.StringSlice("sinks", getSliceStringPluginNames(run.Recipe.Sinks)),
 		))
-
 }
 
 // RecordPlugin records a individual plugin behavior in a run
@@ -233,12 +231,12 @@ func (m *OtelMonitor) RecordPlugin(ctx context.Context, pluginInfo agent.PluginI
 	switch pluginInfo.PluginType {
 	case "sink":
 		m.sinkDuration.Record(ctx,
-			int64(time.Since(pluginInfo.StartTime).Milliseconds()),
+			time.Since(pluginInfo.StartTime).Milliseconds(),
 			metric.WithAttributes(
 				attribute.String("sink", pluginInfo.PluginName),
 			))
 		m.sinkRetries.Add(ctx,
-			int64(pluginInfo.Retries),
+			pluginInfo.Retries,
 			metric.WithAttributes(
 				attribute.String("sink", pluginInfo.PluginName),
 				attribute.Int64("batch_size", int64(pluginInfo.BatchSize)),
@@ -246,10 +244,9 @@ func (m *OtelMonitor) RecordPlugin(ctx context.Context, pluginInfo agent.PluginI
 
 	case "processor":
 		m.processorDuration.Record(ctx,
-			int64(time.Since(pluginInfo.StartTime).Milliseconds()),
+			time.Since(pluginInfo.StartTime).Milliseconds(),
 			metric.WithAttributes(
 				attribute.String("processor", pluginInfo.PluginName),
 			))
 	}
-
 }
