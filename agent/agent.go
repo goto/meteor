@@ -39,9 +39,12 @@ type PluginInfo struct {
 	PluginType string
 	Success    bool
 	StartTime  time.Time
-	Retries    int64
 	BatchSize  int
 }
+
+type RecordProcessorFn func(context.Context, models.Record) (models.Record, error)
+
+type RecordSinkFn func(context.Context, []models.Record) error
 
 // NewAgent returns an Agent with plugin factories.
 func NewAgent(config Config) *Agent {
@@ -239,20 +242,26 @@ func (r *Agent) setupExtractor(ctx context.Context, sr recipe.PluginRecipe, str 
 	}, nil
 }
 
+func processorMonitorMW(mts []Monitor, pi PluginInfo, ps RecordProcessorFn) RecordProcessorFn {
+	return func(ctx context.Context, m models.Record) (models.Record, error) {
+		pi.StartTime = time.Now()
+
+		dst, err := ps(ctx, m)
+
+		pi.Success = err == nil
+		for _, mt := range mts {
+			mt.RecordPlugin(ctx, pi)
+		}
+		return dst, err
+	}
+}
+
 func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream, recipeName string) (err error) {
 	pluginInfo := PluginInfo{
 		RecipeName: recipeName,
 		PluginName: pr.Name,
 		PluginType: "processor",
-		StartTime:  time.Now(),
 	}
-
-	defer func() {
-		pluginInfo.Success = err == nil
-		for _, monitor := range r.monitor {
-			monitor.RecordPlugin(ctx, pluginInfo)
-		}
-	}()
 
 	proc, err := r.processorFactory.Get(pr.Name)
 	if err != nil {
@@ -263,7 +272,7 @@ func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str 
 	}
 
 	str.setMiddleware(func(src models.Record) (models.Record, error) {
-		dst, err := proc.Process(ctx, src)
+		dst, err := processorMonitorMW(r.monitor, pluginInfo, proc.Process)(ctx, src)
 		if err != nil {
 			return models.Record{}, fmt.Errorf("run processor %q: %w", pr.Name, err)
 		}
@@ -274,12 +283,25 @@ func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str 
 	return nil
 }
 
+func sinkMonitorMW(mts []Monitor, pi PluginInfo, ps RecordSinkFn) RecordSinkFn {
+	return func(ctx context.Context, m []models.Record) error {
+		pi.StartTime = time.Now()
+
+		err := ps(ctx, m)
+
+		pi.Success = err == nil
+		for _, mt := range mts {
+			mt.RecordPlugin(ctx, pi)
+		}
+		return err
+	}
+}
+
 func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *stream, recipeName string) error {
 	pluginInfo := PluginInfo{
 		RecipeName: recipeName,
 		PluginName: sr.Name,
 		PluginType: "sink",
-		StartTime:  time.Now(),
 	}
 
 	sink, err := r.sinkFactory.Get(sr.Name)
@@ -291,7 +313,6 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 	}
 
 	retryNotification := func(e error, d time.Duration) {
-		atomic.AddInt64(&pluginInfo.Retries, 1)
 		r.logger.Warn(
 			fmt.Sprintf("retrying sink in %s", d),
 			"retry_delay_ms", d.Milliseconds(),
@@ -302,18 +323,9 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 	stream.subscribe(func(records []models.Record) error {
 		err := r.retrier.retry(
 			ctx,
-			func() error { return sink.Sink(ctx, records) },
+			func() error { return sinkMonitorMW(r.monitor, pluginInfo, sink.Sink)(ctx, records) },
 			retryNotification,
 		)
-
-		pluginInfo.Success = err == nil
-		for _, val := range stream.subscribers {
-			pluginInfo.BatchSize += val.batchSize
-		}
-
-		for _, monitor := range r.monitor {
-			monitor.RecordPlugin(ctx, pluginInfo)
-		}
 
 		if err != nil {
 			// once it reaches here, it means that the retry has been exhausted and still got error

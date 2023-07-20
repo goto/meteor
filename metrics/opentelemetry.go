@@ -234,7 +234,7 @@ func (m *OtelMonitor) RecordPlugin(ctx context.Context, pluginInfo agent.PluginI
 				attribute.String("sink", pluginInfo.PluginName),
 			))
 		m.sinkRetries.Add(ctx,
-			pluginInfo.Retries,
+			1,
 			metric.WithAttributes(
 				attribute.String("sink", pluginInfo.PluginName),
 				attribute.Int64("batch_size", int64(pluginInfo.BatchSize)),

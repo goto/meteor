@@ -106,7 +106,6 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -140,7 +139,6 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -217,7 +215,6 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -259,7 +256,6 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -302,7 +298,6 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -344,7 +339,6 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -441,7 +435,6 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
