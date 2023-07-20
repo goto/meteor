@@ -82,11 +82,16 @@ func RunCmd() *cobra.Command {
 			}
 
 			if cfg.OtelEnabled {
-				mt, doneOtlp, err := metrics.NewOTLP(ctx, cfg, lg, Version)
+				doneOtlp, err := metrics.InitOtel(ctx, cfg, lg, Version)
 				if err != nil {
 					return err
 				}
 				defer doneOtlp()
+
+				mt, err := metrics.NewOtelMonitor()
+				if err != nil {
+					return err
+				}
 
 				if mt != nil {
 					mts = append(mts, mt)

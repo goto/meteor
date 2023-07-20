@@ -46,9 +46,6 @@ type PluginInfo struct {
 // NewAgent returns an Agent with plugin factories.
 func NewAgent(config Config) *Agent {
 	mt := config.Monitor
-	if isNilMonitor(mt) {
-		mt = append(mt, new(defaultMonitor))
-	}
 
 	timerFn := config.TimerFn
 	if timerFn == nil {
@@ -242,16 +239,13 @@ func (r *Agent) setupExtractor(ctx context.Context, sr recipe.PluginRecipe, str 
 	}, nil
 }
 
-func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream, recipeName string) error {
-	var (
-		pluginInfo = PluginInfo{
-			RecipeName: recipeName,
-			PluginName: pr.Name,
-			PluginType: "processor",
-			StartTime:  time.Now(),
-		}
-		err error
-	)
+func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream, recipeName string) (err error) {
+	pluginInfo := PluginInfo{
+		RecipeName: recipeName,
+		PluginName: pr.Name,
+		PluginType: "processor",
+		StartTime:  time.Now(),
+	}
 
 	defer func() {
 		pluginInfo.Success = err == nil
@@ -346,18 +340,19 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 func (r *Agent) logAndRecordMetrics(ctx context.Context, run Run) {
 	for _, monitor := range r.monitor {
 		monitor.RecordRun(ctx, run)
-		if run.Success {
-			r.logger.Info("done running recipe",
-				"recipe", run.Recipe.Name,
-				"duration_ms", run.DurationInMs,
-				"record_count", run.RecordCount)
-		} else {
-			r.logger.Error("error running recipe",
-				"recipe", run.Recipe.Name,
-				"duration_ms", run.DurationInMs,
-				"records_count", run.RecordCount,
-				"err", run.Error)
-		}
+	}
+
+	if run.Success {
+		r.logger.Info("done running recipe",
+			"recipe", run.Recipe.Name,
+			"duration_ms", run.DurationInMs,
+			"record_count", run.RecordCount)
+	} else {
+		r.logger.Error("error running recipe",
+			"recipe", run.Recipe.Name,
+			"duration_ms", run.DurationInMs,
+			"records_count", run.RecordCount,
+			"err", run.Error)
 	}
 }
 

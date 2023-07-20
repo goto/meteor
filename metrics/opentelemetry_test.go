@@ -25,11 +25,14 @@ func TestOtelMonitor_RecordRun(t *testing.T) {
 		duration := 100
 		recordCount := 2
 
-		monitor, done, err := metrics.NewOTLP(ctx, config.Config{
+		done, err := metrics.InitOtel(ctx, config.Config{
 			OtelEnabled:       true,
 			OtelCollectorAddr: "localhost:4317",
 		}, log.NewLogrus(), "")
 		defer done()
+		assert.Nil(t, err)
+
+		monitor, err := metrics.NewOtelMonitor()
 
 		monitor.RecordRun(ctx, agent.Run{Recipe: recipe, DurationInMs: duration, RecordCount: recordCount, Success: false})
 
@@ -52,11 +55,14 @@ func TestOtelMonitor_RecordPlugin(t *testing.T) {
 			},
 		}
 
-		monitor, done, err := metrics.NewOTLP(ctx, config.Config{
+		done, err := metrics.InitOtel(ctx, config.Config{
 			OtelEnabled:       true,
 			OtelCollectorAddr: "localhost:4317",
 		}, log.NewLogrus(), "")
 		defer done()
+		assert.Nil(t, err)
+
+		monitor, err := metrics.NewOtelMonitor()
 
 		monitor.RecordPlugin(context.Background(),
 			agent.PluginInfo{

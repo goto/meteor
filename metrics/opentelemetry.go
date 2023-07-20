@@ -39,11 +39,7 @@ type OtelMonitor struct {
 	sinkDuration      metric.Int64Histogram
 }
 
-func NewOTLP(ctx context.Context, cfg config.Config, logger *log.Logrus, appVersion string) (*OtelMonitor, func(), error) {
-	if !cfg.OtelEnabled {
-		return nil, noOp, nil
-	}
-
+func InitOtel(ctx context.Context, cfg config.Config, logger *log.Logrus, appVersion string) (func(), error) {
 	res, err := resource.New(ctx,
 		resource.WithFromEnv(),
 		resource.WithTelemetrySDK(),
@@ -58,18 +54,18 @@ func NewOTLP(ctx context.Context, cfg config.Config, logger *log.Logrus, appVers
 			semconv.ServiceVersion(appVersion),
 		))
 	if err != nil {
-		return nil, nil, fmt.Errorf("create resource: %w", err)
+		return nil, fmt.Errorf("create resource: %w", err)
 	}
 
 	shutdownMetric, err := initGlobalMetrics(ctx, res, cfg, logger)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	shutdownTracer, err := initGlobalTracer(ctx, res, cfg, logger)
 	if err != nil {
 		shutdownMetric()
-		return nil, nil, err
+		return nil, err
 	}
 
 	shutdownProviders := func() {
@@ -79,44 +75,48 @@ func NewOTLP(ctx context.Context, cfg config.Config, logger *log.Logrus, appVers
 
 	if err := host.Start(); err != nil {
 		shutdownProviders()
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := runtime.Start(); err != nil {
 		shutdownProviders()
-		return nil, nil, err
+		return nil, err
 	}
 
+	return shutdownProviders, nil
+}
+
+func NewOtelMonitor() (*OtelMonitor, error) {
 	// init meters
 	meter := otel.Meter("")
 	recipeDuration, err := meter.Int64Histogram("meteor.recipe.duration", metric.WithUnit("ms"))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	processorDuration, err := meter.Int64Histogram("meteor.processor.duration", metric.WithUnit("ms"))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	sinkDuration, err := meter.Int64Histogram("meteor.sink.duration", metric.WithUnit("ms"))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	extractorRetries, err := meter.Int64Counter("meteor.extractor.retries")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	assetsExtracted, err := meter.Int64Counter("meteor.assets.extracted")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	sinkRetries, err := meter.Int64Counter("meteor.sink.retries")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	return &OtelMonitor{
@@ -126,7 +126,7 @@ func NewOTLP(ctx context.Context, cfg config.Config, logger *log.Logrus, appVers
 		extractorRetries:  extractorRetries,
 		assetsExtracted:   assetsExtracted,
 		sinkRetries:       sinkRetries,
-	}, shutdownProviders, nil
+	}, nil
 }
 
 func initGlobalMetrics(ctx context.Context, res *resource.Resource, cfg config.Config, logger *log.Logrus) (func(), error) {
@@ -189,8 +189,6 @@ func initGlobalTracer(ctx context.Context, res *resource.Resource, cfg config.Co
 		}
 	}, nil
 }
-
-func noOp() {}
 
 func getSliceStringPluginNames(prs []recipe.PluginRecipe) []string {
 	var res []string
