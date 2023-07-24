@@ -15,6 +15,8 @@ import (
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
 	_ "github.com/prestodb/presto-go-client/presto" // presto driver
+	"go.nhat.io/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -64,8 +66,9 @@ func New(logger log.Logger) *Extractor {
 }
 
 // Init initializes the extractor
-func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
-	if err := e.BaseExtractor.Init(ctx, config); err != nil {
+func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error) {
+	err = e.BaseExtractor.Init(ctx, config)
+	if err != nil {
 		return err
 	}
 
@@ -74,9 +77,22 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 	excludeList = append(excludeList, strings.Split(e.config.Exclude, ",")...)
 	e.excludedCatalog = sqlutil.BuildBoolMap(excludeList)
 
+	driverName := "presto"
 	// create presto client
-	var err error
-	e.client, err = sql.Open("presto", e.config.ConnectionURL)
+	if config.OtelEnabled {
+		driverName, err = otelsql.Register(driverName,
+			otelsql.AllowRoot(),
+			otelsql.TraceQueryWithoutArgs(),
+			otelsql.TraceRowsClose(),
+			otelsql.TraceRowsAffected(),
+			otelsql.WithSystem(semconv.DBSystemKey.String("presto")),
+		)
+		if err != nil {
+			return fmt.Errorf("register presto otelsql wrapper: %w", err)
+		}
+	}
+
+	e.client, err = sql.Open(driverName, e.config.ConnectionURL)
 	if err != nil {
 		return fmt.Errorf("create client: %w", err)
 	}

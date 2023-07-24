@@ -14,6 +14,8 @@ import (
 	"github.com/goto/salt/log"
 	"github.com/snowflakedb/gosnowflake"
 	_ "github.com/snowflakedb/gosnowflake" // used to register the snowflake driver
+	"go.nhat.io/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -71,15 +73,29 @@ func New(logger log.Logger, opts ...Option) *Extractor {
 }
 
 // Init initializes the extractor
-func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
-	if err := e.BaseExtractor.Init(ctx, config); err != nil {
+func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error) {
+	err = e.BaseExtractor.Init(ctx, config)
+	if err != nil {
 		return err
 	}
 
 	if e.httpTransport == nil {
+		driverName := "snowflake"
 		// create snowflake client
-		var err error
-		if e.db, err = sql.Open("snowflake", e.config.ConnectionURL); err != nil {
+		if config.OtelEnabled {
+			driverName, err = otelsql.Register(driverName,
+				otelsql.AllowRoot(),
+				otelsql.TraceQueryWithoutArgs(),
+				otelsql.TraceRowsClose(),
+				otelsql.TraceRowsAffected(),
+				otelsql.WithSystem(semconv.DBSystemKey.String("snowflake")),
+			)
+			if err != nil {
+				return fmt.Errorf("register snowflake otelsql wrapper: %w", err)
+			}
+		}
+
+		if e.db, err = sql.Open(driverName, e.config.ConnectionURL); err != nil {
 			return fmt.Errorf("create client: %w", err)
 		}
 		return nil

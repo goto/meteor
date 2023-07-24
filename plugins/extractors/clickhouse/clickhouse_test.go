@@ -106,6 +106,7 @@ func TestExtract(t *testing.T) {
 			RawConfig: map[string]interface{}{
 				"connection_url": fmt.Sprintf("tcp://%s?username=default&password=%s&debug=true", host, pass),
 			},
+			OtelEnabled: true,
 		})
 		if err != nil {
 			t.Fatal(err)

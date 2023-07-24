@@ -13,6 +13,8 @@ import (
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
 	_ "github.com/sijms/go-ora/v2"
+	"go.nhat.io/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -52,14 +54,28 @@ func New(logger log.Logger) *Extractor {
 }
 
 // Init initializes the extractor
-func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
-	if err := e.BaseExtractor.Init(ctx, config); err != nil {
+func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error) {
+	err = e.BaseExtractor.Init(ctx, config)
+	if err != nil {
 		return err
 	}
 
+	driverName := "oracle"
+	if config.OtelEnabled {
+		driverName, err = otelsql.Register(driverName,
+			otelsql.AllowRoot(),
+			otelsql.TraceQueryWithoutArgs(),
+			otelsql.TraceRowsClose(),
+			otelsql.TraceRowsAffected(),
+			otelsql.WithSystem(semconv.DBSystemOracle),
+		)
+		if err != nil {
+			return fmt.Errorf("register oracle otelsql wrapper: %w", err)
+		}
+	}
+
 	// Create database connection
-	var err error
-	e.db, err = connection(e.config)
+	e.db, err = sql.Open(driverName, e.config.ConnectionURL)
 	if err != nil {
 		return fmt.Errorf("create connection: %w", err)
 	}
@@ -218,11 +234,6 @@ func (e *Extractor) getColumnMetadata(db *sql.DB, tableName string) ([]*v1beta2.
 // Convert nullable string to a boolean
 func isNullable(value string) bool {
 	return value == "Y"
-}
-
-// connection generates a connection string
-func connection(cfg Config) (db *sql.DB, err error) {
-	return sql.Open("oracle", cfg.ConnectionURL)
 }
 
 // Register the extractor to catalog

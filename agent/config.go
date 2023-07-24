@@ -17,4 +17,5 @@ type Config struct {
 	RetryInitialInterval time.Duration
 	StopOnSinkError      bool
 	TimerFn              TimerFn
+	OtelEnabled          bool
 }

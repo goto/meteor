@@ -13,6 +13,8 @@ import (
 	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
+	"go.nhat.io/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -62,17 +64,31 @@ func New(logger log.Logger) *Extractor {
 }
 
 // Init initializes the extractor
-func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
-	if err := e.BaseExtractor.Init(ctx, config); err != nil {
+func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error) {
+	err = e.BaseExtractor.Init(ctx, config)
+	if err != nil {
 		return err
 	}
 
 	// build excluded database list
 	e.excludedDbs = sqlutil.BuildBoolMap(defaultDBList)
 
-	// create client
-	var err error
-	e.db, err = sql.Open("mysql", e.config.ConnectionURL)
+	driverName := "mysql"
+	// create mysql client
+	if config.OtelEnabled {
+		driverName, err = otelsql.Register(driverName,
+			otelsql.AllowRoot(),
+			otelsql.TraceQueryWithoutArgs(),
+			otelsql.TraceRowsClose(),
+			otelsql.TraceRowsAffected(),
+			otelsql.WithSystem(semconv.DBSystemMySQL),
+		)
+		if err != nil {
+			return fmt.Errorf("register mysql otelsql wrapper: %w", err)
+		}
+	}
+
+	e.db, err = sql.Open(driverName, e.config.ConnectionURL)
 	if err != nil {
 		return fmt.Errorf("create client: %w", err)
 	}

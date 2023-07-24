@@ -17,6 +17,8 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	_ "github.com/lib/pq" // register postgres driver
+	"go.nhat.io/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -69,8 +71,9 @@ func New(logger log.Logger) *Extractor {
 }
 
 // Init initializes the extractor
-func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
-	if err := e.BaseExtractor.Init(ctx, config); err != nil {
+func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error) {
+	err = e.BaseExtractor.Init(ctx, config)
+	if err != nil {
 		return err
 	}
 
@@ -78,9 +81,22 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 	excludeList := append(defaultDBList, strings.Split(e.config.Exclude, ",")...)
 	e.excludedDbs = sqlutil.BuildBoolMap(excludeList)
 
+	driverName := "postgres"
+	if config.OtelEnabled {
+		driverName, err = otelsql.Register(driverName,
+			otelsql.AllowRoot(),
+			otelsql.TraceQueryWithoutArgs(),
+			otelsql.TraceRowsClose(),
+			otelsql.TraceRowsAffected(),
+			otelsql.WithSystem(semconv.DBSystemPostgreSQL),
+		)
+		if err != nil {
+			return fmt.Errorf("register postgres otelsql wrapper: %w", err)
+		}
+	}
+
 	// Create database connection
-	var err error
-	e.client, err = sql.Open("postgres", e.config.ConnectionURL)
+	e.client, err = sql.Open(driverName, e.config.ConnectionURL)
 	if err != nil {
 		return fmt.Errorf("create connection: %w", err)
 	}
