@@ -233,18 +233,24 @@ func (m *OtelMonitor) RecordPlugin(ctx context.Context, pluginInfo agent.PluginI
 			metric.WithAttributes(
 				attribute.String("sink", pluginInfo.PluginName),
 			))
-		m.sinkRetries.Add(ctx,
-			1,
-			metric.WithAttributes(
-				attribute.String("sink", pluginInfo.PluginName),
-				attribute.Int64("batch_size", int64(pluginInfo.BatchSize)),
-			))
 
 	case "processor":
 		m.processorDuration.Record(ctx,
 			time.Since(pluginInfo.StartTime).Milliseconds(),
 			metric.WithAttributes(
 				attribute.String("processor", pluginInfo.PluginName),
+			))
+	}
+}
+
+func (m *OtelMonitor) RecordPluginRetryCount(ctx context.Context, pluginInfo agent.PluginInfo) {
+	switch pluginInfo.PluginType {
+	case "sink":
+		m.sinkRetries.Add(ctx,
+			1,
+			metric.WithAttributes(
+				attribute.String("sink", pluginInfo.PluginName),
+				attribute.Int64("batch_size", int64(pluginInfo.BatchSize)),
 			))
 	}
 }

@@ -8,4 +8,5 @@ import (
 type Monitor interface {
 	RecordRun(ctx context.Context, run Run)
 	RecordPlugin(ctx context.Context, pluginInfo PluginInfo)
+	RecordPluginRetryCount(ctx context.Context, pluginInfo PluginInfo)
 }

@@ -313,6 +313,10 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 	}
 
 	retryNotification := func(e error, d time.Duration) {
+		for _, mt := range r.monitor {
+			mt.RecordPluginRetryCount(ctx, pluginInfo)
+		}
+
 		r.logger.Warn(
 			fmt.Sprintf("retrying sink in %s", d),
 			"retry_delay_ms", d.Milliseconds(),
@@ -321,9 +325,13 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 		)
 	}
 	stream.subscribe(func(records []models.Record) error {
+		pluginInfo.BatchSize = len(records)
+
 		err := r.retrier.retry(
 			ctx,
-			func() error { return sinkMonitorMW(r.monitor, pluginInfo, sink.Sink)(ctx, records) },
+			func() error {
+				return sinkMonitorMW(r.monitor, pluginInfo, sink.Sink)(ctx, records)
+			},
 			retryNotification,
 		)
 
