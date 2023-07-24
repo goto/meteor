@@ -31,12 +31,10 @@ const gracePeriod = 5 * time.Second
 
 // OtelMonitor represents the otel monitor.
 type OtelMonitor struct {
-	recipeDuration    metric.Int64Histogram
-	extractorRetries  metric.Int64Counter
-	assetsExtracted   metric.Int64Counter
-	processorDuration metric.Int64Histogram
-	sinkRetries       metric.Int64Counter
-	sinkDuration      metric.Int64Histogram
+	recipeDuration   metric.Int64Histogram
+	extractorRetries metric.Int64Counter
+	assetsExtracted  metric.Int64Counter
+	sinkRetries      metric.Int64Counter
 }
 
 func InitOtel(ctx context.Context, cfg config.Config, logger *log.Logrus, appVersion string) (func(), error) {
@@ -94,16 +92,6 @@ func NewOtelMonitor() (*OtelMonitor, error) {
 		return nil, err
 	}
 
-	processorDuration, err := meter.Int64Histogram("meteor.processor.duration", metric.WithUnit("ms"))
-	if err != nil {
-		return nil, err
-	}
-
-	sinkDuration, err := meter.Int64Histogram("meteor.sink.duration", metric.WithUnit("ms"))
-	if err != nil {
-		return nil, err
-	}
-
 	extractorRetries, err := meter.Int64Counter("meteor.extractor.retries")
 	if err != nil {
 		return nil, err
@@ -120,12 +108,10 @@ func NewOtelMonitor() (*OtelMonitor, error) {
 	}
 
 	return &OtelMonitor{
-		recipeDuration:    recipeDuration,
-		processorDuration: processorDuration,
-		sinkDuration:      sinkDuration,
-		extractorRetries:  extractorRetries,
-		assetsExtracted:   assetsExtracted,
-		sinkRetries:       sinkRetries,
+		recipeDuration:   recipeDuration,
+		extractorRetries: extractorRetries,
+		assetsExtracted:  assetsExtracted,
+		sinkRetries:      sinkRetries,
 	}, nil
 }
 
@@ -224,24 +210,8 @@ func (m *OtelMonitor) RecordRun(ctx context.Context, run agent.Run) {
 		))
 }
 
-// RecordPlugin records a individual plugin behavior in a run
-func (m *OtelMonitor) RecordPlugin(ctx context.Context, pluginInfo agent.PluginInfo) {
-	switch pluginInfo.PluginType {
-	case "sink":
-		m.sinkDuration.Record(ctx,
-			time.Since(pluginInfo.StartTime).Milliseconds(),
-			metric.WithAttributes(
-				attribute.String("sink", pluginInfo.PluginName),
-			))
-
-	case "processor":
-		m.processorDuration.Record(ctx,
-			time.Since(pluginInfo.StartTime).Milliseconds(),
-			metric.WithAttributes(
-				attribute.String("processor", pluginInfo.PluginName),
-			))
-	}
-}
+// RecordPlugin records a individual plugin behavior in a run, this is being handled in otelmw
+func (m *OtelMonitor) RecordPlugin(_ context.Context, _ agent.PluginInfo) {}
 
 func (m *OtelMonitor) RecordPluginRetryCount(ctx context.Context, pluginInfo agent.PluginInfo) {
 	switch pluginInfo.PluginType {

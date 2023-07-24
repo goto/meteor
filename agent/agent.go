@@ -10,6 +10,7 @@ import (
 
 	"github.com/goto/meteor/models"
 	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/otelmw"
 	"github.com/goto/meteor/recipe"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
@@ -31,20 +32,8 @@ type Agent struct {
 	retrier          *retrier
 	stopOnSinkError  bool
 	timerFn          TimerFn
+	otelEnabled      bool
 }
-
-type PluginInfo struct {
-	RecipeName string
-	PluginName string
-	PluginType string
-	Success    bool
-	StartTime  time.Time
-	BatchSize  int
-}
-
-type RecordProcessorFn func(context.Context, models.Record) (models.Record, error)
-
-type RecordSinkFn func(context.Context, []models.Record) error
 
 // NewAgent returns an Agent with plugin factories.
 func NewAgent(config Config) *Agent {
@@ -65,6 +54,7 @@ func NewAgent(config Config) *Agent {
 		logger:           config.Logger,
 		retrier:          retrier,
 		timerFn:          timerFn,
+		otelEnabled:      config.OtelEnabled,
 	}
 }
 
@@ -242,37 +232,25 @@ func (r *Agent) setupExtractor(ctx context.Context, sr recipe.PluginRecipe, str 
 	}, nil
 }
 
-func processorMonitorMW(mts []Monitor, pi PluginInfo, ps RecordProcessorFn) RecordProcessorFn {
-	return func(ctx context.Context, m models.Record) (models.Record, error) {
-		pi.StartTime = time.Now()
-
-		dst, err := ps(ctx, m)
-
-		pi.Success = err == nil
-		for _, mt := range mts {
-			mt.RecordPlugin(ctx, pi)
-		}
-		return dst, err
-	}
-}
-
 func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream, recipeName string) (err error) {
-	pluginInfo := PluginInfo{
-		RecipeName: recipeName,
-		PluginName: pr.Name,
-		PluginType: "processor",
-	}
-
 	proc, err := r.processorFactory.Get(pr.Name)
 	if err != nil {
 		return fmt.Errorf("find processor %q: %w", pr.Name, err)
 	}
+
+	if r.otelEnabled {
+		proc, err = otelmw.WithProcessorMW(proc, pr.Name)
+		if err != nil {
+			return fmt.Errorf("wrap processor %q: %w", pr.Name, err)
+		}
+	}
+
 	if err := proc.Init(ctx, recipeToPluginConfig(pr)); err != nil {
 		return fmt.Errorf("initiate processor %q: %w", pr.Name, err)
 	}
 
 	str.setMiddleware(func(src models.Record) (models.Record, error) {
-		dst, err := processorMonitorMW(r.monitor, pluginInfo, proc.Process)(ctx, src)
+		dst, err := proc.Process(ctx, src)
 		if err != nil {
 			return models.Record{}, fmt.Errorf("run processor %q: %w", pr.Name, err)
 		}
@@ -281,20 +259,6 @@ func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str 
 	})
 
 	return nil
-}
-
-func sinkMonitorMW(mts []Monitor, pi PluginInfo, ps RecordSinkFn) RecordSinkFn {
-	return func(ctx context.Context, m []models.Record) error {
-		pi.StartTime = time.Now()
-
-		err := ps(ctx, m)
-
-		pi.Success = err == nil
-		for _, mt := range mts {
-			mt.RecordPlugin(ctx, pi)
-		}
-		return err
-	}
 }
 
 func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *stream, recipeName string) error {
@@ -330,11 +294,22 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 		err := r.retrier.retry(
 			ctx,
 			func() error {
-				return sinkMonitorMW(r.monitor, pluginInfo, sink.Sink)(ctx, records)
+				if r.otelEnabled {
+					sink, err = otelmw.WithSinkMW(sink, sr.Name)
+					if err != nil {
+						return err
+					}
+				}
+
+				return sink.Sink(ctx, records)
 			},
 			retryNotification,
 		)
 
+		pluginInfo.Success = err == nil
+		for _, mt := range r.monitor {
+			mt.RecordPlugin(ctx, pluginInfo) // this can be deleted when statsd is removed
+		}
 		if err != nil {
 			// once it reaches here, it means that the retry has been exhausted and still got error
 			r.logger.Error("error running sink", "sink", sr.Name, "error", err.Error())

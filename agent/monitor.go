@@ -2,7 +2,17 @@ package agent
 
 import (
 	"context"
+	"time"
 )
+
+type PluginInfo struct {
+	RecipeName string
+	PluginName string
+	PluginType string
+	Success    bool
+	StartTime  time.Time
+	BatchSize  int
+}
 
 // Monitor is the interface for monitoring the agent.
 type Monitor interface {
