@@ -211,7 +211,7 @@ func (m *OtelMonitor) RecordRun(ctx context.Context, run agent.Run) {
 }
 
 // RecordPlugin records a individual plugin behavior in a run, this is being handled in otelmw
-func (m *OtelMonitor) RecordPlugin(_ context.Context, _ agent.PluginInfo) {}
+func (*OtelMonitor) RecordPlugin(_ context.Context, _ agent.PluginInfo) {}
 
 func (m *OtelMonitor) RecordPluginRetryCount(ctx context.Context, pluginInfo agent.PluginInfo) {
 	switch pluginInfo.PluginType {
