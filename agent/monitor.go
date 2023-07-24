@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"time"
 )
 
 type PluginInfo struct {
@@ -10,7 +9,6 @@ type PluginInfo struct {
 	PluginName string
 	PluginType string
 	Success    bool
-	StartTime  time.Time
 	BatchSize  int
 }
 

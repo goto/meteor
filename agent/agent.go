@@ -142,7 +142,7 @@ func (r *Agent) Run(ctx context.Context, recipe recipe.Recipe) (run Run) {
 	}
 
 	for _, pr := range recipe.Processors {
-		if err := r.setupProcessor(ctx, pr, stream, recipe.Name); err != nil {
+		if err := r.setupProcessor(ctx, pr, stream); err != nil {
 			run.Error = fmt.Errorf("setup processor: %w", err)
 			return run
 		}
@@ -232,7 +232,7 @@ func (r *Agent) setupExtractor(ctx context.Context, sr recipe.PluginRecipe, str 
 	}, nil
 }
 
-func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream, recipeName string) (err error) {
+func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream) (err error) {
 	proc, err := r.processorFactory.Get(pr.Name)
 	if err != nil {
 		return fmt.Errorf("find processor %q: %w", pr.Name, err)
