@@ -14,12 +14,14 @@ import (
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/oracle"
+	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/test/mocks"
 	"github.com/goto/meteor/test/utils"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	_ "github.com/sijms/go-ora/v2"
 	"github.com/stretchr/testify/assert"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -48,7 +50,7 @@ func TestMain(m *testing.M) {
 
 	// Exponential backoff-retry for container to be resy to accept connections
 	retryFn := func(r *dockertest.Resource) (err error) {
-		db, err = sql.Open("oracle", fmt.Sprintf("oracle://%s:%s@%s/%s", sysUser, password, host, defaultDB))
+		db, err = sqlutil.OpenWithOtel("oracle", fmt.Sprintf("oracle://%s:%s@%s/%s", sysUser, password, host, defaultDB), semconv.DBSystemOracle)
 		if err != nil {
 			return err
 		}

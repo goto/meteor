@@ -10,11 +10,11 @@ import (
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
 	"github.com/snowflakedb/gosnowflake"
 	_ "github.com/snowflakedb/gosnowflake" // used to register the snowflake driver
-	"go.nhat.io/otelsql"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -80,24 +80,12 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error)
 	}
 
 	if e.httpTransport == nil {
-		driverName := "snowflake"
 		// create snowflake client
-		if config.OtelEnabled {
-			driverName, err = otelsql.Register(driverName,
-				otelsql.AllowRoot(),
-				otelsql.TraceQueryWithoutArgs(),
-				otelsql.TraceRowsClose(),
-				otelsql.TraceRowsAffected(),
-				otelsql.WithSystem(semconv.DBSystemKey.String("snowflake")),
-			)
-			if err != nil {
-				return fmt.Errorf("register snowflake otelsql wrapper: %w", err)
-			}
+		e.db, err = sqlutil.OpenWithOtel("snowflake", e.config.ConnectionURL, semconv.DBSystemKey.String("snowflake"))
+		if err != nil {
+			return fmt.Errorf("create a client: %w", err)
 		}
 
-		if e.db, err = sql.Open(driverName, e.config.ConnectionURL); err != nil {
-			return fmt.Errorf("create client: %w", err)
-		}
 		return nil
 	}
 
@@ -114,12 +102,12 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error)
 }
 
 // Extract collects metadata of the database through emitter
-func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
+func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 	defer e.db.Close()
 	e.emit = emit
 
 	// Get list of databases
-	dbs, err := e.db.Query("SHOW DATABASES;")
+	dbs, err := e.db.QueryContext(ctx, "SHOW DATABASES;")
 	if err != nil {
 		return fmt.Errorf("get databases: %w", err)
 	}
@@ -133,7 +121,7 @@ func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 		if err = dbs.Scan(&createdOn, &name, &isDefault, &isCurrent, &origin, &owner, &comment, &options, &retentionTime); err != nil {
 			return fmt.Errorf("scan database row: %w", err)
 		}
-		if err = e.extractTables(name); err != nil {
+		if err = e.extractTables(ctx, name); err != nil {
 			return fmt.Errorf("extract tables from %s: %w", name, err)
 		}
 	}
@@ -145,14 +133,14 @@ func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 }
 
 // extractTables extracts tables from a given database
-func (e *Extractor) extractTables(database string) error {
+func (e *Extractor) extractTables(ctx context.Context, database string) error {
 	// extract tables
 	_, err := e.db.Exec(fmt.Sprintf("USE %s;", database))
 	if err != nil {
 		return fmt.Errorf("execute USE query on %s: %w", database, err)
 	}
 
-	rows, err := e.db.Query("SHOW TABLES;")
+	rows, err := e.db.QueryContext(ctx, "SHOW TABLES;")
 	if err != nil {
 		return fmt.Errorf("show tables for %s: %w", database, err)
 	}
@@ -167,7 +155,7 @@ func (e *Extractor) extractTables(database string) error {
 			&bytes, &owner, &retentionTime, &autoClustering, &changeTracking, &isExternal); err != nil {
 			return err
 		}
-		if err := e.processTable(database, name); err != nil {
+		if err := e.processTable(ctx, database, name); err != nil {
 			return err
 		}
 	}
@@ -179,8 +167,8 @@ func (e *Extractor) extractTables(database string) error {
 }
 
 // processTable builds and push table to out channel
-func (e *Extractor) processTable(database, tableName string) error {
-	columns, err := e.extractColumns(database, tableName)
+func (e *Extractor) processTable(ctx context.Context, database, tableName string) error {
+	columns, err := e.extractColumns(ctx, database, tableName)
 	if err != nil {
 		return fmt.Errorf("extract columns from %s.%s: %w", database, tableName, err)
 	}
@@ -204,7 +192,7 @@ func (e *Extractor) processTable(database, tableName string) error {
 }
 
 // extractColumns extracts columns from a given table
-func (e *Extractor) extractColumns(database, tableName string) ([]*v1beta2.Column, error) {
+func (e *Extractor) extractColumns(ctx context.Context, database, tableName string) ([]*v1beta2.Column, error) {
 	// extract columns
 	_, err := e.db.Exec(fmt.Sprintf("USE %s;", database))
 	if err != nil {
@@ -215,7 +203,7 @@ func (e *Extractor) extractColumns(database, tableName string) ([]*v1beta2.Colum
 			   FROM information_schema.columns
 		       WHERE TABLE_NAME = ?
 		       ORDER BY COLUMN_NAME ASC;`
-	rows, err := e.db.Query(sqlStr, tableName)
+	rows, err := e.db.QueryContext(ctx, sqlStr, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("execute a query to extract columns metadata: %w", err)
 	}

@@ -15,11 +15,13 @@ import (
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/mssql"
+	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/test/mocks"
 	"github.com/goto/meteor/test/utils"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -53,7 +55,7 @@ func TestMain(m *testing.M) {
 		},
 	}
 	retryFn := func(resource *dockertest.Resource) (err error) {
-		db, err = sql.Open("mssql", fmt.Sprintf("sqlserver://%s:%s@%s/", user, pass, host))
+		db, err = sqlutil.OpenWithOtel("mssql", fmt.Sprintf("sqlserver://%s:%s@%s/", user, pass, host), semconv.DBSystemMSSQL)
 		if err != nil {
 			return err
 		}

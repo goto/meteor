@@ -13,7 +13,6 @@ import (
 	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
-	"go.nhat.io/otelsql"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -74,42 +73,28 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error)
 	// build excluded database list
 	e.excludedDbs = sqlutil.BuildBoolMap(defaultDBList)
 
-	driverName := "mysql"
-	// create mariadb client
-	if config.OtelEnabled {
-		driverName, err = otelsql.Register(driverName,
-			otelsql.AllowRoot(),
-			otelsql.TraceQueryWithoutArgs(),
-			otelsql.TraceRowsClose(),
-			otelsql.TraceRowsAffected(),
-			otelsql.WithSystem(semconv.DBSystemMariaDB),
-		)
-		if err != nil {
-			return fmt.Errorf("register mariadb otelsql wrapper: %w", err)
-		}
-	}
-
-	if e.db, err = sql.Open(driverName, e.config.ConnectionURL); err != nil {
-		return fmt.Errorf("create client: %w", err)
+	e.db, err = sqlutil.OpenWithOtel("mysql", e.config.ConnectionURL, semconv.DBSystemMariaDB)
+	if err != nil {
+		return fmt.Errorf("create a client: %w", err)
 	}
 
 	return nil
 }
 
 // Extract collects metadata of the database through emitter
-func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
+func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 	defer e.db.Close()
 	e.emit = emit
 
 	// Get list of databases
-	dbs, err := sqlutil.FetchDBs(e.db, e.logger, "SHOW DATABASES;")
+	dbs, err := sqlutil.FetchDBs(ctx, e.db, e.logger, "SHOW DATABASES;")
 	if err != nil {
 		return err
 	}
 
 	// Iterate through all tables and databases
 	for _, database := range dbs {
-		if err := e.extractTables(database); err != nil {
+		if err := e.extractTables(ctx, database); err != nil {
 			return fmt.Errorf("extract tables from %s: %w", database, err)
 		}
 	}
@@ -117,22 +102,22 @@ func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 }
 
 // extractTables extracts tables from a given database
-func (e *Extractor) extractTables(database string) error {
+func (e *Extractor) extractTables(ctx context.Context, database string) error {
 	// skip if database is default
 	if e.isExcludedDB(database) {
 		return nil
 	}
 
 	// extract tables
-	_, err := e.db.Exec(fmt.Sprintf("USE %s;", database))
+	_, err := e.db.ExecContext(ctx, fmt.Sprintf("USE %s;", database))
 	if err != nil {
 		return fmt.Errorf("execute USE query on %s: %w", database, err)
 	}
 
 	// get list of tables
-	tables, err := sqlutil.FetchTablesInDB(e.db, database, "SHOW TABLES;")
+	tables, _ := sqlutil.FetchTablesInDB(ctx, e.db, database, "SHOW TABLES;")
 	for _, tableName := range tables {
-		if err := e.processTable(database, tableName); err != nil {
+		if err := e.processTable(ctx, database, tableName); err != nil {
 			return fmt.Errorf("process table: %w", err)
 		}
 	}
@@ -141,8 +126,8 @@ func (e *Extractor) extractTables(database string) error {
 }
 
 // processTable builds and push table to out channel
-func (e *Extractor) processTable(database, tableName string) error {
-	columns, err := e.extractColumns(tableName)
+func (e *Extractor) processTable(ctx context.Context, database, tableName string) error {
+	columns, err := e.extractColumns(ctx, tableName)
 	if err != nil {
 		return fmt.Errorf("extract columns: %w", err)
 	}
@@ -165,13 +150,13 @@ func (e *Extractor) processTable(database, tableName string) error {
 }
 
 // extractColumns extracts columns from a given table
-func (e *Extractor) extractColumns(tableName string) ([]*v1beta2.Column, error) {
+func (e *Extractor) extractColumns(ctx context.Context, tableName string) ([]*v1beta2.Column, error) {
 	sqlStr := `SELECT COLUMN_NAME,column_comment,DATA_TYPE,
 				IS_NULLABLE,IFNULL(CHARACTER_MAXIMUM_LENGTH,0)
 				FROM information_schema.columns
 				WHERE table_name = ?
 				ORDER BY COLUMN_NAME ASC;`
-	rows, err := e.db.Query(sqlStr, tableName)
+	rows, err := e.db.QueryContext(ctx, sqlStr, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("execute a query to extract columns metadata: %w", err)
 	}

@@ -27,9 +27,8 @@ type Info struct {
 }
 
 type Config struct {
-	URNScope    string
-	RawConfig   map[string]interface{}
-	OtelEnabled bool
+	URNScope  string
+	RawConfig map[string]interface{}
 }
 
 type Plugin interface {

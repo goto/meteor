@@ -14,6 +14,7 @@ import (
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/postgres"
+	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/test/mocks"
 	"github.com/goto/meteor/test/utils"
 	testUtils "github.com/goto/meteor/test/utils"
@@ -23,6 +24,7 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
 var db *sql.DB
@@ -49,7 +51,7 @@ func TestMain(m *testing.M) {
 
 	// Exponential backoff-retry for container to be resy to accept connections
 	retryFn := func(r *dockertest.Resource) (err error) {
-		db, err = sql.Open("postgres", fmt.Sprintf("postgres://root:%s@%s/%s?sslmode=disable", pass, host, defaultDB))
+		db, err = sqlutil.OpenWithOtel("postgres", fmt.Sprintf("postgres://root:%s@%s/%s?sslmode=disable", pass, host, defaultDB), semconv.DBSystemPostgreSQL)
 		if err != nil {
 			return err
 		}

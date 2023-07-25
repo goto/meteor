@@ -13,7 +13,6 @@ import (
 	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
-	"go.nhat.io/otelsql"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -73,24 +72,10 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error)
 	// build excluded database list
 	e.excludedDbs = sqlutil.BuildBoolMap(defaultDBList)
 
-	driverName := "mssql"
 	// create mssql client
-	if config.OtelEnabled {
-		driverName, err = otelsql.Register(driverName,
-			otelsql.AllowRoot(),
-			otelsql.TraceQueryWithoutArgs(),
-			otelsql.TraceRowsClose(),
-			otelsql.TraceRowsAffected(),
-			otelsql.WithSystem(semconv.DBSystemMSSQL),
-		)
-		if err != nil {
-			return fmt.Errorf("register mssql otelsql wrapper: %w", err)
-		}
-	}
-
-	e.db, err = sql.Open(driverName, e.config.ConnectionURL)
+	e.db, err = sqlutil.OpenWithOtel("mssql", e.config.ConnectionURL, semconv.DBSystemMSSQL)
 	if err != nil {
-		return fmt.Errorf("create client: %w", err)
+		return fmt.Errorf("create a client: %w", err)
 	}
 
 	return nil
@@ -98,11 +83,11 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) (err error)
 
 // Extract checks if the extractor is ready to extract
 // and then extract and push data into stream
-func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
+func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 	defer e.db.Close()
 	e.emit = emit
 
-	dbs, err := sqlutil.FetchDBs(e.db, e.logger, "SELECT name FROM sys.databases;")
+	dbs, err := sqlutil.FetchDBs(ctx, e.db, e.logger, "SELECT name FROM sys.databases;")
 	if err != nil {
 		return err
 	}
@@ -112,14 +97,14 @@ func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 		}
 
 		tableQuery := fmt.Sprintf(`SELECT TABLE_NAME FROM %s.INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';`, database)
-		tables, err := sqlutil.FetchTablesInDB(e.db, database, tableQuery)
+		tables, err := sqlutil.FetchTablesInDB(ctx, e.db, database, tableQuery)
 		if err != nil {
 			e.logger.Error("failed to get tables, skipping database", "error", err)
 			continue
 		}
 
 		for _, tableName := range tables {
-			if err := e.processTable(database, tableName); err != nil {
+			if err := e.processTable(ctx, database, tableName); err != nil {
 				return fmt.Errorf("process Table: %w", err)
 			}
 		}
@@ -129,8 +114,8 @@ func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 }
 
 // processTable builds and push table to emitter
-func (e *Extractor) processTable(database, tableName string) error {
-	columns, err := e.getColumns(database, tableName)
+func (e *Extractor) processTable(ctx context.Context, database, tableName string) error {
+	columns, err := e.getColumns(ctx, database, tableName)
 	if err != nil {
 		return fmt.Errorf("get columns: %w", err)
 	}
@@ -154,7 +139,7 @@ func (e *Extractor) processTable(database, tableName string) error {
 }
 
 // getColumns extract columns from the given table
-func (e *Extractor) getColumns(database, tableName string) ([]*v1beta2.Column, error) {
+func (e *Extractor) getColumns(ctx context.Context, database, tableName string) ([]*v1beta2.Column, error) {
 	//nolint:gosec
 	query := fmt.Sprintf(
 		`SELECT COLUMN_NAME, DATA_TYPE, 
@@ -162,7 +147,7 @@ func (e *Extractor) getColumns(database, tableName string) ([]*v1beta2.Column, e
 		FROM %s.information_schema.columns 
 		WHERE TABLE_NAME = ?
 		ORDER BY COLUMN_NAME ASC`, database)
-	rows, err := e.db.Query(query, tableName)
+	rows, err := e.db.QueryContext(ctx, query, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("execute query: %w", err)
 	}

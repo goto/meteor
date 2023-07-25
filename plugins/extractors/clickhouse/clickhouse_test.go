@@ -15,11 +15,13 @@ import (
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/clickhouse"
+	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/test/mocks"
 	"github.com/goto/meteor/test/utils"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -59,7 +61,7 @@ func TestMain(m *testing.M) {
 	}
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	retryFn := func(resource *dockertest.Resource) (err error) {
-		db, err = sql.Open("clickhouse", fmt.Sprintf("tcp://%s?username=default&password=pass&debug=true", host))
+		db, err = sqlutil.OpenWithOtel("clickhouse", fmt.Sprintf("tcp://%s?username=default&password=pass&debug=true", host), semconv.DBSystemClickhouse)
 		if err != nil {
 			return err
 		}
@@ -106,7 +108,6 @@ func TestExtract(t *testing.T) {
 			RawConfig: map[string]interface{}{
 				"connection_url": fmt.Sprintf("tcp://%s?username=default&password=%s&debug=true", host, pass),
 			},
-			OtelEnabled: true,
 		})
 		if err != nil {
 			t.Fatal(err)

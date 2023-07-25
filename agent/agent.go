@@ -32,7 +32,6 @@ type Agent struct {
 	retrier          *retrier
 	stopOnSinkError  bool
 	timerFn          TimerFn
-	otelEnabled      bool
 }
 
 // NewAgent returns an Agent with plugin factories.
@@ -54,7 +53,6 @@ func NewAgent(config Config) *Agent {
 		logger:           config.Logger,
 		retrier:          retrier,
 		timerFn:          timerFn,
-		otelEnabled:      config.OtelEnabled,
 	}
 }
 
@@ -220,7 +218,7 @@ func (r *Agent) setupExtractor(ctx context.Context, sr recipe.PluginRecipe, str 
 	if err != nil {
 		return nil, fmt.Errorf("find extractor %q: %w", sr.Name, err)
 	}
-	if err := extractor.Init(ctx, recipeToPluginConfig(sr, r.otelEnabled)); err != nil {
+	if err := extractor.Init(ctx, recipeToPluginConfig(sr)); err != nil {
 		return nil, fmt.Errorf("initiate extractor %q: %w", sr.Name, err)
 	}
 
