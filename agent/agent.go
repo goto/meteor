@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/goto/meteor/metrics/otelmw"
 	"github.com/goto/meteor/models"
 	"github.com/goto/meteor/plugins"
-	"github.com/goto/meteor/plugins/otelmw"
 	"github.com/goto/meteor/recipe"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
