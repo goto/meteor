@@ -13,14 +13,12 @@ import (
 
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/presto"
-	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/test/mocks"
 	"github.com/goto/meteor/test/utils"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	_ "github.com/prestodb/presto-go-client/presto"
 	"github.com/stretchr/testify/assert"
-	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
 const (
@@ -47,7 +45,7 @@ func TestMain(m *testing.M) {
 	retryFn := func(r *dockertest.Resource) (err error) {
 		dsn := fmt.Sprintf("http://presto@localhost:%s", port)
 
-		db, err = sqlutil.OpenWithOtel("presto", dsn, semconv.DBSystemKey.String("presto"))
+		db, err = sql.Open("presto", dsn)
 		if err != nil {
 			return err
 		}

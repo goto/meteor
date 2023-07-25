@@ -14,13 +14,11 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/mariadb"
-	"github.com/goto/meteor/plugins/sqlutil"
 	"github.com/goto/meteor/test/mocks"
 	"github.com/goto/meteor/test/utils"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
-	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
 const (
@@ -54,7 +52,7 @@ func TestMain(m *testing.M) {
 
 	// Exponential backoff-retry for container to accept connections
 	retryFn := func(r *dockertest.Resource) (err error) {
-		db, err = sqlutil.OpenWithOtel("mysql", fmt.Sprintf("root:@tcp(%s)/", host), semconv.DBSystemMariaDB)
+		db, err = sql.Open("mysql", fmt.Sprintf("root:@tcp(%s)/", host))
 		if err != nil {
 			return err
 		}
