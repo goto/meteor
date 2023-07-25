@@ -32,7 +32,6 @@ type Agent struct {
 	retrier          *retrier
 	stopOnSinkError  bool
 	timerFn          TimerFn
-	otelEnabled      bool
 }
 
 // NewAgent returns an Agent with plugin factories.
@@ -54,7 +53,6 @@ func NewAgent(config Config) *Agent {
 		logger:           config.Logger,
 		retrier:          retrier,
 		timerFn:          timerFn,
-		otelEnabled:      config.OtelEnabled,
 	}
 }
 
@@ -238,11 +236,9 @@ func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str 
 		return fmt.Errorf("find processor %q: %w", pr.Name, err)
 	}
 
-	if r.otelEnabled {
-		proc, err = otelmw.WithProcessorMW(proc, pr.Name, recipeName)
-		if err != nil {
-			return fmt.Errorf("wrap processor %q: %w", pr.Name, err)
-		}
+	proc, err = otelmw.WithProcessorMW(proc, pr.Name, recipeName)
+	if err != nil {
+		return fmt.Errorf("wrap processor %q: %w", pr.Name, err)
 	}
 
 	if err := proc.Init(ctx, recipeToPluginConfig(pr)); err != nil {
@@ -273,11 +269,9 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 		return fmt.Errorf("find sink %q: %w", sr.Name, err)
 	}
 
-	if r.otelEnabled {
-		sink, err = otelmw.WithSinkMW(sink, sr.Name, recipeName)
-		if err != nil {
-			return fmt.Errorf("wrap otel sink %q: %w", sr.Name, err)
-		}
+	sink, err = otelmw.WithSinkMW(sink, sr.Name, recipeName)
+	if err != nil {
+		return fmt.Errorf("wrap otel sink %q: %w", sr.Name, err)
 	}
 
 	if err := sink.Init(ctx, recipeToPluginConfig(sr)); err != nil {

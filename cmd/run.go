@@ -107,7 +107,6 @@ func RunCmd() *cobra.Command {
 				MaxRetries:           cfg.MaxRetries,
 				RetryInitialInterval: time.Duration(cfg.RetryInitialIntervalSeconds) * time.Second,
 				StopOnSinkError:      cfg.StopOnSinkError,
-				OtelEnabled:          cfg.OtelEnabled, // this can be deleted once statsd is removed
 			})
 
 			recipes, err := recipe.NewReader(lg, pathToConfig).Read(args[0])
