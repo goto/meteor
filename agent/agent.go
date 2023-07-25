@@ -142,7 +142,7 @@ func (r *Agent) Run(ctx context.Context, recipe recipe.Recipe) (run Run) {
 	}
 
 	for _, pr := range recipe.Processors {
-		if err := r.setupProcessor(ctx, pr, stream); err != nil {
+		if err := r.setupProcessor(ctx, pr, stream, recipe.Name); err != nil {
 			run.Error = fmt.Errorf("setup processor: %w", err)
 			return run
 		}
@@ -232,14 +232,14 @@ func (r *Agent) setupExtractor(ctx context.Context, sr recipe.PluginRecipe, str 
 	}, nil
 }
 
-func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream) (err error) {
+func (r *Agent) setupProcessor(ctx context.Context, pr recipe.PluginRecipe, str *stream, recipeName string) (err error) {
 	proc, err := r.processorFactory.Get(pr.Name)
 	if err != nil {
 		return fmt.Errorf("find processor %q: %w", pr.Name, err)
 	}
 
 	if r.otelEnabled {
-		proc, err = otelmw.WithProcessorMW(proc, pr.Name)
+		proc, err = otelmw.WithProcessorMW(proc, pr.Name, recipeName)
 		if err != nil {
 			return fmt.Errorf("wrap processor %q: %w", pr.Name, err)
 		}
@@ -272,13 +272,21 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 	if err != nil {
 		return fmt.Errorf("find sink %q: %w", sr.Name, err)
 	}
+
+	if r.otelEnabled {
+		sink, err = otelmw.WithSinkMW(sink, sr.Name, recipeName)
+		if err != nil {
+			return fmt.Errorf("wrap otel sink %q: %w", sr.Name, err)
+		}
+	}
+
 	if err := sink.Init(ctx, recipeToPluginConfig(sr)); err != nil {
 		return fmt.Errorf("initiate sink %q: %w", sr.Name, err)
 	}
 
 	retryNotification := func(e error, d time.Duration) {
 		for _, mt := range r.monitor {
-			mt.RecordPluginRetryCount(ctx, pluginInfo)
+			mt.RecordSinkRetryCount(ctx, pluginInfo)
 		}
 
 		r.logger.Warn(
@@ -294,13 +302,6 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 		err := r.retrier.retry(
 			ctx,
 			func() error {
-				if r.otelEnabled {
-					sink, err = otelmw.WithSinkMW(sink, sr.Name)
-					if err != nil {
-						return err
-					}
-				}
-
 				return sink.Sink(ctx, records)
 			},
 			retryNotification,

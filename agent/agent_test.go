@@ -816,7 +816,7 @@ func TestAgentRun(t *testing.T) {
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
 		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
-		monitor.On("RecordPluginRetryCount", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
+		monitor.On("RecordSinkRetryCount", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -876,7 +876,7 @@ func TestAgentRun(t *testing.T) {
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", utils.OfTypeContext(), mock.AnythingOfType("agent.Run")).Once()
 		monitor.On("RecordPlugin", utils.OfTypeContext(), mock.AnythingOfType("agent.PluginInfo"))
-		monitor.On("RecordPluginRetryCount", utils.OfTypeContext(), mock.AnythingOfType("agent.PluginInfo")).Maybe()
+		monitor.On("RecordSinkRetryCount", utils.OfTypeContext(), mock.AnythingOfType("agent.PluginInfo")).Maybe()
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -1199,7 +1199,7 @@ func (m *mockMonitor) RecordPlugin(ctx context.Context, pluginInfo agent.PluginI
 	m.Called(ctx, pluginInfo)
 }
 
-func (m *mockMonitor) RecordPluginRetryCount(ctx context.Context, pluginInfo agent.PluginInfo) {
+func (m *mockMonitor) RecordSinkRetryCount(ctx context.Context, pluginInfo agent.PluginInfo) {
 	m.Called(ctx, pluginInfo)
 }
 

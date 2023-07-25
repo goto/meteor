@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/goto/meteor/agent"
 	"github.com/goto/meteor/config"
 	"github.com/goto/meteor/recipe"
 	"github.com/goto/salt/log"
@@ -13,29 +12,18 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/contrib/samplers/probability/consistent"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
-	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/encoding/gzip"
 )
 
 const gracePeriod = 5 * time.Second
-
-// OtelMonitor represents the otel monitor.
-type OtelMonitor struct {
-	recipeDuration   metric.Int64Histogram
-	extractorRetries metric.Int64Counter
-	assetsExtracted  metric.Int64Counter
-	sinkRetries      metric.Int64Counter
-}
 
 func InitOtel(ctx context.Context, cfg config.Config, logger *log.Logrus, appVersion string) (func(), error) {
 	res, err := resource.New(ctx,
@@ -44,7 +32,6 @@ func InitOtel(ctx context.Context, cfg config.Config, logger *log.Logrus, appVer
 		resource.WithOS(),
 		resource.WithHost(),
 		resource.WithProcess(),
-		resource.WithContainer(),
 		resource.WithProcessRuntimeName(),
 		resource.WithProcessRuntimeVersion(),
 		resource.WithAttributes(
@@ -82,37 +69,6 @@ func InitOtel(ctx context.Context, cfg config.Config, logger *log.Logrus, appVer
 	}
 
 	return shutdownProviders, nil
-}
-
-func NewOtelMonitor() (*OtelMonitor, error) {
-	// init meters
-	meter := otel.Meter("")
-	recipeDuration, err := meter.Int64Histogram("meteor.recipe.duration", metric.WithUnit("ms"))
-	if err != nil {
-		return nil, err
-	}
-
-	extractorRetries, err := meter.Int64Counter("meteor.extractor.retries")
-	if err != nil {
-		return nil, err
-	}
-
-	assetsExtracted, err := meter.Int64Counter("meteor.assets.extracted")
-	if err != nil {
-		return nil, err
-	}
-
-	sinkRetries, err := meter.Int64Counter("meteor.sink.retries")
-	if err != nil {
-		return nil, err
-	}
-
-	return &OtelMonitor{
-		recipeDuration:   recipeDuration,
-		extractorRetries: extractorRetries,
-		assetsExtracted:  assetsExtracted,
-		sinkRetries:      sinkRetries,
-	}, nil
 }
 
 func initGlobalMetrics(ctx context.Context, res *resource.Resource, cfg config.Config, logger *log.Logrus) (func(), error) {
@@ -183,44 +139,4 @@ func getSliceStringPluginNames(prs []recipe.PluginRecipe) []string {
 	}
 
 	return res
-}
-
-// RecordRun records a run behavior
-func (m *OtelMonitor) RecordRun(ctx context.Context, run agent.Run) {
-	span := trace.SpanFromContext(ctx)
-	span.SetAttributes(attribute.String("recipe_name", run.Recipe.Name))
-
-	m.recipeDuration.Record(ctx,
-		int64(run.DurationInMs),
-		metric.WithAttributes(
-			attribute.String("extractor", run.Recipe.Source.Name),
-			attribute.StringSlice("processors", getSliceStringPluginNames(run.Recipe.Processors)),
-			attribute.StringSlice("sinks", getSliceStringPluginNames(run.Recipe.Sinks)),
-			attribute.Bool("success", run.Success),
-		))
-
-	m.extractorRetries.Add(ctx, int64(run.ExtractorRetries))
-
-	m.assetsExtracted.Add(ctx,
-		int64(run.AssetsExtracted),
-		metric.WithAttributes(
-			attribute.String("extractor", run.Recipe.Source.Name),
-			attribute.StringSlice("processors", getSliceStringPluginNames(run.Recipe.Processors)),
-			attribute.StringSlice("sinks", getSliceStringPluginNames(run.Recipe.Sinks)),
-		))
-}
-
-// RecordPlugin records a individual plugin behavior in a run, this is being handled in otelmw
-func (*OtelMonitor) RecordPlugin(_ context.Context, _ agent.PluginInfo) {}
-
-func (m *OtelMonitor) RecordPluginRetryCount(ctx context.Context, pluginInfo agent.PluginInfo) {
-	switch pluginInfo.PluginType {
-	case "sink":
-		m.sinkRetries.Add(ctx,
-			1,
-			metric.WithAttributes(
-				attribute.String("sink", pluginInfo.PluginName),
-				attribute.Int64("batch_size", int64(pluginInfo.BatchSize)),
-			))
-	}
 }

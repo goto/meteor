@@ -15,9 +15,10 @@ type SinksMW struct {
 	next       plugins.Syncer
 	duration   metric.Int64Histogram
 	pluginName string
+	recipeName string
 }
 
-func WithSinkMW(s plugins.Syncer, pluginName string) (plugins.Syncer, error) {
+func WithSinkMW(s plugins.Syncer, pluginName, recipeName string) (plugins.Syncer, error) {
 	meter := otel.Meter("")
 
 	sinkDuration, err := meter.Int64Histogram("meteor.sink.duration", metric.WithUnit("ms"))
@@ -29,6 +30,7 @@ func WithSinkMW(s plugins.Syncer, pluginName string) (plugins.Syncer, error) {
 		next:       s,
 		duration:   sinkDuration,
 		pluginName: pluginName,
+		recipeName: recipeName,
 	}, nil
 }
 
@@ -53,6 +55,7 @@ func (mw *SinksMW) Sink(ctx context.Context, batch []models.Record) (err error) 
 		mw.duration.Record(ctx,
 			time.Since(start).Milliseconds(),
 			metric.WithAttributes(
+				attribute.String("recipe_name", mw.recipeName),
 				attribute.String("sink", mw.pluginName),
 			))
 	}(time.Now())

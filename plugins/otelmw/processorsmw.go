@@ -15,9 +15,10 @@ type ProcessorMW struct {
 	next       plugins.Processor
 	duration   metric.Int64Histogram
 	pluginName string
+	recipeName string
 }
 
-func WithProcessorMW(p plugins.Processor, pluginName string) (plugins.Processor, error) {
+func WithProcessorMW(p plugins.Processor, pluginName, recipeName string) (plugins.Processor, error) {
 	meter := otel.Meter("")
 
 	processorDuration, err := meter.Int64Histogram("meteor.processor.duration", metric.WithUnit("ms"))
@@ -29,6 +30,7 @@ func WithProcessorMW(p plugins.Processor, pluginName string) (plugins.Processor,
 		next:       p,
 		duration:   processorDuration,
 		pluginName: pluginName,
+		recipeName: recipeName,
 	}, nil
 }
 
@@ -49,6 +51,7 @@ func (mw *ProcessorMW) Process(ctx context.Context, src models.Record) (dst mode
 		mw.duration.Record(ctx,
 			time.Since(start).Milliseconds(),
 			metric.WithAttributes(
+				attribute.String("recipe_name", mw.recipeName),
 				attribute.String("processor", mw.pluginName),
 			))
 	}(time.Now())

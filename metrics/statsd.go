@@ -62,7 +62,7 @@ func (m *StatsdMonitor) RecordPlugin(_ context.Context, pluginInfo agent.PluginI
 	)
 }
 
-func (*StatsdMonitor) RecordPluginRetryCount(context.Context, agent.PluginInfo) {}
+func (*StatsdMonitor) RecordSinkRetryCount(context.Context, agent.PluginInfo) {}
 
 // createMetricName creates a metric name for a given recipe and success
 func (m *StatsdMonitor) createMetricName(metricName string, recipe recipe.Recipe, success bool) string {
