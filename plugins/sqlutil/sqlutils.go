@@ -82,6 +82,9 @@ func OpenWithOtel(driverName, connectionURL string, otelSemConv attribute.KeyVal
 		return nil, err
 	}
 
-	err = otelsql.RecordStats(db)
-	return db, err
+	if err := otelsql.RecordStats(db); err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
