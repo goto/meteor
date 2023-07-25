@@ -40,7 +40,7 @@ require (
 	github.com/prestodb/presto-go-client v0.0.0-20211201125635-ad28cec17d6c
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/segmentio/kafka-go v0.4.39
-	github.com/sijms/go-ora/v2 v2.2.22
+	github.com/sijms/go-ora/v2 v2.7.9
 	github.com/snowflakedb/gosnowflake v1.6.7
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
