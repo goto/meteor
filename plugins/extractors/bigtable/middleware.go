@@ -2,10 +2,11 @@ package bigtable
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"cloud.google.com/go/bigtable"
-	"github.com/goto/meteor/utils"
+	"github.com/googleapis/gax-go/v2/apierror"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -14,15 +15,14 @@ import (
 type AdminClientMW struct {
 	tableDuration  metric.Int64Histogram
 	tablesDuration metric.Int64Histogram
-	projectID      string
-	instanceName   string
 	next           AdminClient
+	attributes     []attribute.KeyValue
 }
 
 type InstancesAdminClientMW struct {
 	instancesDuration metric.Int64Histogram
-	projectID         string
 	next              InstanceAdminClient
+	attributes        []attribute.KeyValue
 }
 
 func WithAdminClientMW(next AdminClient, projectID, instanceName string) (AdminClient, error) {
@@ -41,9 +41,11 @@ func WithAdminClientMW(next AdminClient, projectID, instanceName string) (AdminC
 	return &AdminClientMW{
 		tableDuration:  tableDuration,
 		tablesDuration: tablesDuration,
-		projectID:      projectID,
-		instanceName:   instanceName,
 		next:           next,
+		attributes: []attribute.KeyValue{
+			attribute.String("bt.project_id", projectID),
+			attribute.String("bt.instance_name", instanceName),
+		},
 	}, nil
 }
 
@@ -57,51 +59,61 @@ func WithInstancesAdminClientMW(next InstanceAdminClient, projectID string) (Ins
 
 	return &InstancesAdminClientMW{
 		instancesDuration: instancesDuration,
-		projectID:         projectID,
 		next:              next,
+		attributes: []attribute.KeyValue{
+			attribute.String("bt.project_id", projectID),
+		},
 	}, nil
 }
 
 func (o *AdminClientMW) Tables(ctx context.Context) (res []string, err error) {
 	defer func(start time.Time) {
+		attrs := o.attributes
+		if err != nil {
+			attrs = append(attrs, attribute.String("bt.error_code", getAPIErrReason(err)))
+		}
 		o.tablesDuration.Record(ctx,
 			time.Since(start).Milliseconds(),
-			metric.WithAttributes(
-				attribute.String("bt.project_id", o.projectID),
-				attribute.String("bt.error_code", utils.StatusCode(err).String()),
-				attribute.String("bt.instance_name", o.instanceName),
-			))
+			metric.WithAttributes(attrs...))
 	}(time.Now())
 
-	res, err = o.next.Tables(ctx)
-	return res, err
+	return o.next.Tables(ctx)
 }
 
 func (o *AdminClientMW) TableInfo(ctx context.Context, table string) (res *bigtable.TableInfo, err error) {
 	defer func(start time.Time) {
+		attrs := append(o.attributes, attribute.String("bt.table_name", table))
+		if err != nil {
+			attrs = append(attrs, attribute.String("bt.error_code", getAPIErrReason(err)))
+		}
 		o.tableDuration.Record(ctx,
 			time.Since(start).Milliseconds(),
-			metric.WithAttributes(
-				attribute.String("bt.project_id", o.projectID),
-				attribute.String("bt.error_code", utils.StatusCode(err).String()),
-				attribute.String("bt.instance_name", o.instanceName),
-				attribute.String("bt.table_name", table),
-			))
+			metric.WithAttributes(attrs...))
 	}(time.Now())
-	res, err = o.next.TableInfo(ctx, table)
-	return res, err
+	return o.next.TableInfo(ctx, table)
 }
 
 func (o *InstancesAdminClientMW) Instances(ctx context.Context) (res []*bigtable.InstanceInfo, err error) {
 	defer func(start time.Time) {
+		attrs := o.attributes
+		if err != nil {
+			attrs = append(o.attributes, attribute.String("bt.error_code", getAPIErrReason(err)))
+		}
+
 		o.instancesDuration.Record(ctx,
 			time.Since(start).Milliseconds(),
-			metric.WithAttributes(
-				attribute.String("bt.project_id", o.projectID),
-				attribute.String("bt.error_code", utils.StatusCode(err).String()),
-			))
+			metric.WithAttributes(attrs...))
 	}(time.Now())
 
-	res, err = o.next.Instances(ctx)
-	return res, err
+	return o.next.Instances(ctx)
+}
+
+func getAPIErrReason(err error) string {
+	reason := "UNKNOWN"
+	var apiErr *apierror.APIError
+	if errors.As(err, &apiErr) {
+		reason = apiErr.Reason()
+	}
+
+	return reason
 }
