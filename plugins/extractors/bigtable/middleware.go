@@ -7,6 +7,7 @@ import (
 
 	"cloud.google.com/go/bigtable"
 	"github.com/googleapis/gax-go/v2/apierror"
+	"github.com/goto/meteor/utils"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -109,7 +110,7 @@ func (o *InstancesAdminClientMW) Instances(ctx context.Context) (res []*bigtable
 }
 
 func getAPIErrReason(err error) string {
-	reason := "UNKNOWN"
+	reason := utils.StatusCode(err).String()
 	var apiErr *apierror.APIError
 	if errors.As(err, &apiErr) {
 		reason = apiErr.Reason()
