@@ -6,8 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/goto/meteor/models"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"html/template"
 	"math/rand"
 	"strings"
@@ -17,6 +15,7 @@ import (
 	"cloud.google.com/go/bigquery"
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
 	"cloud.google.com/go/datacatalog/apiv1/datacatalogpb"
+	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/bigquery/auditlog"
@@ -32,6 +31,7 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 //go:embed README.md
@@ -445,9 +445,9 @@ func (e *Extractor) buildAsset(ctx context.Context, t *bigquery.Table, md *bigqu
 		Labels:      md.Labels,
 	}
 
-	if e.config.BuildViewLineage == true && (md.Type == bigquery.ViewTable || md.Type == bigquery.MaterializedView) {
-		query := e.getViewQuery(md)
-		upstreamResources := e.getUpstreamResources(query)
+	if e.config.BuildViewLineage && (md.Type == bigquery.ViewTable || md.Type == bigquery.MaterializedView) {
+		query := getViewQuery(md)
+		upstreamResources := getUpstreamResources(query)
 		asset.Lineage = &v1beta2.Lineage{
 			Upstreams: upstreamResources,
 		}
@@ -757,7 +757,7 @@ func (e *Extractor) fetchTableMetadata(ctx context.Context, tbl *bigquery.Table)
 	return tbl.Metadata(ctx)
 }
 
-func (e *Extractor) getViewQuery(md *bigquery.TableMetadata) string {
+func getViewQuery(md *bigquery.TableMetadata) string {
 	switch md.Type {
 	case bigquery.ViewTable:
 		return md.ViewQuery
@@ -767,7 +767,7 @@ func (e *Extractor) getViewQuery(md *bigquery.TableMetadata) string {
 	return ""
 }
 
-func (e *Extractor) getUpstreamResources(query string) []*v1beta2.Resource {
+func getUpstreamResources(query string) []*v1beta2.Resource {
 	upstreamDependencies := upstream.ParseTopLevelUpstreamsFromQuery(query)
 	uniqueUpstreamDependencies := upstream.UniqueFilterResources(upstreamDependencies)
 	var upstreams []*v1beta2.Resource

@@ -21,7 +21,7 @@ var (
 
 	singleLineCommentsPattern = regexp.MustCompile(`(--.*)`)
 	multiLineCommentsPattern  = regexp.MustCompile(`(((/\*)+?[\w\W]*?(\*/)+))`)
-	specialCommentPattern     = regexp.MustCompile(`(\/\*\s*(@[a-zA-Z0-9_-]+)\s*\*\/)`)
+	specialCommentPattern     = regexp.MustCompile(`(/\*\s*(@[a-zA-Z0-9_-]+)\s*\*/)`)
 )
 
 func ParseTopLevelUpstreamsFromQuery(query string) []Resource {
