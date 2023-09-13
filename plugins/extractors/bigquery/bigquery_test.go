@@ -257,7 +257,7 @@ func TestExtract(t *testing.T) {
 		t.Run("should return upstream lineage dependencies of type view", func(t *testing.T) {
 			actual := runTest(t, cfg, randFn(1))
 
-			utils.AssertJSONFile(t, "testdata/expected-assets-mixed.json", actual, jsondiff.FullMatch)
+			utils.AssertJSONFile(t, "testdata/expected-assets-view-lineage.json", actual, jsondiff.FullMatch)
 		})
 	})
 }
