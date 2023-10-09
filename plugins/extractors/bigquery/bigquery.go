@@ -453,7 +453,6 @@ func (e *Extractor) buildAsset(ctx context.Context, t *bigquery.Table, md *bigqu
 		CreateTime:    timestamppb.New(md.CreationTime),
 		UpdateTime:    timestamppb.New(md.LastModifiedTime),
 	})
-
 	if err != nil {
 		e.logger.Warn("error creating Any struct", "error", err)
 	}
