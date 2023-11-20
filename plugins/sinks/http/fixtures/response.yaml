@@ -9,7 +9,7 @@ interactions:
       - application/json
       Content-Type:
       - application/json
-    url: http://127.0.0.1:54943
+    url: http://127.0.0.1:54943/table/elasticsearch.index1
     method: POST
   response:
     body: ""
@@ -29,7 +29,7 @@ interactions:
       - application/json
       Content-Type:
       - application/json
-    url: http://127.0.0.1:54943
+    url: http://127.0.0.1:54943/table/elasticsearch.index2
     method: POST
   response:
     body: ""

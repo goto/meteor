@@ -141,7 +141,7 @@ func TestSink(t *testing.T) {
 		httpSink := h.New(&http.Client{Transport: r}, testutils.Logger)
 		config := map[string]interface{}{
 			"success_code": success_code,
-			"url":          "http://127.0.0.1:54943",
+			"url":          "http://127.0.0.1:54943/{{ .Type }}/{{ .Urn }}",
 			"method":       "POST",
 			"headers": map[string]string{
 				"Content-Type": "application/json",

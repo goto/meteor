@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/goto/meteor/metrics/otelhttpclient"
 	"github.com/goto/meteor/models"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
@@ -34,7 +36,7 @@ var info = plugins.Info{
 	Tags:        []string{"http", "sink"},
 	SampleConfig: heredoc.Doc(`
 	# The url (hostname and route) of the http service
-	url: https://compass.com/route
+	url: https://compass.requestcatcher.com/{{ .Type }}/{{ .Urn }}
 	method: "PUT"
 	# Additional HTTP headers, multiple headers value are separated by a comma
 	headers:
@@ -75,12 +77,8 @@ func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
 	for _, record := range batch {
 		metadata := record.Data()
 		s.logger.Info("sinking record to http", "record", metadata.Urn)
-		payload, err := json.Marshal(metadata)
-		if err != nil {
-			return fmt.Errorf("build http payload: %w", err)
-		}
 
-		if err = s.send(ctx, payload); err != nil {
+		if err := s.send(ctx, metadata); err != nil {
 			return fmt.Errorf("send data: %w", err)
 		}
 
@@ -92,9 +90,23 @@ func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
 
 func (*Sink) Close() error { return nil }
 
-func (s *Sink) send(ctx context.Context, payloadBytes []byte) error {
+func (s *Sink) send(ctx context.Context, asset *v1beta2.Asset) error {
+	payload, err := json.Marshal(asset)
+	if err != nil {
+		return fmt.Errorf("build http payload: %w", err)
+	}
+
+	t := template.Must(template.New("url").Parse(s.config.URL))
+
+	// build url
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, asset); err != nil {
+		return fmt.Errorf("build http url: %w", err)
+	}
+	url := buf.String()
+
 	// send request
-	req, err := http.NewRequestWithContext(ctx, s.config.Method, s.config.URL, bytes.NewBuffer(payloadBytes))
+	req, err := http.NewRequestWithContext(ctx, s.config.Method, url, bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}

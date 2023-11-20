@@ -10,7 +10,7 @@ sinks:
   config:
     method: POST
     success_code: 200
-    url: https://compass.com/v1beta1/asset
+    url: https://compass.requestcatcher.com/v1beta2/asset/{{ .Type }}/{{ .Urn }}
     headers:
       Header-1: value11,value12
 ```
@@ -19,7 +19,7 @@ sinks:
 
 | Key | Value | Example | Description |  |
 | :-- | :---- | :------ | :---------- | :-- |
-|`url` | `string` | `http://compass.production.com/v1beta1/asset` | URL to the http server, contains all the info needed to make the request, like port and route | *required*|
+|`url` | `string` | `https://compass.requestcatcher.com/v1beta2/asset/{{ .Type }}/{{ .Urn }}` | URL to the http server, contains all the info needed to make the request, like port and route, support go [text/template](https://pkg.go.dev/text/template) (see the properties in [v1beta2.Asset](https://github.com/goto/meteor/blob/main/models/gotocompany/assets/v1beta2/asset.pb.go#L25-L68))  | *required*|
 | `method` | `string` | `POST` | the method string of by which the request is to be made, e.g. POST/PATCH/GET | *required* |
 | `success_code` | `integer` | `200` |  to identify the expected success code the http server returns, defult is `200` | *optional* |
 | `headers` | `map` | `"Content-Type": "application/json"` | to add any header/headers that may be required for making the request | *optional* |
