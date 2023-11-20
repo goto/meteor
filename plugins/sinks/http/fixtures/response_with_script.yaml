@@ -2,14 +2,14 @@
 version: 1
 interactions:
 - request:
-    body: '{"resource":{"urn":"elasticsearch.index1","name":"index1","type":"table"},"profile":{"total_rows":1},"schema":{"columns":[{"name":"SomeInt","data_type":"long"},{"name":"SomeStr","data_type":"text"}]}}'
+    body: '{"details":{"another_key":"index1","some_key":"elasticsearch.index1"}}'
     form: {}
     headers:
       Accept:
       - application/json
       Content-Type:
       - application/json
-    url: http://127.0.0.1:54943
+    url: http://127.0.0.1:54943/table/elasticsearch.index1
     method: POST
   response:
     body: ""
@@ -22,14 +22,14 @@ interactions:
     code: 200
     duration: 274.68µs
 - request:
-    body: '{"resource":{"urn":"elasticsearch.index2","name":"index2","type":"table"},"profile":{"total_rows":1},"schema":{"columns":[{"name":"SomeInt","data_type":"long"},{"name":"SomeStr","data_type":"text"}]}}'
+    body: '{"details":{"another_key":"index2","some_key":"elasticsearch.index2"}}'
     form: {}
     headers:
       Accept:
       - application/json
       Content-Type:
       - application/json
-    url: http://127.0.0.1:54943
+    url: http://127.0.0.1:54943/table/elasticsearch.index2
     method: POST
   response:
     body: ""
