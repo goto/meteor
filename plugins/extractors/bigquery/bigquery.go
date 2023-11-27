@@ -444,15 +444,21 @@ func (e *Extractor) buildAsset(ctx context.Context, t *bigquery.Table, md *bigqu
 		}
 	}
 
-	table, err := anypb.New(&v1beta2.Table{
-		Columns:       e.buildColumns(ctx, md.Schema, md),
-		PreviewFields: previewFields,
-		PreviewRows:   previewRows,
-		Profile:       tableProfile,
-		Attributes:    utils.TryParseMapToProto(attributesData),
-		CreateTime:    timestamppb.New(md.CreationTime),
-		UpdateTime:    timestamppb.New(md.LastModifiedTime),
-	})
+	tableData := &v1beta2.Table{
+		Columns:    e.buildColumns(ctx, md.Schema, md),
+		Profile:    tableProfile,
+		Attributes: utils.TryParseMapToProto(attributesData),
+		CreateTime: timestamppb.New(md.CreationTime),
+		UpdateTime: timestamppb.New(md.LastModifiedTime),
+	}
+
+	maxPreviewRows := e.config.MaxPreviewRows
+	if maxPreviewRows != -1 {
+		tableData.PreviewFields = previewFields
+		tableData.PreviewRows = previewRows
+	}
+
+	table, err := anypb.New(tableData)
 	if err != nil {
 		e.logger.Warn("error creating Any struct", "error", err)
 	}
@@ -515,7 +521,7 @@ func (e *Extractor) buildColumn(ctx context.Context, field *bigquery.FieldSchema
 
 func (e *Extractor) buildPreview(ctx context.Context, t *bigquery.Table, md *bigquery.TableMetadata) (fields []string, rows *structpb.ListValue, err error) {
 	maxPreviewRows := e.config.MaxPreviewRows
-	if maxPreviewRows == 0 {
+	if maxPreviewRows == 0 || maxPreviewRows == -1 {
 		return nil, nil, nil
 	}
 
