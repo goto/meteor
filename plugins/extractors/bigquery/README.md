@@ -50,7 +50,7 @@ source:
 | `table_pattern` | `string` | `gofood.fact_` | Regex pattern to filter which bigquery table to scan (whitelist) | *optional* |
 | `max_page_size` | `int` | `100` | max page size hint used for fetching datasets/tables/rows from bigquery | *optional* |
 | `include_column_profile` | `bool` | `true` | true if you want to profile the column value such min, max, med, avg, top, and freq | *optional* |
-| `max_preview_rows` | `int` | `30` | max number of preview rows to fetch, `0` will skip preview fetching, `-1` will restruct adding preview_rows key in asset data . Default to `30`. | *optional* |
+| `max_preview_rows` | `int` | `30` | max number of preview rows to fetch, `0` will skip preview fetching, `-1` will restrict adding preview_rows key in asset data . Default to `30`. | *optional* |
 | `mix_values` | `bool` | `false` | true if you want to mix the column values with the preview rows. Default to `false`. | *optional* |
 | `collect_table_usage` | `boolean` | `false` | toggle feature to collect table usage, `true` will enable collecting table usage. Default to `false`. | *optional* |
 | `usage_period_in_day` | `int` | `7` | collecting log from `(now - usage_period_in_day)` until `now`. only matter if `collect_table_usage` is true. Default to `7`. | *optional* |
