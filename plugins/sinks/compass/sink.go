@@ -28,10 +28,11 @@ import (
 var summary string
 
 type Config struct {
-	Host                    string            `mapstructure:"host" validate:"required"`
-	Headers                 map[string]string `mapstructure:"headers"`
-	Labels                  map[string]string `mapstructure:"labels"`
-	RemoveUnsetFieldsInData bool              `mapstructure:"remove_unset_fields_in_data"`
+	Host    string            `mapstructure:"host" validate:"required"`
+	Headers map[string]string `mapstructure:"headers"`
+	Labels  map[string]string `mapstructure:"labels"`
+	// RemoveUnsetFieldsInData if set to true do not populate fields in final sink data which are unset in initial data.
+	RemoveUnsetFieldsInData bool `mapstructure:"remove_unset_fields_in_data"`
 }
 
 var info = plugins.Info{

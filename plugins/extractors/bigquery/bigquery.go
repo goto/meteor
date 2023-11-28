@@ -41,20 +41,21 @@ var summary string
 type Config struct {
 	ProjectID string `mapstructure:"project_id" validate:"required"`
 	// ServiceAccountBase64 takes precedence over ServiceAccountJSON field
-	ServiceAccountBase64 string   `mapstructure:"service_account_base64"`
-	ServiceAccountJSON   string   `mapstructure:"service_account_json"`
-	MaxPageSize          int      `mapstructure:"max_page_size"`
-	DatasetPageSize      int      `mapstructure:"dataset_page_size"`
-	TablePageSize        int      `mapstructure:"table_page_size"`
-	TablePattern         string   `mapstructure:"table_pattern"`
-	Exclude              Exclude  `mapstructure:"exclude"`
-	IncludeColumnProfile bool     `mapstructure:"include_column_profile"`
-	MaxPreviewRows       int      `mapstructure:"max_preview_rows" default:"30"`
-	MixValues            bool     `mapstructure:"mix_values" default:"false"`
-	IsCollectTableUsage  bool     `mapstructure:"collect_table_usage" default:"false"`
-	UsagePeriodInDay     int64    `mapstructure:"usage_period_in_day" default:"7"`
-	UsageProjectIDs      []string `mapstructure:"usage_project_ids"`
-	BuildViewLineage     bool     `mapstructure:"build_view_lineage" default:"false"`
+	ServiceAccountBase64 string  `mapstructure:"service_account_base64"`
+	ServiceAccountJSON   string  `mapstructure:"service_account_json"`
+	MaxPageSize          int     `mapstructure:"max_page_size"`
+	DatasetPageSize      int     `mapstructure:"dataset_page_size"`
+	TablePageSize        int     `mapstructure:"table_page_size"`
+	TablePattern         string  `mapstructure:"table_pattern"`
+	Exclude              Exclude `mapstructure:"exclude"`
+	IncludeColumnProfile bool    `mapstructure:"include_column_profile"`
+	// MaxPreviewRows can also be set to -1 to restrict adding preview_rows key in asset data
+	MaxPreviewRows      int      `mapstructure:"max_preview_rows" default:"30"`
+	MixValues           bool     `mapstructure:"mix_values" default:"false"`
+	IsCollectTableUsage bool     `mapstructure:"collect_table_usage" default:"false"`
+	UsagePeriodInDay    int64    `mapstructure:"usage_period_in_day" default:"7"`
+	UsageProjectIDs     []string `mapstructure:"usage_project_ids"`
+	BuildViewLineage    bool     `mapstructure:"build_view_lineage" default:"false"`
 }
 
 type Exclude struct {
