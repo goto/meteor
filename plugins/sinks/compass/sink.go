@@ -28,10 +28,10 @@ import (
 var summary string
 
 type Config struct {
-	Host              string            `mapstructure:"host" validate:"required"`
-	Headers           map[string]string `mapstructure:"headers"`
-	Labels            map[string]string `mapstructure:"labels"`
-	RemoveUnsetFields bool              `mapstructure:"remove_unset_fields" default:"false"`
+	Host                    string            `mapstructure:"host" validate:"required"`
+	Headers                 map[string]string `mapstructure:"headers"`
+	Labels                  map[string]string `mapstructure:"labels"`
+	RemoveUnsetFieldsInData bool              `mapstructure:"remove_unset_fields_in_data"`
 }
 
 var info = plugins.Info{
@@ -194,7 +194,7 @@ func (s *Sink) buildCompassData(anyData *anypb.Any) (map[string]interface{}, err
 
 	data, err := protojson.MarshalOptions{
 		UseProtoNames:   true,
-		EmitUnpopulated: !s.config.RemoveUnsetFields,
+		EmitUnpopulated: !s.config.RemoveUnsetFieldsInData,
 	}.Marshal(anyData)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling asset data: %w", err)

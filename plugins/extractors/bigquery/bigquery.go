@@ -521,7 +521,7 @@ func (e *Extractor) buildColumn(ctx context.Context, field *bigquery.FieldSchema
 
 func (e *Extractor) buildPreview(ctx context.Context, t *bigquery.Table, md *bigquery.TableMetadata) (fields []string, rows *structpb.ListValue, err error) {
 	maxPreviewRows := e.config.MaxPreviewRows
-	if maxPreviewRows == 0 || maxPreviewRows == -1 {
+	if maxPreviewRows <= 0 {
 		return nil, nil, nil
 	}
 
