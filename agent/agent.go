@@ -279,7 +279,6 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 	}
 
 	retryNotification := func(e error, d time.Duration) {
-		
 		r.monitor.RecordSinkRetryCount(ctx, pluginInfo)
 
 		r.logger.Warn(
@@ -301,7 +300,6 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 		)
 
 		pluginInfo.Success = err == nil
-		
 		if err != nil {
 			// once it reaches here, it means that the retry has been exhausted and still got error
 			r.logger.Error("error running sink", "sink", sr.Name, "error", err.Error())
