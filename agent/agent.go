@@ -279,7 +279,7 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 	}
 
 	retryNotification := func(e error, d time.Duration) {
-		for _, mt := range r.monitor{
+		for _, mt := range r.monitor {
 			mt.RecordSinkRetryCount(ctx, pluginInfo)
 		}
 
