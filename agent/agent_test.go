@@ -483,7 +483,7 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
+		//monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -533,7 +533,7 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
+		//monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -585,7 +585,7 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
+		//monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -649,7 +649,7 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
+		//monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -706,7 +706,7 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
+		//monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -761,7 +761,7 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
+		//monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
@@ -815,7 +815,7 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
+		//monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		monitor.On("RecordSinkRetryCount", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
@@ -875,7 +875,7 @@ func TestAgentRun(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", utils.OfTypeContext(), mock.AnythingOfType("agent.Run")).Once()
-		monitor.On("RecordPlugin", utils.OfTypeContext(), mock.AnythingOfType("agent.PluginInfo"))
+		//monitor.On("RecordPlugin", utils.OfTypeContext(), mock.AnythingOfType("agent.PluginInfo"))
 		monitor.On("RecordSinkRetryCount", utils.OfTypeContext(), mock.AnythingOfType("agent.PluginInfo")).Maybe()
 		defer monitor.AssertExpectations(t)
 
@@ -1057,7 +1057,7 @@ func TestAgentRunMultiple(t *testing.T) {
 
 		monitor := newMockMonitor()
 		monitor.On("RecordRun", mockCtx, mock.AnythingOfType("agent.Run"))
-		monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
+		//monitor.On("RecordPlugin", mockCtx, mock.AnythingOfType("agent.PluginInfo"))
 		defer monitor.AssertExpectations(t)
 
 		r := agent.NewAgent(agent.Config{
