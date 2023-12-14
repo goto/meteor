@@ -70,7 +70,7 @@ func RunCmd() *cobra.Command {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 
-			var mts []agent.Monitor
+			var mts agent.Monitor
 
 			if cfg.OtelEnabled {
 				doneOtlp, err := metrics.InitOtel(ctx, cfg, lg, Version)
@@ -79,7 +79,7 @@ func RunCmd() *cobra.Command {
 				}
 				defer doneOtlp()
 
-				mts = append(mts, metrics.NewOtelMonitor())
+				mts = metrics.NewOtelMonitor()
 			}
 
 			runner := agent.NewAgent(agent.Config{
