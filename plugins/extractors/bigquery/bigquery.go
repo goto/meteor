@@ -56,6 +56,7 @@ type Config struct {
 	UsagePeriodInDay    int64    `mapstructure:"usage_period_in_day" default:"7"`
 	UsageProjectIDs     []string `mapstructure:"usage_project_ids"`
 	BuildViewLineage    bool     `mapstructure:"build_view_lineage" default:"false"`
+	Concurrency         int      `mapstructure:"concurrency"`
 }
 
 type Exclude struct {
@@ -213,6 +214,10 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 
 	// Fetch and iterate over datasets
 	pager := iterator.NewPager(e.client.Datasets(ctx), pageSize, "")
+	ch := make(chan *bigquery.Table, e.config.Concurrency)
+	defer close(ch)
+	var wg sync.WaitGroup
+
 	for {
 		datasets, hasNext, err := e.fetchDatasetsNextPage(ctx, pager)
 		if err != nil {
@@ -220,20 +225,28 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 		}
 
 		for _, ds := range datasets {
-			if IsExcludedDataset(ds.DatasetID, e.config.Exclude.Datasets) {
-				e.excludedDatasetCtr.Add(
-					ctx, 1, metric.WithAttributes(attribute.String("bq.project_id", e.config.ProjectID)),
-				)
-				e.logger.Debug("excluding dataset from bigquery extract", "dataset_id", ds.DatasetID)
-				continue
-			}
-			e.extractTable(ctx, ds, emit)
+			wg.Add(1)
+			ds := ds
+			go e.processTable(ctx, emit, ds, ch)
+			go func() {
+				defer wg.Done()
+
+				if IsExcludedDataset(ds.DatasetID, e.config.Exclude.Datasets) {
+					e.excludedDatasetCtr.Add(
+						ctx, 1, metric.WithAttributes(attribute.String("bq.project_id", e.config.ProjectID)),
+					)
+					e.logger.Debug("excluding dataset from bigquery extract", "dataset_id", ds.DatasetID)
+					return
+				}
+				e.extractTable(ctx, ds, ch)
+			}()
 		}
 
 		if !hasNext {
 			break
 		}
 	}
+	wg.Wait()
 
 	return nil
 }
@@ -286,10 +299,10 @@ func (e *Extractor) createPolicyTagClient(ctx context.Context) (*datacatalog.Pol
 }
 
 // Create big query client
-func (e *Extractor) extractTable(ctx context.Context, ds *bigquery.Dataset, emit plugins.Emit) {
+func (e *Extractor) extractTable(ctx context.Context, ds *bigquery.Dataset, ch chan *bigquery.Table) {
 	pageSize := pickFirstNonZero(e.config.TablePageSize, e.config.MaxPageSize, 50)
-
 	pager := iterator.NewPager(ds.Tables(ctx), pageSize, "")
+
 	for {
 		tables, hasNext, err := e.fetchTablesNextPage(ctx, ds.DatasetID, pager)
 		if err != nil {
@@ -302,35 +315,46 @@ func (e *Extractor) extractTable(ctx context.Context, ds *bigquery.Dataset, emit
 		}
 
 		for _, table := range tables {
+			ch <- table
+		}
+
+		if !hasNext {
+			break
+		}
+	}
+}
+
+func (e *Extractor) processTable(ctx context.Context, emit plugins.Emit, ds *bigquery.Dataset, ch chan *bigquery.Table) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case table := <-ch:
 			if IsExcludedTable(ds.DatasetID, table.TableID, e.config.Exclude.Tables) {
 				e.excludedTableCtr.Add(ctx, 1, metric.WithAttributes(
 					attribute.String("bq.project_id", e.config.ProjectID),
 					attribute.String("bq.dataset_id", ds.DatasetID),
 				))
 				e.logger.Debug("excluding table from bigquery extract", "dataset_id", ds.DatasetID, "table_id", table.TableID)
-				continue
+				return
 			}
 
 			tableFQN := table.FullyQualifiedName()
-
 			e.logger.Debug("extracting table", "table", tableFQN)
+
 			tmd, err := e.fetchTableMetadata(ctx, table)
 			if err != nil {
 				e.logger.Error("failed to fetch table metadata", "err", err, "table", tableFQN)
-				continue
+				return
 			}
 
 			asset, err := e.buildAsset(ctx, table, tmd)
 			if err != nil {
 				e.logger.Error("failed to build asset", "err", err, "table", tableFQN)
-				continue
+				return
 			}
 
 			emit(models.NewRecord(asset))
-		}
-
-		if !hasNext {
-			break
 		}
 	}
 }

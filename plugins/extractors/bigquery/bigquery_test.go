@@ -180,6 +180,7 @@ func TestExtract(t *testing.T) {
 					"datasets": []string{"exclude_this_dataset"},
 					"tables":   []string{"dataset1.exclude_this_table"},
 				},
+				"concurrency": 5,
 			},
 		}, nil)
 
@@ -198,6 +199,7 @@ func TestExtract(t *testing.T) {
 					"datasets": []string{"exclude_this_dataset"},
 					"tables":   []string{"dataset1.exclude_this_table"},
 				},
+				"concurrency": 5,
 			},
 		}
 
