@@ -20,6 +20,7 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -33,6 +34,7 @@ type Config struct {
 	Labels  map[string]string `mapstructure:"labels"`
 	// RemoveUnsetFieldsInData if set to true do not populate fields in final sink data which are unset in initial data.
 	RemoveUnsetFieldsInData bool `mapstructure:"remove_unset_fields_in_data"`
+	Concurrency             int  `mapstructure:"concurrency" default:"10"`
 }
 
 var info = plugins.Info{
@@ -63,6 +65,7 @@ type Sink struct {
 	config Config
 	logger log.Logger
 	urlb   urlbuilder.Source
+	eg     *errgroup.Group
 }
 
 func New(c httpClient, logger log.Logger) plugins.Syncer {
@@ -87,6 +90,9 @@ func (s *Sink) Init(ctx context.Context, config plugins.Config) error {
 	}
 	s.urlb = urlb
 
+	s.eg = &errgroup.Group{}
+	s.eg.SetLimit(s.config.Concurrency)
+
 	return nil
 }
 
@@ -95,17 +101,24 @@ func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
 		asset := record.Data()
 		s.logger.Info("sinking record to compass", "record", asset.GetUrn())
 
-		compassPayload, err := s.buildCompassPayload(asset)
-		if err != nil {
-			return fmt.Errorf("build compass payload: %w", err)
-		}
-		if err = s.send(ctx, compassPayload); err != nil {
-			return fmt.Errorf("send data: %w", err)
-		}
+		s.eg.Go(func() error {
+			compassPayload, err := s.buildCompassPayload(asset)
+			if err != nil {
+				return fmt.Errorf("build compass payload: %w", err)
+			}
+			if err = s.send(ctx, compassPayload); err != nil {
+				return fmt.Errorf("send data: %w", err)
+			}
 
-		s.logger.Info("successfully sinked record to compass", "record", asset.GetUrn())
+			s.logger.Info("successfully sinked record to compass", "record", asset.GetUrn())
+			return nil
+		})
 	}
 
+	if err := s.eg.Wait(); err != nil {
+		s.logger.Error("error extracting bigquery tables", "err", err)
+		return err
+	}
 	return nil
 }
 

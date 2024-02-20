@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/goto/meteor/models"
@@ -145,7 +144,6 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 		topics[p.Topic]++
 	}
 
-	wg := sync.WaitGroup{}
 	// build and push topics
 	for topic, numOfPartitions := range topics {
 		// skip if topic is a default topic
@@ -154,19 +152,13 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 			continue
 		}
 
-		wg.Add(1)
-		go func(topic string, numOfPartitions int) error {
-			defer wg.Done()
-			asset, err := e.buildAsset(topic, numOfPartitions)
-			if err != nil {
-				e.logger.Error("failed to build asset", "err", err, "topic", topic)
-				return nil
-			}
-			emit(models.NewRecord(asset))
-			return nil
-		}(topic, numOfPartitions)
+		asset, err := e.buildAsset(topic, numOfPartitions)
+		if err != nil {
+			e.logger.Error("failed to build asset", "err", err, "topic", topic)
+			continue
+		}
+		emit(models.NewRecord(asset))
 	}
-	wg.Wait()
 
 	return nil
 }
