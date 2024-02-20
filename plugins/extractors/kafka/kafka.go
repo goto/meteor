@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sync"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/goto/meteor/models"
@@ -166,7 +166,6 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 			return nil
 		}(topic, numOfPartitions)
 	}
-
 	wg.Wait()
 
 	return nil
