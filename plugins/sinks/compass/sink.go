@@ -116,7 +116,7 @@ func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
 	}
 
 	if err := s.eg.Wait(); err != nil {
-		s.logger.Error("error extracting bigquery tables", "err", err)
+		s.logger.Error("error sinking compass assets", "err", err)
 		return err
 	}
 	return nil
