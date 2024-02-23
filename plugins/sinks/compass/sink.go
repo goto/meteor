@@ -34,7 +34,7 @@ type Config struct {
 	Labels  map[string]string `mapstructure:"labels"`
 	// RemoveUnsetFieldsInData if set to true do not populate fields in final sink data which are unset in initial data.
 	RemoveUnsetFieldsInData bool `mapstructure:"remove_unset_fields_in_data"`
-	Concurrency             int  `mapstructure:"concurrency" default:"20"`
+	Concurrency             int  `mapstructure:"concurrency" default:"50"`
 }
 
 var info = plugins.Info{
