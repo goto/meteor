@@ -21,7 +21,6 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -35,7 +34,6 @@ type Config struct {
 	Labels  map[string]string `mapstructure:"labels"`
 	// RemoveUnsetFieldsInData if set to true do not populate fields in final sink data which are unset in initial data.
 	RemoveUnsetFieldsInData bool `mapstructure:"remove_unset_fields_in_data"`
-	Concurrency             int  `mapstructure:"concurrency" default:"10"`
 }
 
 var info = plugins.Info{
@@ -66,7 +64,6 @@ type Sink struct {
 	config Config
 	logger log.Logger
 	urlb   urlbuilder.Source
-	eg     *errgroup.Group
 }
 
 func New(c httpClient, logger log.Logger) plugins.Syncer {
@@ -91,67 +88,64 @@ func (s *Sink) Init(ctx context.Context, config plugins.Config) error {
 	}
 	s.urlb = urlb
 
-	s.eg = &errgroup.Group{}
-	s.eg.SetLimit(s.config.Concurrency)
-
 	return nil
 }
 
 func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
 
 	recordCh := make(chan models.Record, len(batch))
-    errCh := make(chan error, len(batch))
+	errCh := make(chan error, len(batch))
 
-    var wg sync.WaitGroup
+	var wg sync.WaitGroup
 
-    for i := 0; i < len(batch); i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            for record := range recordCh {
-                if err := s.processRecord(ctx, record); err != nil {
-                    errCh <- err
-                }
-            }
-        }()
-    }
+	for i := 0; i < len(batch); i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for record := range recordCh {
+				if err := s.processRecord(ctx, record); err != nil {
+					errCh <- err
+				}
+			}
+		}()
+	}
 
-    for _, record := range batch {
-        recordCh <- record
-    }
-    close(recordCh)
+	for _, record := range batch {
+		recordCh <- record
+	}
+	close(recordCh)
 
-    go func() {
-        wg.Wait()
-        close(errCh)
-    }()
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
 
-    var errs []error
-    for err := range errCh {
-        errs = append(errs, err)
-    }
+	var errs []error
+	for err := range errCh {
+		errs = append(errs, err)
+	}
 
-    if len(errs) > 0 {
-        return fmt.Errorf("errors occurred while sinking records: %v", errs)
-    }
+	if len(errs) > 0 {
+		return fmt.Errorf("errors occurred while sinking records: %v", errs)
+	}
 
-    return nil
+	return nil
 }
 
 func (s *Sink) processRecord(ctx context.Context, record models.Record) error {
 	asset := record.Data()
-    s.logger.Info("Sinking record to compass", "record", asset.GetUrn())
+	s.logger.Info("Sinking record to compass", "record", asset.GetUrn())
 
-    compassPayload, err := s.buildCompassPayload(asset)
-    if err != nil {
-        return fmt.Errorf("build compass payload: %w", err)
-    }
+	compassPayload, err := s.buildCompassPayload(asset)
+	if err != nil {
+		return fmt.Errorf("build compass payload: %w", err)
+	}
 
-    if err := s.send(ctx, compassPayload); err != nil {
-        return fmt.Errorf("send data: %w", err)
-    }
+	if err := s.send(ctx, compassPayload); err != nil {
+		return fmt.Errorf("send data: %w", err)
+	}
 
-    s.logger.Info("Successfully sinked record to compass", "record", asset.GetUrn())
+	s.logger.Info("Successfully sinked record to compass", "record", asset.GetUrn())
 	return nil
 }
 
