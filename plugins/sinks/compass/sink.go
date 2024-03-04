@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/goto/meteor/metrics/otelhttpclient"
@@ -97,28 +98,60 @@ func (s *Sink) Init(ctx context.Context, config plugins.Config) error {
 }
 
 func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
-	for _, record := range batch {
-		asset := record.Data()
-		s.logger.Info("sinking record to compass", "record", asset.GetUrn())
 
-		s.eg.Go(func() error {
-			compassPayload, err := s.buildCompassPayload(asset)
-			if err != nil {
-				return fmt.Errorf("build compass payload: %w", err)
-			}
-			if err = s.send(ctx, compassPayload); err != nil {
-				return fmt.Errorf("send data: %w", err)
-			}
+	recordCh := make(chan models.Record, len(batch))
+    errCh := make(chan error, len(batch))
 
-			s.logger.Info("successfully sinked record to compass", "record", asset.GetUrn())
-			return nil
-		})
-	}
+    var wg sync.WaitGroup
 
-	if err := s.eg.Wait(); err != nil {
-		s.logger.Error("error sinking compass assets", "err", err)
-		return err
-	}
+    for i := 0; i < len(batch); i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            for record := range recordCh {
+                if err := s.processRecord(ctx, record); err != nil {
+                    errCh <- err
+                }
+            }
+        }()
+    }
+
+    for _, record := range batch {
+        recordCh <- record
+    }
+    close(recordCh)
+
+    go func() {
+        wg.Wait()
+        close(errCh)
+    }()
+
+    var errs []error
+    for err := range errCh {
+        errs = append(errs, err)
+    }
+
+    if len(errs) > 0 {
+        return fmt.Errorf("errors occurred while sinking records: %v", errs)
+    }
+
+    return nil
+}
+
+func (s *Sink) processRecord(ctx context.Context, record models.Record) error {
+	asset := record.Data()
+    s.logger.Info("Sinking record to compass", "record", asset.GetUrn())
+
+    compassPayload, err := s.buildCompassPayload(asset)
+    if err != nil {
+        return fmt.Errorf("build compass payload: %w", err)
+    }
+
+    if err := s.send(ctx, compassPayload); err != nil {
+        return fmt.Errorf("send data: %w", err)
+    }
+
+    s.logger.Info("Successfully sinked record to compass", "record", asset.GetUrn())
 	return nil
 }
 
