@@ -92,7 +92,6 @@ func (s *Sink) Init(ctx context.Context, config plugins.Config) error {
 }
 
 func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
-
 	recordCh := make(chan models.Record, len(batch))
 	errCh := make(chan error, len(batch))
 
