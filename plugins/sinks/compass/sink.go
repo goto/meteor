@@ -63,15 +63,14 @@ type Sink struct {
 	config Config
 	logger log.Logger
 	urlb   urlbuilder.Source
-	recordChan chan []models.Record
 }
 
-func New(c httpClient, recordChan chan []models.Record, logger log.Logger) plugins.Syncer {
+func New(c httpClient, logger log.Logger) plugins.Syncer {
 	if cl, ok := c.(*http.Client); ok {
 		cl.Transport = otelhttpclient.NewHTTPTransport(cl.Transport)
 	}
 
-	s := &Sink{client: c, recordChan: recordChan, logger: logger}
+	s := &Sink{client: c, logger: logger}
 
 	s.BasePlugin = plugins.NewBasePlugin(info, &s.config)
 	return s
@@ -315,7 +314,7 @@ func (*Sink) getLabelValueFromProperties(field1, field2 string, asset *v1beta2.A
 
 func init() {
 	if err := registry.Sinks.Register("compass", func() plugins.Syncer {
-		return New(&http.Client{}, make(chan []models.Record), plugins.GetLog())
+		return New(&http.Client{}, plugins.GetLog())
 	}); err != nil {
 		panic(err)
 	}
