@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/goto/meteor/metrics/otelhttpclient"
@@ -64,14 +63,15 @@ type Sink struct {
 	config Config
 	logger log.Logger
 	urlb   urlbuilder.Source
+	recordChan chan []models.Record
 }
 
-func New(c httpClient, logger log.Logger) plugins.Syncer {
+func New(c httpClient, recordChan chan []models.Record, logger log.Logger) plugins.Syncer {
 	if cl, ok := c.(*http.Client); ok {
 		cl.Transport = otelhttpclient.NewHTTPTransport(cl.Transport)
 	}
 
-	s := &Sink{client: c, logger: logger}
+	s := &Sink{client: c, recordChan: recordChan, logger: logger}
 
 	s.BasePlugin = plugins.NewBasePlugin(info, &s.config)
 	return s
@@ -92,59 +92,21 @@ func (s *Sink) Init(ctx context.Context, config plugins.Config) error {
 }
 
 func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
-	recordCh := make(chan models.Record, len(batch))
-	errCh := make(chan error, len(batch))
-
-	var wg sync.WaitGroup
-
-	for i := 0; i < len(batch); i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for record := range recordCh {
-				if err := s.processRecord(ctx, record); err != nil {
-					errCh <- err
-				}
-			}
-		}()
-	}
-
 	for _, record := range batch {
-		recordCh <- record
-	}
-	close(recordCh)
+		asset := record.Data()
+		s.logger.Info("sinking record to compass", "record", asset.GetUrn())
 
-	go func() {
-		wg.Wait()
-		close(errCh)
-	}()
+		compassPayload, err := s.buildCompassPayload(asset)
+		if err != nil {
+			return fmt.Errorf("build compass payload: %w", err)
+		}
+		if err = s.send(ctx, compassPayload); err != nil {
+			return fmt.Errorf("send data: %w", err)
+		}
 
-	var errs []error
-	for err := range errCh {
-		errs = append(errs, err)
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred while sinking records: %v", errs)
+		s.logger.Info("successfully sinked record to compass", "record", asset.GetUrn())
 	}
 
-	return nil
-}
-
-func (s *Sink) processRecord(ctx context.Context, record models.Record) error {
-	asset := record.Data()
-	s.logger.Info("Sinking record to compass", "record", asset.GetUrn())
-
-	compassPayload, err := s.buildCompassPayload(asset)
-	if err != nil {
-		return fmt.Errorf("build compass payload: %w", err)
-	}
-
-	if err := s.send(ctx, compassPayload); err != nil {
-		return fmt.Errorf("send data: %w", err)
-	}
-
-	s.logger.Info("Successfully sinked record to compass", "record", asset.GetUrn())
 	return nil
 }
 
@@ -353,7 +315,7 @@ func (*Sink) getLabelValueFromProperties(field1, field2 string, asset *v1beta2.A
 
 func init() {
 	if err := registry.Sinks.Register("compass", func() plugins.Syncer {
-		return New(&http.Client{}, plugins.GetLog())
+		return New(&http.Client{}, make(chan []models.Record), plugins.GetLog())
 	}); err != nil {
 		panic(err)
 	}

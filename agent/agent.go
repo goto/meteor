@@ -290,30 +290,50 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 			"error", e.Error(),
 		)
 	}
-	stream.subscribe(func(records []models.Record) error {
-		pluginInfo.BatchSize = len(records)
 
-		err := r.retrier.retry(
-			ctx,
-			func() error {
-				return sink.Sink(ctx, records)
-			},
-			retryNotification,
-		)
+	recordCh := make(chan []models.Record)
+	errorCh := make(chan error)
 
-		pluginInfo.Success = err == nil
-		if err != nil {
-			// once it reaches here, it means that the retry has been exhausted and still got error
-			r.logger.Error("error running sink", "sink", sr.Name, "error", err.Error())
-			if r.stopOnSinkError {
-				return err
+	go func() {
+		for records := range recordCh {
+			pluginInfo.BatchSize = len(records)
+
+			err := r.retrier.retry(
+				ctx,
+				func() error {
+					return sink.Sink(ctx, records)
+				},
+				retryNotification,
+			)
+
+			pluginInfo.Success = err == nil
+			if err != nil {
+				// once it reaches here, it means that the retry has been exhausted and still got error
+				r.logger.Error("error running sink", "sink", sr.Name, "error", err.Error())
+				if r.stopOnSinkError {
+					errorCh <- err
+				}
+				continue
 			}
-			return nil
-		}
 
-		r.logger.Info("Successfully published record", "sink", sr.Name, "recipe", recipeName)
-		return nil
+			r.logger.Info("Successfully published record", "sink", sr.Name, "recipe", recipeName)
+		}
+	}()
+
+	stream.subscribe(func(records []models.Record) error {
+		recordCh <- records
+		return nil	
 	}, defaultBatchSize)
+
+
+	go func() {
+		for err := range errorCh {
+			r.logger.Error("error running sink", "error", err.Error())
+			close(recordCh)
+			return
+		}
+	}()
+
 
 	stream.onClose(func() {
 		if err := sink.Close(); err != nil {
