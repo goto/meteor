@@ -326,12 +326,13 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 	}, defaultBatchSize)
 
 
-	go func() {
+	go func() error {
 		for err := range errorCh {
 			r.logger.Error("error running sink", "error", err.Error())
 			close(recordCh)
-			return
+			return err
 		}
+		return nil
 	}()
 
 
