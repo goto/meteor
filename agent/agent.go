@@ -17,7 +17,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const defaultBatchSize = 1
+const defaultBatchSize = 10
 
 // TimerFn of function type
 type TimerFn func() func() int
