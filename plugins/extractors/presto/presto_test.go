@@ -35,8 +35,8 @@ var (
 func TestMain(m *testing.M) {
 	// setup test
 	opts := dockertest.RunOptions{
-		Repository:   "ahanaio/prestodb-sandbox",
-		Tag:          "0.270",
+		Repository:   "ghcr.io/popsql/prestodb-sandbox",
+		Tag:          "0.286",
 		ExposedPorts: []string{"8080"},
 		PortBindings: map[docker.Port][]docker.PortBinding{"8080": {{HostIP: "0.0.0.0", HostPort: port}}},
 	}
