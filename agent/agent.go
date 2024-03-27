@@ -290,6 +290,7 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 			"error", e.Error(),
 		)
 	}
+	fmt.Println("Reached line 294 agent.go")
 	stream.subscribe(func(records []models.Record) error {
 		pluginInfo.BatchSize = len(records)
 

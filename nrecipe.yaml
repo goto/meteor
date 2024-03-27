@@ -1,0 +1,9 @@
+name: postgres-console # unique recipe name as an ID
+version: v1beta1 #recipe version
+source:
+  name: postgres
+  scope: postgres::my-postgres/litmus_test/clients
+  config:
+    connection_url: postgres://postgres:postgres@localhost:5432/litmus_test?sslmode=disable
+sinks: # required - at least 1 sink defined
+  - name: console

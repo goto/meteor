@@ -3,6 +3,7 @@ package agent_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -546,6 +547,7 @@ func TestAgentRun(t *testing.T) {
 		})
 
 		run := r.Run(ctx, validRecipe)
+		fmt.Println("Printing error received: ", run.Error)
 		assert.False(t, run.Success)
 		assert.Error(t, run.Error)
 	})
