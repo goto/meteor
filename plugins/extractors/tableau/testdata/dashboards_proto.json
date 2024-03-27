@@ -10,7 +10,8 @@
                 "owner_id": "f1594618-29db-5ea3-484d-9b19d3b34f94",
                 "owner_name": "Meteor User",
                 "project_name": "Samples",
-                "uri": "sites/15038/workbooks/88352"
+                "uri": "sites/15038/workbooks/88352",
+                "full_uri": "https://server.tableau.com/sites/15038/workbooks/88352"
             },
             "charts": [
                 {
@@ -297,7 +298,8 @@
                 "owner_id": "f1594618-29db-5ea3-484d-9b19d3b34f94",
                 "owner_name": "Meteor User",
                 "project_name": "Samples",
-                "uri": "sites/15038/workbooks/88353"
+                "uri": "sites/15038/workbooks/88353",
+                "full_uri": "https://server.tableau.com/sites/15038/workbooks/88353"
             },
             "charts": [
                 {
@@ -797,7 +799,8 @@
                 "owner_id": "f1594618-29db-5ea3-484d-9b19d3b34f94",
                 "owner_name": "Meteor User",
                 "project_name": "test-meteor",
-                "uri": "sites/15038/workbooks/88403"
+                "uri": "sites/15038/workbooks/88403",
+                "full_uri": "https://server.tableau.com/sites/15038/workbooks/88403"
             },
             "charts": [
                 {

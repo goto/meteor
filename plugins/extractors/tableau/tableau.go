@@ -124,6 +124,7 @@ func (e *Extractor) buildDashboard(wb *Workbook) (*v1beta2.Asset, error) {
 			"name":         wb.Name,
 			"project_name": wb.ProjectName,
 			"uri":          wb.URI,
+			"full_uri":     fmt.Sprintf("%s/%s", e.config.Host, wb.URI),
 			"owner_id":     wb.Owner.ID,
 			"owner_name":   wb.Owner.Name,
 			"owner_email":  wb.Owner.Email,
