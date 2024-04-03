@@ -728,6 +728,11 @@ func TestAgentRun(t *testing.T) {
 		data := []models.Record{
 			models.NewRecord(&v1beta2.Asset{}),
 		}
+		batchedData := []models.Record{
+			models.NewRecord(&v1beta2.Asset{}),
+			models.NewRecord(&v1beta2.Asset{}),
+			models.NewRecord(&v1beta2.Asset{}),
+		}
 
 		extr := mocks.NewExtractor()
 		extr.SetEmit(data)
@@ -750,7 +755,7 @@ func TestAgentRun(t *testing.T) {
 
 		sink := mocks.NewSink()
 		sink.On("Init", mockCtx, buildPluginConfig(validRecipe.Sinks[0])).Return(nil).Once()
-		sink.On("Sink", mockCtx, data).Return(nil)
+		sink.On("Sink", mockCtx, batchedData).Return(nil)
 		sink.On("Close").Return(nil)
 		defer sink.AssertExpectations(t)
 
