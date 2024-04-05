@@ -17,8 +17,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const defaultBatchSize = 10
-
 // TimerFn of function type
 type TimerFn func() func() int
 
@@ -32,6 +30,7 @@ type Agent struct {
 	retrier          *retrier
 	stopOnSinkError  bool
 	timerFn          TimerFn
+	batchSize        int
 }
 
 // NewAgent returns an Agent with plugin factories.
@@ -53,6 +52,7 @@ func NewAgent(config Config) *Agent {
 		logger:           config.Logger,
 		retrier:          retrier,
 		timerFn:          timerFn,
+		batchSize:        config.BatchSize,
 	}
 }
 
@@ -313,7 +313,7 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 
 		r.logger.Info("Successfully published record", "sink", sr.Name, "recipe", recipeName)
 		return nil
-	}, defaultBatchSize)
+	}, r.batchSize)
 
 	stream.onClose(func() {
 		if err := sink.Close(); err != nil {
