@@ -17,5 +17,5 @@ type Config struct {
 	RetryInitialInterval time.Duration
 	StopOnSinkError      bool
 	TimerFn              TimerFn
-	BatchSize            int
+	SinkBatchSize        int
 }

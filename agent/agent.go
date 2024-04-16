@@ -30,7 +30,7 @@ type Agent struct {
 	retrier          *retrier
 	stopOnSinkError  bool
 	timerFn          TimerFn
-	batchSize        int
+	sinkBatchSize    int
 }
 
 // NewAgent returns an Agent with plugin factories.
@@ -52,7 +52,7 @@ func NewAgent(config Config) *Agent {
 		logger:           config.Logger,
 		retrier:          retrier,
 		timerFn:          timerFn,
-		batchSize:        config.BatchSize,
+		sinkBatchSize:    config.SinkBatchSize,
 	}
 }
 
@@ -313,7 +313,7 @@ func (r *Agent) setupSink(ctx context.Context, sr recipe.PluginRecipe, stream *s
 
 		r.logger.Info("Successfully published record", "sink", sr.Name, "recipe", recipeName)
 		return nil
-	}, r.batchSize)
+	}, r.sinkBatchSize)
 
 	stream.onClose(func() {
 		if err := sink.Close(); err != nil {

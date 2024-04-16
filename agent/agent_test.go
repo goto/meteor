@@ -728,11 +728,6 @@ func TestAgentRun(t *testing.T) {
 		data := []models.Record{
 			models.NewRecord(&v1beta2.Asset{}),
 		}
-		batchedData := []models.Record{
-			models.NewRecord(&v1beta2.Asset{}),
-			models.NewRecord(&v1beta2.Asset{}),
-			models.NewRecord(&v1beta2.Asset{}),
-		}
 
 		extr := mocks.NewExtractor()
 		extr.SetEmit(data)
@@ -755,7 +750,7 @@ func TestAgentRun(t *testing.T) {
 
 		sink := mocks.NewSink()
 		sink.On("Init", mockCtx, buildPluginConfig(validRecipe.Sinks[0])).Return(nil).Once()
-		sink.On("Sink", mockCtx, batchedData).Return(nil)
+		sink.On("Sink", mockCtx, data).Return(nil)
 		sink.On("Close").Return(nil)
 		defer sink.AssertExpectations(t)
 
@@ -777,6 +772,7 @@ func TestAgentRun(t *testing.T) {
 			Monitor:              monitor,
 			MaxRetries:           2,                    // need to retry "at least" 2 times since Extractor returns RetryError twice
 			RetryInitialInterval: 1 * time.Millisecond, // this is to override default retry interval to reduce test time
+			SinkBatchSize:        1,
 		})
 		run := r.Run(ctx, validRecipe)
 		assert.NoError(t, run.Error)

@@ -31,7 +31,7 @@ func TestLoad(t *testing.T) {
 				MaxRetries:                  5,
 				RetryInitialIntervalSeconds: 5,
 				StopOnSinkError:             false,
-				BatchSize:                   1,
+				SinkBatchSize:               1,
 			},
 		},
 		{
@@ -47,7 +47,7 @@ func TestLoad(t *testing.T) {
 				OtelTraceSampleProbability:  1,
 				MaxRetries:                  5,
 				RetryInitialIntervalSeconds: 5,
-				BatchSize:                   1,
+				SinkBatchSize:               1,
 			},
 			expectedErr: "",
 		},
