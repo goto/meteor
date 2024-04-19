@@ -70,17 +70,21 @@ func (s *stream) broadcast() error {
 					s.closeWithError(err)
 				}
 				if batch.isFull() {
-					if err := l.callback(batch.flush()); err != nil {
-						s.closeWithError(err)
-					}
+					go func(batch []models.Record) {
+						if err := l.callback(batch); err != nil {
+							s.closeWithError(err)
+						}
+					}(batch.flush())
 				}
 			}
 
 			// emit leftover data in the batch if any after channel is closed
 			if !batch.isEmpty() {
-				if err := l.callback(batch.flush()); err != nil {
-					s.closeWithError(err)
-				}
+				go func(batch []models.Record) {
+					if err := l.callback(batch); err != nil {
+						s.closeWithError(err)
+					}
+				}(batch.flush())
 			}
 		}(l)
 	}
