@@ -238,11 +238,6 @@ func setup(broker *kafkaLib.Broker) (err error) {
 		"__consumer_offsets":  {NumPartitions: 1, ReplicationFactor: 1},
 	}
 
-	// broker, err = conn.Broker(1)
-	// if err != nil {
-	// 	fmt.Printf("broker not found! %s", err.Error())
-	// }
-
 	createTopicRequest := &kafkaLib.CreateTopicsRequest{TopicDetails: topicConfigs}
 	_, err = broker.CreateTopics(createTopicRequest)
 	if err != nil {
