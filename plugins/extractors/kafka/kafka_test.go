@@ -6,12 +6,8 @@ package kafka_test
 import (
 	"context"
 	"errors"
-	"log"
-	"net"
-	"os"
-	"strconv"
-	"testing"
-
+	"fmt"
+	kafkaLib "github.com/IBM/sarama"
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
@@ -20,21 +16,22 @@ import (
 	"github.com/goto/meteor/test/utils"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	kafkaLib "github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
+	"log"
+	"os"
+	"testing"
+	"time"
 )
 
 var (
-	brokerHost = "localhost:9093"
+	brokerHost = "0.0.0.0:9093"
 	urnScope   = "test-kafka"
 )
 
 func TestMain(m *testing.M) {
-	var conn *kafkaLib.Conn
-	var broker kafkaLib.Broker
-
+	var broker *kafkaLib.Broker
 	// setup test
 	opts := dockertest.RunOptions{
 		Repository: "moeenz/docker-kafka-kraft",
@@ -49,31 +46,30 @@ func TestMain(m *testing.M) {
 			},
 		},
 	}
+
 	retryFn := func(resource *dockertest.Resource) (err error) {
-		// create client
-		conn, err = kafkaLib.Dial("tcp", brokerHost)
+		time.Sleep(30 * time.Second)
+		conn, err := kafkaLib.NewClient([]string{brokerHost}, nil)
 		if err != nil {
+			fmt.Printf("error creating client ")
 			return
 		}
 
 		// healthcheck
-		brokerList, err := conn.Brokers()
-		if err != nil {
-			return
-		}
-		if len(brokerList) == 0 {
+		if len(conn.Brokers()) == 0 {
 			err = errors.New("not ready")
 			return
 		}
 
 		broker, err = conn.Controller()
 		if err != nil {
+			fmt.Printf("error fetching controller %s", err.Error())
 			conn.Close()
 			return
 		}
-
 		return
 	}
+
 	purgeContainer, err := utils.CreateContainer(opts, retryFn)
 	if err != nil {
 		log.Fatal(err)
@@ -86,8 +82,6 @@ func TestMain(m *testing.M) {
 
 	// run tests
 	code := m.Run()
-
-	conn.Close()
 
 	// purge container
 	if err := purgeContainer(); err != nil {
@@ -163,7 +157,7 @@ func TestInit(t *testing.T) {
 			},
 		})
 
-		assert.ErrorContains(t, err, "create connection")
+		assert.ErrorContains(t, err, "failed to create kafka consumer")
 	})
 }
 
@@ -180,7 +174,6 @@ func TestExtract(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-
 		emitter := mocks.NewEmitter()
 		err = extr.Extract(ctx, emitter.Push)
 		assert.NoError(t, err)
@@ -226,24 +219,29 @@ func TestExtract(t *testing.T) {
 	})
 }
 
-func setup(broker kafkaLib.Broker) (err error) {
-	// create broker connection to create topics
-	var conn *kafkaLib.Conn
-	conn, err = kafkaLib.Dial("tcp", net.JoinHostPort(broker.Host, strconv.Itoa(broker.Port)))
+func setup(broker *kafkaLib.Broker) (err error) {
+
+	// create client connection to create topics
+	conn, err := kafkaLib.NewClient([]string{brokerHost}, nil)
 	if err != nil {
+		fmt.Printf("error creating client ")
 		return
 	}
+
 	defer conn.Close()
 
 	// create topics
-	topicConfigs := []kafkaLib.TopicConfig{
-		{Topic: "meteor-test-topic-1", NumPartitions: 1, ReplicationFactor: 1},
-		{Topic: "meteor-test-topic-2", NumPartitions: 1, ReplicationFactor: 1},
-		{Topic: "meteor-test-topic-3", NumPartitions: 1, ReplicationFactor: 1},
-		{Topic: "__consumer_offsets", NumPartitions: 1, ReplicationFactor: 1},
+	topicConfigs := map[string]*kafkaLib.TopicDetail{
+		"meteor-test-topic-1": {NumPartitions: 1, ReplicationFactor: 1},
+		"meteor-test-topic-2": {NumPartitions: 1, ReplicationFactor: 1},
+		"meteor-test-topic-3": {NumPartitions: 1, ReplicationFactor: 1},
+		"__consumer_offsets":  {NumPartitions: 1, ReplicationFactor: 1},
 	}
-	err = conn.CreateTopics(topicConfigs...)
+
+	createTopicRequest := &kafkaLib.CreateTopicsRequest{TopicDetails: topicConfigs}
+	_, err = broker.CreateTopics(createTopicRequest)
 	if err != nil {
+		fmt.Printf("error creating topics! %s", err.Error())
 		return
 	}
 
