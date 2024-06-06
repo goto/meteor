@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/goto/meteor/metrics/otelhttpclient"
+	"github.com/goto/salt/telemetry/otelhttpclient"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/internal/urlbuilder"
 )

@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/goto/meteor/metrics/otelhttpclient"
+	"github.com/goto/salt/telemetry/otelhttpclient"
 	"github.com/goto/meteor/plugins/internal/urlbuilder"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/idtoken"
