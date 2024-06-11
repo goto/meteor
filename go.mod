@@ -1,8 +1,6 @@
 module github.com/goto/meteor
 
-go 1.22
-
-toolchain go1.22.0
+go 1.21
 
 require (
 	cloud.google.com/go/bigquery v1.61.0
