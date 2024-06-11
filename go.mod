@@ -25,7 +25,7 @@ require (
 	github.com/gocql/gocql v0.0.0-20210817081954-bc256bbb90de
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v37 v37.0.0
-	github.com/googleapis/gax-go/v2 v2.12.4
+	github.com/googleapis/gax-go/v2 v2.12.3
 	github.com/goto/optimus v0.6.0-rc.6.0.20230315121505-734e3d9dda98
 	github.com/goto/salt v0.3.7
 	github.com/goto/shield v0.6.0
@@ -48,10 +48,10 @@ require (
 	go.mongodb.org/mongo-driver v1.11.2
 	go.nhat.io/otelsql v0.11.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.49.0
-	go.opentelemetry.io/contrib/instrumentation/host v0.52.0
+	go.opentelemetry.io/contrib/instrumentation/host v0.47.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.52.0
-	go.opentelemetry.io/contrib/instrumentation/runtime v0.52.0
-	go.opentelemetry.io/contrib/samplers/probability/consistent v0.21.0
+	go.opentelemetry.io/contrib/instrumentation/runtime v0.47.0
+	go.opentelemetry.io/contrib/samplers/probability/consistent v0.16.0
 	go.opentelemetry.io/otel v1.27.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.27.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.27.0
@@ -61,7 +61,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.27.0
 	golang.org/x/oauth2 v0.20.0
 	golang.org/x/sync v0.7.0
-	google.golang.org/api v0.176.1
+	google.golang.org/api v0.175.0
 	google.golang.org/genproto v0.0.0-20240401170217-c3f982113cda
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.1
@@ -70,8 +70,8 @@ require (
 
 require (
 	cloud.google.com/go v0.112.2 // indirect
-	cloud.google.com/go/auth v0.3.0 // indirect
-	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
+	cloud.google.com/go/auth v0.2.2 // indirect
+	cloud.google.com/go/auth/oauth2adapt v0.2.1 // indirect
 	cloud.google.com/go/compute v1.25.1 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/iam v1.1.7 // indirect
