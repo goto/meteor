@@ -40,7 +40,7 @@ $ docker run --rm gotocompany/meteor meteor list extractors
 
 ## Build from source
 
-Requires you to have `git` and `golang (version 1.20 or above)` installed.
+Requires you to have `git` and `golang (version 1.21 or above)` installed.
 
 ```bash
 #clone repo

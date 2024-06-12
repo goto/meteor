@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/goto/meteor/metrics/otelhttpclient"
+	"github.com/goto/salt/telemetry/otelhttpclient"
 	"github.com/goto/meteor/plugins"
 	m "github.com/goto/meteor/plugins/extractors/metabase/models"
 	"github.com/goto/meteor/plugins/internal/urlbuilder"
