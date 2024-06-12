@@ -161,21 +161,7 @@
                 "skillNum",
                 "created_at"
             ],
-            "preview_rows": [
-                [
-                    1,
-                    "alice",
-                    [
-                        [
-                            "profile",
-                            "{\"age\": 10}"
-                        ]
-                    ],
-                    "2012-01-01",
-                    "3",
-                    "2022-01-01T12:00:00Z"
-                ]
-            ],
+            "preview_rows": [],
             "profile": {
                 "common_joins": [],
                 "filters": [],
