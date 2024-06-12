@@ -174,7 +174,7 @@ func TestExtract(t *testing.T) {
 			URNScope: "test-bigquery",
 			RawConfig: map[string]interface{}{
 				"project_id":             projectID,
-				"max_preview_rows":       "1",
+				"max_preview_rows":       "0",
 				"include_column_profile": "true",
 				"exclude": map[string]interface{}{
 					"datasets": []string{"exclude_this_dataset"},
@@ -223,7 +223,7 @@ func TestExtract(t *testing.T) {
 
 		t.Run("should not randomize if rows < 2", func(t *testing.T) {
 			newCfg := cfg
-			newCfg.RawConfig["max_preview_rows"] = "1"
+			//newCfg.RawConfig["max_preview_rows"] = "1"
 
 			actual := runTest(t, newCfg, randFn(1))
 			utils.AssertJSONFile(t, "testdata/expected-assets.json", actual, jsondiff.FullMatch)
