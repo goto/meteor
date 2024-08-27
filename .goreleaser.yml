@@ -1,5 +1,7 @@
 project_name: meteor
 
+version: 2
+
 release:
   prerelease: auto
 
@@ -64,7 +66,7 @@ checksum:
   name_template: "checksums.txt"
 
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 
 changelog:
   sort: asc
@@ -89,11 +91,11 @@ brews:
   - name: meteor
     homepage: "https://github.com/goto/meteor"
     description: "Metadata collection tool."
-    tap:
+    repository:
       owner: goto
       name: homebrew-tap
     license: "Apache 2.0"
-    folder: Formula
+    directory:  Formula
 
     dependencies:
       - name: git
