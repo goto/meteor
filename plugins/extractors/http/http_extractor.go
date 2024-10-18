@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/goto/meteor/metrics/otelhttpclient"
+	"github.com/goto/salt/telemetry/otelhttpclient"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"

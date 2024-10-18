@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	og "github.com/goto/meteor/metrics/otelgrpc"
+	og "github.com/goto/salt/telemetry/otelgrpc"
 	sh "github.com/goto/shield/proto/v1beta1"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -56,7 +56,7 @@ func (c *client) Close() error {
 }
 
 func (c *client) createConnection(ctx context.Context, host string) (*grpc.ClientConn, error) {
-	m := og.NewOtelGRPCMonitor(host)
+	m := og.NewMeter(host)
 
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)),
