@@ -17,6 +17,7 @@ import (
 	_ "github.com/goto/meteor/plugins/extractors/http"
 	_ "github.com/goto/meteor/plugins/extractors/kafka"
 	_ "github.com/goto/meteor/plugins/extractors/mariadb"
+	_ "github.com/goto/meteor/plugins/extractors/maxcompute"
 	_ "github.com/goto/meteor/plugins/extractors/merlin"
 	_ "github.com/goto/meteor/plugins/extractors/metabase"
 	_ "github.com/goto/meteor/plugins/extractors/mongodb"
