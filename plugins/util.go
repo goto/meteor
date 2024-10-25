@@ -102,6 +102,12 @@ func BigQueryURN(projectID, datasetID, tableID string) string {
 	return models.NewURN("bigquery", projectID, "table", fqn)
 }
 
+//urn:maxcompute:project:schema:table
+func MaxComputeURN(projectName, schemaName, tableName string) string {
+	fqn := fmt.Sprintf("%s.%s.%s", projectName, schemaName, tableName)
+	return models.NewURN("maxcompute", projectName, "table", fqn)
+}
+
 func KafkaURN(bootstrapServers, topic string) string {
 	return models.NewURN("kafka", KafkaServersToScope(bootstrapServers), "topic", topic)
 }

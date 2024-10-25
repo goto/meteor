@@ -3,14 +3,14 @@ package maxcompute
 import (
 	"context"
 	_ "embed" // used to print the embedded assets
-	"fmt"
-
-	"github.com/goto/meteor/plugins"
-	"github.com/goto/meteor/registry"
-	"github.com/goto/salt/log"
 
 	client2 "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	maxcomputeclient "github.com/alibabacloud-go/maxcompute-20220104/client"
+	"github.com/goto/meteor/models"
+	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/registry"
+	"github.com/goto/salt/log"
 )
 
 type Config struct {
@@ -87,16 +87,10 @@ func New(logger log.Logger) *Extractor {
 	return e
 }
 
-// Init initializes the extractor
 func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
-	if err := e.BaseExtractor.Init(ctx, config); err != nil {
-		return err
-	}
-
-	return nil
+	return e.BaseExtractor.Init(ctx, config)
 }
 
-// Extract checks if the table is valid and extracts the table schema
 func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 	apiClient, err := maxcomputeclient.NewClient(&client2.Config{
 		AccessKeyId:     &e.config.AccessKey.ID,
@@ -113,17 +107,35 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 	}
 
 	for _, table := range resp.Body.Data.Tables {
-		fmt.Printf("Table: %s\n", *table.Name)
-		resp, err := apiClient.GetTableInfo(&e.config.ProjectName, table.Name, &maxcomputeclient.GetTableInfoRequest{})
+		tableInfo, err := apiClient.GetTableInfo(&e.config.ProjectName, table.Name, &maxcomputeclient.GetTableInfoRequest{})
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("Table Info: %v\n", resp.Body.Data)
+
+		asset, err := e.buildAsset(tableInfo)
+		if err != nil {
+			e.logger.Error("failed to build asset", "table", *table.Name, "error", err)
+			continue
+		}
+
+		emit(models.NewRecord(asset))
 	}
 	return nil
 }
 
-// Register the extractor to catalog
+func (e *Extractor) buildAsset(tableInfo *maxcomputeclient.GetTableInfoResponse) (*v1beta2.Asset, error) {
+
+	tableURN := plugins.MaxComputeURN(*tableInfo.Body.Data.ProjectName, *tableInfo.Body.Data.Schema, *tableInfo.Body.Data.DisplayName)
+
+	return &v1beta2.Asset{
+		Urn:         tableURN,
+		Name:        *tableInfo.Body.Data.DisplayName,
+		Type:        "table",
+		Description: *tableInfo.Body.Data.Comment,
+		Service:     "maxcompute",
+	}, nil
+}
+
 func init() {
 	if err := registry.Extractors.Register("maxcompute", func() plugins.Extractor {
 		return New(plugins.GetLog())
