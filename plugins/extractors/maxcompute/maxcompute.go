@@ -2,18 +2,24 @@ package maxcompute
 
 import (
 	"context"
-	"log"
+	_ "embed" // used to print the embedded assets
+	"fmt"
 
 	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/registry"
+	"github.com/goto/salt/log"
+
+	client2 "github.com/alibabacloud-go/darabonba-openapi/v2/client"
+	maxcomputeclient "github.com/alibabacloud-go/maxcompute-20220104/client"
 )
 
 type Config struct {
 	ProjectName     string `mapstructure:"project_name"`
 	EndpointProject string `mapstructure:"endpoint_project"`
-	AccessKeyJSON   struct {
-		ID           string `mapstructure:"id"`
-		SecretBase64 string `mapstructure:"secret_base64"`
-	} `mapstructure:"access_key_json"`
+	AccessKey       struct {
+		ID     string `mapstructure:"id"`
+		Secret string `mapstructure:"secret"`
+	} `mapstructure:"access_key"`
 	SchemaName     string `mapstructure:"schema_name"`
 	MaxPreviewRows int    `mapstructure:"max_preview_rows"`
 	Exclude        struct {
@@ -42,10 +48,9 @@ var summary string
 var sampleConfig = `
 project_name: goto_test
 endpoint_project: http://goto_test-maxcompute.com
-access_key_json: {
-	id: xyz
-	secret_base64: __base64__
-}
+access_key:
+    id: access_key_id
+    secret: access_key_secret
 schema_name: DEFAULT
 max_preview_rows: 3
 exclude:
@@ -93,5 +98,36 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 
 // Extract checks if the table is valid and extracts the table schema
 func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
+	apiClient, err := maxcomputeclient.NewClient(&client2.Config{
+		AccessKeyId:     &e.config.AccessKey.ID,
+		AccessKeySecret: &e.config.AccessKey.Secret,
+		Endpoint:        &e.config.EndpointProject,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := apiClient.ListTables(&e.config.ProjectName, &maxcomputeclient.ListTablesRequest{})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, table := range resp.Body.Data.Tables {
+		fmt.Printf("Table: %s\n", *table.Name)
+		resp, err := apiClient.GetTableInfo(&e.config.ProjectName, table.Name, &maxcomputeclient.GetTableInfoRequest{})
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Table Info: %v\n", resp.Body.Data)
+	}
 	return nil
+}
+
+// Register the extractor to catalog
+func init() {
+	if err := registry.Extractors.Register("maxcompute", func() plugins.Extractor {
+		return New(plugins.GetLog())
+	}); err != nil {
+		panic(err)
+	}
 }

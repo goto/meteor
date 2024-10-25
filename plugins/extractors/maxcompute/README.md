@@ -8,10 +8,9 @@ source:
     config:
         project_name: goto_test
         endpoint_project: http://goto_test-maxcompute.com
-        access_key_json: {
-            id: xyz
-            secret_base64: __base64__
-        }
+        access_key:
+            id: access_key_id
+            secret: access_key_secret
         schema_name: DEFAULT
         max_preview_rows: 3
         exclude:
@@ -38,7 +37,8 @@ source:
 | :-- | :---- | :------ | :---------- | :-- |
 | `project_name` | `string` | `goto_test` | MaxCompute Project Name | *required* |
 | `endpoint_project` | `string` | `http://goto_test-maxcompute.com` | Endpoint Project URL | *required* |
-| `access_key_json` | `string` | `{"id": "xyz", "secret_base64": "__base64__"}` | Access Key in JSON string | *required* |
+| `access_key.id` | `string` | `access_key_id` | Access Key ID | *required* |
+| `access_key.secret` | `string` | `access_key_secret` | Access Key Secret | *required* |
 | `schema_name` | `string` | `DEFAULT` | Default schema name | *optional* |
 | `max_preview_rows` | `int` | `3` | max number of preview rows to fetch, `0` will skip preview fetching. Default to `3`. | *optional* |
 | `exclude.schemas` | `[]string` | `["schema_a", "schema_b"]` | List of schemas to exclude | *optional* |
@@ -54,7 +54,7 @@ source:
 
 ### *Notes*
 
-- Leaving `access_key_json` blank will default to [MaxCompute's default authentication][maxcompute-default-auth].
+- Leaving `access_key` blank will default to [MaxCompute's default authentication][maxcompute-default-auth].
 - Setting `max_preview_rows` to `0` will skip preview fetching.
 
 ## Outputs
