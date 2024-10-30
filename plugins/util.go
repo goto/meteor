@@ -70,6 +70,20 @@ func buildConfig(configMap map[string]interface{}, c interface{}) (err error) {
 	return err
 }
 
+func MaxComputeTableFQNToURN(fqn string) (string, error) {
+	projectName, schemaName, tableName, err := parseMaxComputeTableFQN(fqn)
+	if err != nil {
+		return "", fmt.Errorf("map URN: %w", err)
+	}
+
+	return MaxComputeURN(projectName, schemaName, tableName), nil
+}
+
+func MaxComputeURN(projectName, schemaName, tableName string) string {
+	fqn := fmt.Sprintf("%s.%s.%s", projectName, schemaName, tableName)
+	return models.NewURN("maxcompute", projectName, "table", fqn)
+}
+
 func BigQueryTableFQNToURN(fqn string) (string, error) {
 	projectID, datasetID, tableID, err := parseBQTableFQN(fqn)
 	if err != nil {
@@ -150,5 +164,16 @@ func parseBQTableFQN(fqn string) (projectID, datasetID, tableID string, err erro
 			"unexpected BigQuery table FQN '%s', expected in format projectID:datasetID.tableID", fqn,
 		)
 	}
+	return ss[0], ss[1], ss[2], nil
+}
+
+func parseMaxComputeTableFQN(fqn string) (projectName, schemaName, tableName string, err error) {
+	// fqn is projectID.schema.tableID format.
+	if strings.Count(fqn, ".") != 3 {
+		return "", "", "", fmt.Errorf(
+			"unexpected BigQuery table FQN '%s', expected in format projectID.schema.tableID", fqn,
+		)
+	}
+	ss := strings.Split(fqn, ".")
 	return ss[0], ss[1], ss[2], nil
 }

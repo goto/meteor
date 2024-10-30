@@ -209,18 +209,11 @@ func (e *Extractor) buildLineage(task *pb.JobTask) (upstreams, downstreams []*v1
 func (e *Extractor) buildUpstreams(task *pb.JobTask) ([]*v1beta2.Resource, error) {
 	var upstreams []*v1beta2.Resource
 	for _, dependency := range task.Dependencies {
-		urn, err := plugins.BigQueryTableFQNToURN(
-			strings.TrimPrefix(dependency.Dependency, "bigquery://"),
-		)
+		resource, err := e.createResource(dependency.Dependency)
 		if err != nil {
 			return nil, err
 		}
-
-		upstreams = append(upstreams, &v1beta2.Resource{
-			Urn:     urn,
-			Type:    "table",
-			Service: "bigquery",
-		})
+		upstreams = append(upstreams, resource)
 	}
 
 	return upstreams, nil
@@ -231,18 +224,61 @@ func (e *Extractor) buildDownstreams(task *pb.JobTask) ([]*v1beta2.Resource, err
 		return nil, nil
 	}
 
+	resource, err := e.createResource(task.Destination.Destination)
+	if err != nil {
+		return nil, err
+	}
+
+	return []*v1beta2.Resource{
+		resource,
+	}, nil
+}
+
+func (e *Extractor) createResource(dependency string) (*v1beta2.Resource, error) {
+	var resource *v1beta2.Resource
+	var err error
+
+	switch {
+	case strings.HasPrefix(dependency, "maxcompute://"):
+		resource, err = e.createMaxComputeResource(dependency)
+	case strings.HasPrefix(dependency, "bigquery://"):
+		resource, err = e.createBigQueryResource(dependency)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return resource, nil
+}
+
+func (e *Extractor) createBigQueryResource(dependency string) (*v1beta2.Resource, error) {
 	urn, err := plugins.BigQueryTableFQNToURN(
-		strings.TrimPrefix(task.Destination.Destination, "bigquery://"),
+		strings.TrimPrefix(dependency, "bigquery://"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return []*v1beta2.Resource{{
+	return &v1beta2.Resource{
 		Urn:     urn,
 		Type:    "table",
 		Service: "bigquery",
-	}}, nil
+	}, nil
+}
+
+func (e *Extractor) createMaxComputeResource(dependency string) (*v1beta2.Resource, error) {
+	urn, err := plugins.MaxComputeTableFQNToURN(
+		strings.TrimPrefix(dependency, "maxcompute://"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1beta2.Resource{
+		Urn:     urn,
+		Type:    "table",
+		Service: "maxcompute",
+	}, nil
 }
 
 func strOrNil(s string) interface{} {
