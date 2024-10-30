@@ -169,11 +169,18 @@ func parseBQTableFQN(fqn string) (projectID, datasetID, tableID string, err erro
 
 func parseMaxComputeTableFQN(fqn string) (projectName, schemaName, tableName string, err error) {
 	// fqn is projectID.schema.tableID format.
-	if strings.Count(fqn, ".") != 3 {
+	ss := strings.Split(fqn, ".")
+	if len(ss) != 3 {
 		return "", "", "", fmt.Errorf(
-			"unexpected BigQuery table FQN '%s', expected in format projectID.schema.tableID", fqn,
+			"unexpected MaxCompute table FQN '%s', expected in format projectName.schemaName.tableName", fqn,
 		)
 	}
-	ss := strings.Split(fqn, ".")
+	for i, s := range ss {
+		if ss[i] = strings.TrimSpace(s); ss[i] == "" {
+			return "", "", "", fmt.Errorf(
+				"unexpected MaxCompute table FQN '%s', each component should not blank", fqn,
+			)
+		}
+	}
 	return ss[0], ss[1], ss[2], nil
 }
