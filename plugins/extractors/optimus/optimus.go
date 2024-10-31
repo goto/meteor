@@ -251,7 +251,7 @@ func (e *Extractor) createResource(dependency string) (*v1beta2.Resource, error)
 	return resource, nil
 }
 
-func (e *Extractor) createBigQueryResource(dependency string) (*v1beta2.Resource, error) {
+func (*Extractor) createBigQueryResource(dependency string) (*v1beta2.Resource, error) {
 	urn, err := plugins.BigQueryTableFQNToURN(
 		strings.TrimPrefix(dependency, "bigquery://"),
 	)
@@ -266,7 +266,7 @@ func (e *Extractor) createBigQueryResource(dependency string) (*v1beta2.Resource
 	}, nil
 }
 
-func (e *Extractor) createMaxComputeResource(dependency string) (*v1beta2.Resource, error) {
+func (*Extractor) createMaxComputeResource(dependency string) (*v1beta2.Resource, error) {
 	urn, err := plugins.MaxComputeTableFQNToURN(
 		strings.TrimPrefix(dependency, "maxcompute://"),
 	)

@@ -167,7 +167,7 @@ func parseBQTableFQN(fqn string) (projectID, datasetID, tableID string, err erro
 	return ss[0], ss[1], ss[2], nil
 }
 
-func parseMaxComputeTableFQN(fqn string) (projectName, schemaName, tableName string, err error) {
+func parseMaxComputeTableFQN(fqn string) (projectName, schemaName, tableName string, err error) { //nolint:revive
 	// fqn is projectID.schema.tableID format.
 	ss := strings.Split(fqn, ".")
 	if len(ss) != 3 {
