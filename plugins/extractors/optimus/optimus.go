@@ -3,6 +3,7 @@ package optimus
 import (
 	"context"
 	_ "embed" // used to print the embedded assets
+	"errors"
 	"fmt"
 	"strings"
 
@@ -18,9 +19,13 @@ import (
 )
 
 const (
-	service      = "optimus"
-	sampleConfig = `host: optimus.com:80`
+	service          = "optimus"
+	sampleConfig     = `host: optimus.com:80`
+	prefixBigQuery   = "bigquery://"
+	prefixMaxcompute = "maxcompute://"
 )
+
+var errorInvalidDependency = errors.New("invalid dependency")
 
 // Register the extractor to catalog
 func init() {
@@ -239,10 +244,12 @@ func (e *Extractor) createResource(dependency string) (*v1beta2.Resource, error)
 	var err error
 
 	switch {
-	case strings.HasPrefix(dependency, "maxcompute://"):
+	case strings.HasPrefix(dependency, prefixMaxcompute):
 		resource, err = e.createMaxComputeResource(dependency)
-	case strings.HasPrefix(dependency, "bigquery://"):
+	case strings.HasPrefix(dependency, prefixBigQuery):
 		resource, err = e.createBigQueryResource(dependency)
+	default:
+		return nil, errorInvalidDependency
 	}
 
 	if err != nil {
@@ -253,7 +260,7 @@ func (e *Extractor) createResource(dependency string) (*v1beta2.Resource, error)
 
 func (*Extractor) createBigQueryResource(dependency string) (*v1beta2.Resource, error) {
 	urn, err := plugins.BigQueryTableFQNToURN(
-		strings.TrimPrefix(dependency, "bigquery://"),
+		strings.TrimPrefix(dependency, prefixBigQuery),
 	)
 	if err != nil {
 		return nil, err
@@ -268,7 +275,7 @@ func (*Extractor) createBigQueryResource(dependency string) (*v1beta2.Resource, 
 
 func (*Extractor) createMaxComputeResource(dependency string) (*v1beta2.Resource, error) {
 	urn, err := plugins.MaxComputeTableFQNToURN(
-		strings.TrimPrefix(dependency, "maxcompute://"),
+		strings.TrimPrefix(dependency, prefixMaxcompute),
 	)
 	if err != nil {
 		return nil, err
