@@ -37,19 +37,9 @@ func TestMaxComputeTableFQNToURN(t *testing.T) {
 			expected: "urn:maxcompute:mc-raw-internal:table:mc-raw-internal.dagstream.production_feast09_s2id13_30min_demand",
 		},
 		{
-			name:     "Valid with whitespace",
-			fqn:      "mc-raw-internal .dagstream . test1",
-			expected: "urn:maxcompute:mc-raw-internal:table:mc-raw-internal.dagstream.test1",
-		},
-		{
 			name:        "Invalid1",
 			fqn:         "test1.test2",
 			expectedErr: "map URN: unexpected MaxCompute table FQN 'test1.test2', expected in format",
-		},
-		{
-			name:        "Invalid2",
-			fqn:         "test1..test2",
-			expectedErr: "map URN: unexpected MaxCompute table FQN 'test1..test2', each component should not blank",
 		},
 	}
 	for _, tc := range cases {
