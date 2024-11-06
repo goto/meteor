@@ -25,7 +25,7 @@ const (
 	prefixMaxcompute = "maxcompute://"
 )
 
-var errorInvalidDependency = errors.New("invalid dependency")
+var errInvalidDependency = errors.New("invalid dependency")
 
 // Register the extractor to catalog
 func init() {
@@ -249,7 +249,7 @@ func (e *Extractor) createResource(dependency string) (*v1beta2.Resource, error)
 	case strings.HasPrefix(dependency, prefixBigQuery):
 		resource, err = e.createBigQueryResource(dependency)
 	default:
-		return nil, errorInvalidDependency
+		return nil, errInvalidDependency
 	}
 
 	if err != nil {
