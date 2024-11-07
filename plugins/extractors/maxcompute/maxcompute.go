@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed" // used to print the embedded assets
 	"sync"
+	"time"
 
 	client2 "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	maxcomputeclient "github.com/alibabacloud-go/maxcompute-20220104/client"
@@ -14,6 +15,7 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Config struct {
@@ -94,7 +96,7 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 	return e.BaseExtractor.Init(ctx, config)
 }
 
-func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
+func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 	apiClient, err := maxcomputeclient.NewClient(&client2.Config{
 		AccessKeyId:     &e.config.AccessKey.ID,
 		AccessKeySecret: &e.config.AccessKey.Secret,
@@ -138,10 +140,9 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 
 				emit(models.NewRecord(asset))
 			}(table)
-
 		}
 		wg.Wait()
-		if len(resp.Body.Data.Tables) == 0 || len(resp.Body.Data.Tables) < int(e.config.MaxPageSize) || len(*resp.Body.Data.Marker) == 0 {
+		if len(resp.Body.Data.Tables) == 0 || len(resp.Body.Data.Tables) < int(e.config.MaxPageSize) || *resp.Body.Data.Marker == "" {
 			break
 		}
 		marker = *resp.Body.Data.Marker
@@ -151,7 +152,6 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 }
 
 func (e *Extractor) buildAsset(tableInfo *maxcomputeclient.GetTableInfoResponse) (*v1beta2.Asset, error) {
-
 	defaultSchema := "default"
 	if tableInfo.Body.Data.Schema == nil {
 		tableInfo.Body.Data.Schema = &defaultSchema
@@ -160,19 +160,36 @@ func (e *Extractor) buildAsset(tableInfo *maxcomputeclient.GetTableInfoResponse)
 	tableURN := plugins.MaxComputeURN(*tableInfo.Body.Data.ProjectName, *tableInfo.Body.Data.Schema, *tableInfo.Body.Data.Name)
 
 	// TODO(mayur): Add all the P0 metadata
+	// Table Name ✅
+	// Project Name (Data Layer) ✅
+	// Table Type ✅
+	// Created_At ✅
+	// Last_Updated_At (for both DML & DDL) ✅ ✅
+	// Partition Field
+	// Table Schema ✅
+	// Table Description ✅
+	// Resource URL
+	// Table Refresh Frequency → previously get from Optimus, but we need to provide it as well with tengo script
+	// Table SQL
+	// User Query References
+
 	asset := &v1beta2.Asset{
 		Urn:         tableURN,
-		Name:        *tableInfo.Body.Data.DisplayName,
+		Name:        *tableInfo.Body.Data.Name,
 		Type:        *tableInfo.Body.Data.Type,
 		Description: *tableInfo.Body.Data.Comment,
+		CreateTime:  convertInt64ToTimestamp(tableInfo.Body.Data.CreationTime),
+		UpdateTime:  convertInt64ToTimestamp(tableInfo.Body.Data.LastModifiedTime),
 		Service:     "maxcompute",
 	}
 
 	attributesData := map[string]interface{}{
 		"project_name": *tableInfo.Body.Data.ProjectName,
+		"schema":       *tableInfo.Body.Data.Schema,
 	}
 	tableData := &v1beta2.Table{
 		Attributes: utils.TryParseMapToProto(attributesData),
+		UpdateTime: convertInt64ToTimestamp(tableInfo.Body.Data.LastDDLTime),
 	}
 
 	table, err := anypb.New(tableData)
@@ -182,6 +199,18 @@ func (e *Extractor) buildAsset(tableInfo *maxcomputeclient.GetTableInfoResponse)
 	asset.Data = table
 
 	return asset, nil
+}
+
+func convertInt64ToTimestamp(unixTimeMs *int64) *timestamppb.Timestamp {
+	if unixTimeMs == nil {
+		return nil
+	}
+
+	seconds := *unixTimeMs / 1000
+	nanoseconds := (*unixTimeMs % 1000) * 1_000_000
+
+	t := time.Unix(seconds, nanoseconds).UTC()
+	return timestamppb.New(t)
 }
 
 func init() {
