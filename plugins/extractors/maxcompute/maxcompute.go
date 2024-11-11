@@ -8,6 +8,8 @@ import (
 
 	client2 "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	maxcomputeclient "github.com/alibabacloud-go/maxcompute-20220104/client"
+	"github.com/aliyun/aliyun-odps-go-sdk/odps"
+	"github.com/aliyun/aliyun-odps-go-sdk/odps/account"
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
@@ -25,20 +27,20 @@ type Config struct {
 		ID     string `mapstructure:"id"`
 		Secret string `mapstructure:"secret"`
 	} `mapstructure:"access_key"`
-	SchemaName     string `mapstructure:"schema_name"`
-	MaxPreviewRows int    `mapstructure:"max_preview_rows"`
+	SchemaName     string `mapstructure:"schema_name,omitempty"`
+	MaxPreviewRows int    `mapstructure:"max_preview_rows,omitempty"`
 	Exclude        struct {
 		Schemas []string `mapstructure:"schemas"`
 		Tables  []string `mapstructure:"tables"`
-	} `mapstructure:"exclude"`
-	MaxPageSize          int32    `mapstructure:"max_page_size"`
-	Concurrency          int      `mapstructure:"concurrency"`
-	MixValues            bool     `mapstructure:"mix_values"`
-	IncludeColumnProfile bool     `mapstructure:"include_column_profile"`
-	BuildViewLineage     bool     `mapstructure:"build_view_lineage"`
-	IsCollectTableUsage  bool     `mapstructure:"collect_table_usage"`
-	UsagePeriodInDay     int      `mapstructure:"usage_period_in_day"`
-	UsageProjectNames    []string `mapstructure:"usage_project_names"`
+	} `mapstructure:"exclude,omitempty"`
+	MaxPageSize          int32    `mapstructure:"max_page_size,omitempty"`
+	Concurrency          int      `mapstructure:"concurrency,omitempty"`
+	MixValues            bool     `mapstructure:"mix_values,omitempty"`
+	IncludeColumnProfile bool     `mapstructure:"include_column_profile,omitempty"`
+	BuildViewLineage     bool     `mapstructure:"build_view_lineage,omitempty"`
+	IsCollectTableUsage  bool     `mapstructure:"collect_table_usage,omitempty"`
+	UsagePeriodInDay     int      `mapstructure:"usage_period_in_day,omitempty"`
+	UsageProjectNames    []string `mapstructure:"usage_project_names,omitempty"`
 }
 
 type Extractor struct {
@@ -52,7 +54,7 @@ var summary string
 
 var sampleConfig = `
 project_name: goto_test
-endpoint_project: http://goto_test-maxcompute.com
+endpoint_project: maxcompute.ap-southeast-5.aliyuncs.com
 access_key:
     id: access_key_id
     secret: access_key_secret
@@ -60,10 +62,10 @@ schema_name: DEFAULT
 max_preview_rows: 3
 exclude:
 	schemas:
-	- schema_a
-	- schema_b
-	tables:
-	- schema_c.table_a
+    	- schema_a
+    	- schema_b
+    tables:
+    	- schema_c.table_a
 max_page_size: 100
 concurrency: 10
 mix_values: false
@@ -73,7 +75,8 @@ collect_table_usage: false
 usage_period_in_day: 7
 usage_project_names:
 	- maxcompute-project-name
-	- other-maxcompute-project-name`
+	- other-maxcompute-project-name
+`
 
 var info = plugins.Info{
 	Description:  "MaxCompute metadata and metrics",
@@ -92,6 +95,18 @@ func New(logger log.Logger) *Extractor {
 	return e
 }
 
+func (c *Config) SetDefaults() {
+	if c.MaxPreviewRows == 0 {
+		c.MaxPreviewRows = 30
+	}
+	if c.Concurrency == 0 {
+		c.Concurrency = 10
+	}
+	if c.UsagePeriodInDay == 0 {
+		c.UsagePeriodInDay = 7
+	}
+}
+
 func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 	return e.BaseExtractor.Init(ctx, config)
 }
@@ -106,19 +121,45 @@ func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 		panic(err)
 	}
 
+	if e.config.SchemaName == "" {
+		// Fetch all schemas
+		aliAccount := account.NewAliyunAccount(e.config.AccessKey.ID, e.config.AccessKey.Secret)
+		odpsIns := odps.NewOdps(aliAccount, e.config.EndpointProject)
+		project := odpsIns.Project(e.config.ProjectName)
+		schemas := project.Schemas()
+		err := schemas.List(func(schema *odps.Schema, err error) {
+			if err != nil {
+				e.logger.Error("failed to list schemas", "error", err)
+				return
+			}
+			e.fetchTablesFromSchema(apiClient, schema.Name(), emit)
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		// Fetch tables from the specified schema
+		e.fetchTablesFromSchema(apiClient, e.config.SchemaName, emit)
+	}
+
+	return nil
+}
+
+func (e *Extractor) fetchTablesFromSchema(apiClient *maxcomputeclient.Client, schemaName string, emit plugins.Emit) {
 	var wg sync.WaitGroup
 
 	var marker string
 	var counter int
 	for {
-		e.logger.Info("fetching tables", "marker", marker)
-		resp, err := e.fetchTables(apiClient, marker)
+		e.logger.Info("fetching tables", "schema", schemaName, "marker", marker)
+		resp, err := e.fetchTables(apiClient, schemaName, marker)
 		if err != nil {
-			return err
+			e.logger.Error("failed to fetch tables", "schema", schemaName, "error", err)
+			return
 		}
 
 		counter += len(resp.Body.Data.Tables)
-		e.logger.Info("fetched tables", "count", counter)
+		e.logger.Info("fetched tables", "schema", schemaName, "count", counter)
 		wg.Add(len(resp.Body.Data.Tables))
 
 		for _, table := range resp.Body.Data.Tables {
@@ -130,14 +171,13 @@ func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 		}
 		marker = *resp.Body.Data.Marker
 	}
-
-	return nil
 }
 
-func (e *Extractor) fetchTables(apiClient *maxcomputeclient.Client, marker string) (*maxcomputeclient.ListTablesResponse, error) {
+func (e *Extractor) fetchTables(apiClient *maxcomputeclient.Client, schemaName, marker string) (*maxcomputeclient.ListTablesResponse, error) {
 	return apiClient.ListTables(&e.config.ProjectName, &maxcomputeclient.ListTablesRequest{
-		MaxItem: &e.config.MaxPageSize,
-		Marker:  &marker,
+		SchemaName: &schemaName,
+		MaxItem:    &e.config.MaxPageSize,
+		Marker:     &marker,
 	})
 }
 
@@ -184,7 +224,9 @@ func (e *Extractor) buildAsset(tableInfo *maxcomputeclient.GetTableInfoResponse)
 	var columns []*v1beta2.Column
 	for _, col := range tableInfo.Body.Data.NativeColumns {
 		columnData := &v1beta2.Column{
-			Name: *col.Name,
+			Name:        *col.Name,
+			DataType:    *col.Type,
+			Description: *col.Comment,
 		}
 		columns = append(columns, columnData)
 	}
@@ -225,6 +267,10 @@ func buildAttributesData(tableInfo *maxcomputeclient.GetTableInfoResponse) map[s
 
 	if tableInfo.Body.Data.CreationTime != nil {
 		attributesData["partition_field"] = *tableInfo.Body.Data.CreationTime
+	}
+
+	if tableInfo.Body.Data.ViewText != nil {
+		attributesData["table_sql"] = *tableInfo.Body.Data.ViewText
 	}
 
 	return attributesData
