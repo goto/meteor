@@ -12,23 +12,14 @@ source:
             id: access_key_id
             secret: access_key_secret
         schema_name: DEFAULT
-        max_preview_rows: 3
         exclude:
             schemas:
                 - schema_a
                 - schema_b
             tables:
                 - schema_c.table_a
-        max_page_size: 100
         concurrency: 10
-        mix_values: false
-        include_column_profile: true
         build_view_lineage: true
-        collect_table_usage: false
-        usage_period_in_day: 7
-        usage_project_names:
-            - maxcompute-project-name
-            - other-maxcompute-project-name
 ```
 
 ## Inputs
@@ -40,22 +31,14 @@ source:
 | `access_key.id` | `string` | `access_key_id` | Access Key ID | *required* |
 | `access_key.secret` | `string` | `access_key_secret` | Access Key Secret | *required* |
 | `schema_name` | `string` | `DEFAULT` | Default schema name | *optional* |
-| `max_preview_rows` | `int` | `3` | max number of preview rows to fetch, `0` will skip preview fetching. Default to `3`. | *optional* |
 | `exclude.schemas` | `[]string` | `["schema_a", "schema_b"]` | List of schemas to exclude | *optional* |
 | `exclude.tables` | `[]string` | `["schema_c.table_a"]` | List of tables to exclude | *optional* |
-| `max_page_size` | `int` | `100` | max page size hint used for fetching datasets/tables/rows from MaxCompute | *optional* |
 | `concurrency` | `int` | `10` | Number of concurrent requests to MaxCompute | *optional* |
-| `mix_values` | `bool` | `false` | true if you want to mix the column values with the preview rows. Default to `false`. | *optional* |
-| `include_column_profile` | `bool` | `true` | true if you want to profile the column value such min, max, med, avg, top, and freq | *optional* |
 | `build_view_lineage` | `bool` | `true` | true if you want to build view lineage | *optional* |
-| `collect_table_usage` | `boolean` | `false` | toggle feature to collect table usage, `true` will enable collecting table usage. Default to `false`. | *optional* |
-| `usage_period_in_day` | `int` | `7` | collecting log from `(now - usage_period_in_day)` until `now`. only matter if `collect_table_usage` is true. Default to `7`. | *optional* |
-| `usage_project_names` | `[]string` | `["maxcompute-project-name", "other-maxcompute-project-name"]` | collecting log from defined MaxCompute Project Names. | *optional* |
 
 ### *Notes*
 
 - Leaving `access_key` blank will default to [MaxCompute's default authentication][maxcompute-default-auth].
-- Setting `max_preview_rows` to `0` will skip preview fetching.
 
 ## Outputs
 
