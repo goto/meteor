@@ -22,6 +22,7 @@ func TestNewSecureScript(t *testing.T) {
 			base64 := import("base64")
 			hex := import("hex")
 			enum := import("enum")
+			http := import("http)
 		`)), nil)
 		assert.NoError(t, err)
 		_, err = s.Compile()
