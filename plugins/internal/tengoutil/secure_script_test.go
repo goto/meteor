@@ -55,4 +55,15 @@ func TestNewSecureScript(t *testing.T) {
 		_, err = s.Compile()
 		assert.NoError(t, err)
 	})
+
+	t.Run("Allows import of custom http module", func(t *testing.T) {
+		s, err := NewSecureScript(([]byte)(heredoc.Doc(`
+			http := import("http")
+			response := http.get("http://example.com")
+			response.body
+		`)), nil)
+		assert.NoError(t, err)
+		_, err = s.Compile()
+		assert.NoError(t, err)
+	})
 }
