@@ -1,9 +1,11 @@
 package tengoutil
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/d5/tengo/v2"
 	"github.com/d5/tengo/v2/stdlib"
@@ -49,15 +51,22 @@ func createHTTPModule() map[string]tengo.Object {
 					return nil, fmt.Errorf("expected argument 1 (URL) to be a string")
 				}
 
-				resp, err := http.Get(url)
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 				if err != nil {
-					return &tengo.Error{Value: &tengo.String{Value: err.Error()}}, nil
+					return nil, err
+				}
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return nil, err
 				}
 				defer resp.Body.Close()
 
 				body, err := io.ReadAll(resp.Body)
 				if err != nil {
-					return &tengo.Error{Value: &tengo.String{Value: err.Error()}}, nil
+					return nil, err
 				}
 
 				return &tengo.Map{
