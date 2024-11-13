@@ -3,7 +3,6 @@ package tengoutil
 import (
 	"fmt"
 	"io"
-
 	"net/http"
 
 	"github.com/d5/tengo/v2"
