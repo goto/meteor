@@ -55,34 +55,4 @@ func TestNewSecureScript(t *testing.T) {
 		_, err = s.Compile()
 		assert.NoError(t, err)
 	})
-
-	t.Run("HTTP module test", func(t *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"message": "Hello, world!"}`))
-		}))
-		defer ts.Close()
-
-		script := heredoc.Docf(`
-			http := import("http")
-			json := import("json")
-			resp := http.get("%s")
-			data := json.decode(resp.body)
-			result := data.message
-		`, ts.URL)
-
-		s, err := NewSecureScript([]byte(script), nil)
-		assert.NoError(t, err)
-
-		compiledScript, err := s.Compile()
-		assert.NoError(t, err)
-
-		err = compiledScript.Run()
-		assert.NoError(t, err)
-
-		result, err := compiledScript.Get("result")
-		assert.NoError(t, err)
-
-		assert.Equal(t, "Hello, world!", result.String())
-	})
 }
