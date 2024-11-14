@@ -3,6 +3,7 @@ package optimus
 import (
 	"context"
 	_ "embed" // used to print the embedded assets
+	"errors"
 	"fmt"
 	"strings"
 
@@ -18,9 +19,13 @@ import (
 )
 
 const (
-	service      = "optimus"
-	sampleConfig = `host: optimus.com:80`
+	service          = "optimus"
+	sampleConfig     = `host: optimus.com:80`
+	prefixBigQuery   = "bigquery://"
+	prefixMaxcompute = "maxcompute://"
 )
+
+var errInvalidDependency = errors.New("invalid dependency")
 
 // Register the extractor to catalog
 func init() {
@@ -209,18 +214,11 @@ func (e *Extractor) buildLineage(task *pb.JobTask) (upstreams, downstreams []*v1
 func (e *Extractor) buildUpstreams(task *pb.JobTask) ([]*v1beta2.Resource, error) {
 	var upstreams []*v1beta2.Resource
 	for _, dependency := range task.Dependencies {
-		urn, err := plugins.BigQueryTableFQNToURN(
-			strings.TrimPrefix(dependency.Dependency, "bigquery://"),
-		)
+		resource, err := e.createResource(dependency.Dependency)
 		if err != nil {
 			return nil, err
 		}
-
-		upstreams = append(upstreams, &v1beta2.Resource{
-			Urn:     urn,
-			Type:    "table",
-			Service: "bigquery",
-		})
+		upstreams = append(upstreams, resource)
 	}
 
 	return upstreams, nil
@@ -231,18 +229,55 @@ func (e *Extractor) buildDownstreams(task *pb.JobTask) ([]*v1beta2.Resource, err
 		return nil, nil
 	}
 
+	resource, err := e.createResource(task.Destination.Destination)
+	if err != nil {
+		return nil, err
+	}
+
+	return []*v1beta2.Resource{
+		resource,
+	}, nil
+}
+
+func (e *Extractor) createResource(dependency string) (*v1beta2.Resource, error) {
+	switch {
+	case strings.HasPrefix(dependency, prefixMaxcompute):
+		return e.createMaxComputeResource(dependency)
+	case strings.HasPrefix(dependency, prefixBigQuery):
+		return e.createBigQueryResource(dependency)
+	default:
+		return nil, errInvalidDependency
+	}
+}
+
+func (*Extractor) createBigQueryResource(dependency string) (*v1beta2.Resource, error) {
 	urn, err := plugins.BigQueryTableFQNToURN(
-		strings.TrimPrefix(task.Destination.Destination, "bigquery://"),
+		strings.TrimPrefix(dependency, prefixBigQuery),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return []*v1beta2.Resource{{
+	return &v1beta2.Resource{
 		Urn:     urn,
 		Type:    "table",
 		Service: "bigquery",
-	}}, nil
+	}, nil
+}
+
+func (*Extractor) createMaxComputeResource(dependency string) (*v1beta2.Resource, error) {
+	urn, err := plugins.MaxComputeTableFQNToURN(
+		strings.TrimPrefix(dependency, prefixMaxcompute),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1beta2.Resource{
+		Urn:     urn,
+		Type:    "table",
+		Service: "maxcompute",
+	}, nil
 }
 
 func strOrNil(s string) interface{} {
