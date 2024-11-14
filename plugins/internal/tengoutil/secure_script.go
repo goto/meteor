@@ -84,7 +84,7 @@ func extractHeaders(args []tengo.Object) (map[string]string, error) {
 		for key, value := range headerMap.Value {
 			strValue, valueOk := tengo.ToString(value)
 			if !valueOk {
-				return nil, fmt.Errorf("header value for key '%s' must be a string", key)
+				return nil, fmt.Errorf("header value for key '%s' must be a string, got %T", key, value)
 			}
 			headers[key] = strValue
 		}

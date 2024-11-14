@@ -93,15 +93,15 @@ func TestNewSecureScript(t *testing.T) {
 
 		_, err = s.Run()
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "expected argument 1 (URL) to be a string")
+		assert.Contains(t, err.Error(), "unsupported protocol scheme")
 	})
 
 	t.Run("HTTP GET with invalid header value type", func(t *testing.T) {
-		s, err := NewSecureScript(([]byte)(heredoc.Doc(`
+		s, err := NewSecureScript([]byte(`
 			http := import("http")
 			headers := { "User-Agent": 12345 }
 			http.get("http://example.com", headers)
-		`)), nil)
+		`), nil)
 		assert.NoError(t, err)
 
 		_, err = s.Compile()
@@ -109,7 +109,7 @@ func TestNewSecureScript(t *testing.T) {
 
 		_, err = s.Run()
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "header value for key 'User-Agent' must be a string")
+		assert.Contains(t, err.Error(), "header value for key 'User-Agent' must be a string, got int")
 	})
 
 	t.Run("HTTP GET with timeout", func(t *testing.T) {
