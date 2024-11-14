@@ -99,4 +99,3 @@ func createHTTPModule() map[string]tengo.Object {
 		},
 	}
 }
-
