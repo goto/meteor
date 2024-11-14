@@ -29,7 +29,6 @@ var HTTPModule = map[string]tengo.Object{
 func NewSecureScript(input []byte, globals map[string]interface{}) (*tengo.Script, error) {
 	s := tengo.NewScript(input)
 
-	val := executeRequestWrapper(ctx, 3, "")
 	modules := stdlib.GetModuleMap(
 		// `os` is excluded, should *not* be importable from script.
 		"math", "text", "times", "rand", "fmt", "json", "base64", "hex", "enum",
