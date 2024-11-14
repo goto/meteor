@@ -113,11 +113,11 @@ func TestNewSecureScript(t *testing.T) {
 	})
 
 	t.Run("HTTP GET with timeout", func(t *testing.T) {
-		s, err := NewSecureScript([]byte(`
+		s, err := NewSecureScript(([]byte)(heredoc.Doc(`
 			http := import("http")
 			response := http.get("http://example.com")
 			response.body
-		`), nil)
+		`)), nil)
 		assert.NoError(t, err)
 
 		originalTimeout := defaultTimeout
