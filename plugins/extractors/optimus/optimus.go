@@ -240,22 +240,15 @@ func (e *Extractor) buildDownstreams(task *pb.JobTask) ([]*v1beta2.Resource, err
 }
 
 func (e *Extractor) createResource(dependency string) (*v1beta2.Resource, error) {
-	var resource *v1beta2.Resource
-	var err error
 
 	switch {
 	case strings.HasPrefix(dependency, prefixMaxcompute):
-		resource, err = e.createMaxComputeResource(dependency)
+		return e.createMaxComputeResource(dependency)
 	case strings.HasPrefix(dependency, prefixBigQuery):
-		resource, err = e.createBigQueryResource(dependency)
+		return e.createBigQueryResource(dependency)
 	default:
 		return nil, errInvalidDependency
 	}
-
-	if err != nil {
-		return nil, err
-	}
-	return resource, nil
 }
 
 func (*Extractor) createBigQueryResource(dependency string) (*v1beta2.Resource, error) {
