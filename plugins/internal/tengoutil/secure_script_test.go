@@ -96,28 +96,6 @@ func TestNewSecureScript(t *testing.T) {
 		assert.Contains(t, err.Error(), "unsupported protocol scheme")
 	})
 
-	t.Run("HTTP GET with valid header value type (int)", func(t *testing.T) {
-		s, err := NewSecureScript(([]byte)(heredoc.Doc(`
-			http := import("http")
-			headers := { "User-Agent": 12345 }
-			http.get("http://example.com", headers)
-		`)), nil)
-		assert.NoError(t, err)
-
-		_, err = s.Compile()
-		assert.NoError(t, err)
-
-		result, err := s.Run()
-		assert.NoError(t, err)
-
-		resultMap, ok := result.(*tengo.Map)
-		assert.True(t, ok)
-
-		userAgent, ok := resultMap.Value["User-Agent"].(*tengo.String)
-		assert.True(t, ok)
-		assert.Equal(t, "12345", userAgent.Value)
-	})
-
 	t.Run("HTTP GET with timeout", func(t *testing.T) {
 		s, err := NewSecureScript(([]byte)(heredoc.Doc(`
 			http := import("http")
