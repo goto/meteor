@@ -21,7 +21,7 @@ const expectedArgsLength = 2
 
 var defaultTimeout = 5 * time.Second
 
-var HTTPModule = map[string]tengo.Object{
+var httpModule = map[string]tengo.Object{
 	"get": httpGetFunction,
 }
 
@@ -32,7 +32,7 @@ func NewSecureScript(input []byte, globals map[string]interface{}) (*tengo.Scrip
 		// `os` is excluded, should *not* be importable from script.
 		"math", "text", "times", "rand", "fmt", "json", "base64", "hex", "enum",
 	)
-	modules.AddBuiltinModule("http", HTTPModule)
+	modules.AddBuiltinModule("http", httpModule)
 	s.SetImports(modules)
 	s.SetMaxAllocs(maxAllocs)
 	s.SetMaxConstObjects(maxConsts)
