@@ -17,10 +17,9 @@ const (
 	maxConsts = 500
 )
 
-const (
-	expectedArgsLength = 2
-	defaultTimeout     = 5 * time.Second
-)
+const expectedArgsLength = 2
+
+var defaultTimeout = 5 * time.Second
 
 var HTTPModule = map[string]tengo.Object{
 	"get": httpGetFunction,
