@@ -19,7 +19,6 @@ source:
             tables:
                 - schema_c.table_a
         concurrency: 10
-        build_view_lineage: true
 ```
 
 ## Inputs
@@ -34,7 +33,6 @@ source:
 | `exclude.schemas` | `[]string` | `["schema_a", "schema_b"]` | List of schemas to exclude | *optional* |
 | `exclude.tables` | `[]string` | `["schema_c.table_a"]` | List of tables to exclude | *optional* |
 | `concurrency` | `int` | `10` | Number of concurrent requests to MaxCompute | *optional* |
-| `build_view_lineage` | `bool` | `true` | true if you want to build view lineage | *optional* |
 
 ### *Notes*
 

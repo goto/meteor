@@ -32,14 +32,16 @@ type Config struct {
 		Schemas []string `mapstructure:"schemas"`
 		Tables  []string `mapstructure:"tables"`
 	} `mapstructure:"exclude,omitempty"`
-	Concurrency      int  `mapstructure:"concurrency,omitempty"`
-	BuildViewLineage bool `mapstructure:"build_view_lineage,omitempty"`
+	Concurrency int `mapstructure:"concurrency,omitempty"`
 }
 
 type Extractor struct {
 	plugins.BaseExtractor
 	logger log.Logger
 	config Config
+
+	client *odps.Odps
+	eg     *errgroup.Group
 }
 
 //go:embed README.md
@@ -59,7 +61,6 @@ exclude:
     tables:
     	- schema_c.table_a
 concurrency: 10
-build_view_lineage: true
 `
 
 var info = plugins.Info{
@@ -80,17 +81,22 @@ func New(logger log.Logger) *Extractor {
 }
 
 func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
-	return e.BaseExtractor.Init(ctx, config)
+	if err := e.BaseExtractor.Init(ctx, config); err != nil {
+		return err
+	}
+
+	aliAccount := account.NewAliyunAccount(e.config.AccessKey.ID, e.config.AccessKey.Secret)
+	e.client = odps.NewOdps(aliAccount, e.config.EndpointProject)
+	e.client.SetDefaultProjectName(e.config.ProjectName)
+
+	e.eg = &errgroup.Group{}
+	e.eg.SetLimit(e.config.Concurrency)
+
+	return nil
 }
 
 func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
-	aliAccount := account.NewAliyunAccount(e.config.AccessKey.ID, e.config.AccessKey.Secret)
-	odpsIns := odps.NewOdps(aliAccount, e.config.EndpointProject)
-	project := odpsIns.Project(e.config.ProjectName)
-
-	schemas := project.Schemas()
-
-	eg := errgroup.Group{}
+	schemas := e.client.Project(e.config.ProjectName).Schemas()
 
 	err := schemas.List(func(schema *odps.Schema, err error) {
 		if err != nil {
@@ -104,24 +110,18 @@ func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
 			return
 		}
 
-		newIns := odps.NewOdps(aliAccount, e.config.EndpointProject)
-		newIns.SetCurrentSchemaName(schema.Name())
-		newIns.SetDefaultProjectName(e.config.ProjectName)
-		newProj := newIns.Project(e.config.ProjectName)
+		tables := odps.NewTables(e.client, e.config.ProjectName, schema.Name())
 
-		eg.Go(func() error {
-			return e.fetchTablesFromSchema(newProj, emit)
-		})
+		e.fetchTablesFromSchema(tables, emit)
 	})
 	if err != nil {
 		return err
 	}
-	return eg.Wait()
+	return e.eg.Wait()
 }
 
-func (e *Extractor) fetchTablesFromSchema(project *odps.Project, emit plugins.Emit) error {
-	eg := errgroup.Group{}
-	project.Tables().List(
+func (e *Extractor) fetchTablesFromSchema(tables *odps.Tables, emit plugins.Emit) {
+	tables.List(
 		func(t *odps.Table, err error) {
 			if err != nil {
 				e.logger.Error("table list", err)
@@ -132,19 +132,22 @@ func (e *Extractor) fetchTablesFromSchema(project *odps.Project, emit plugins.Em
 				return
 			}
 
-			eg.Go(func() error {
+			e.eg.Go(func() error {
 				return e.processTable(t, emit)
 			})
 		},
 	)
-	return eg.Wait()
 }
 
 func (e *Extractor) processTable(table *odps.Table, emit plugins.Emit) error {
 	err := table.Load()
 	if err != nil {
-		e.logger.Error("failed to get table info", "table", table.Name(), "error", err)
-		return err
+		isView := table.Schema().IsVirtualView || table.Schema().IsMaterializedView
+		isLoaded := table.IsLoaded()
+		if !isView || (isView && !isLoaded) {
+			e.logger.Error("failed to get table info", "schema", table.SchemaName(), "table", table.Name(), "error", err)
+			return err
+		}
 	}
 
 	asset, err := e.buildAsset(table)
@@ -183,7 +186,7 @@ func (e *Extractor) buildAsset(tableInfo *odps.Table) (*v1beta2.Asset, error) {
 	for i, col := range schema.Columns {
 		columnData := &v1beta2.Column{
 			Name:        col.Name,
-			DataType:    col.Type.ID().String(),
+			DataType:    dataTypeToString(col.Type),
 			Description: col.Comment,
 			IsNullable:  col.IsNullable,
 			Attributes:  utils.TryParseMapToProto(buildColumnAttributesData(&schema.Columns[i])),
@@ -222,7 +225,7 @@ func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
 	for _, field := range structType.Fields {
 		column := &v1beta2.Column{
 			Name:     field.Name,
-			DataType: field.Type.ID().String(),
+			DataType: dataTypeToString(field.Type),
 			Columns:  buildColumns(field.Type),
 		}
 		columns = append(columns, column)
@@ -246,7 +249,7 @@ func buildTableAttributesData(tableInfo *odps.Table) map[string]interface{} {
 	}
 
 	if tableInfo.ViewText() != "" {
-		attributesData["table_sql"] = tableInfo.ViewText()
+		attributesData["sql"] = tableInfo.ViewText()
 	}
 
 	if tableInfo.ResourceUrl() != "" {
@@ -268,6 +271,16 @@ func buildColumnAttributesData(column *tableschema.Column) map[string]interface{
 	}
 
 	return attributesData
+}
+
+func dataTypeToString(dataType datatype.DataType) string {
+	if dataType.ID() == datatype.MAP {
+		return dataType.Name()
+	}
+	if dataType.ID() == datatype.ARRAY {
+		return dataType.Name()
+	}
+	return dataType.ID().String()
 }
 
 func contains(slice []string, item string) bool {
