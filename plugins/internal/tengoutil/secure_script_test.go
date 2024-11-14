@@ -5,6 +5,7 @@ package tengoutil
 
 import (
 	"testing"
+	"time"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
@@ -68,59 +69,64 @@ func TestNewSecureScript(t *testing.T) {
 	})
 
 	t.Run("HTTP GET with headers", func(t *testing.T) {
-		s, err := NewSecureScript([]byte(heredoc.Doc(`
+		s, err := NewSecureScript(([]byte)(heredoc.Doc(`
 			http := import("http")
 			headers := { "User-Agent": "test-agent", "Accept": "application/json" }
 			response := http.get("http://example.com", headers)
 			response.body
 		`)), nil)
 		assert.NoError(t, err)
-		_, err = s.Compile()
+
+		err = s.Compile()
 		assert.NoError(t, err)
 	})
 
 	t.Run("HTTP GET with invalid URL argument type", func(t *testing.T) {
-		s, err := NewSecureScript([]byte(heredoc.Doc(`
+		s, err := NewSecureScript(([]byte)(heredoc.Doc(`
 			http := import("http")
-			http.get(12345) 
+			http.get(12345)
 		`)), nil)
 		assert.NoError(t, err)
-		compiledScript, err := s.Compile()
+
+		err = s.Compile()
 		assert.NoError(t, err)
 
-		_, err = compiledScript.Run()
+		err = s.Run()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "expected argument 1 (URL) to be a string")
 	})
 
 	t.Run("HTTP GET with invalid header value type", func(t *testing.T) {
-		s, err := NewSecureScript([]byte(heredoc.Doc(`
+		s, err := NewSecureScript(([]byte)(heredoc.Doc(`
 			http := import("http")
 			headers := { "User-Agent": 12345 }
 			http.get("http://example.com", headers)
 		`)), nil)
 		assert.NoError(t, err)
-		compiledScript, err := s.Compile()
+
+		err = s.Compile()
 		assert.NoError(t, err)
 
-		_, err = compiledScript.Run()
+		err = s.Run()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "header value for key 'User-Agent' must be a string")
 	})
 
 	t.Run("HTTP GET with timeout", func(t *testing.T) {
-		s, err := NewSecureScript([]byte(heredoc.Doc(`
+		s, err := NewSecureScript(([]byte)(heredoc.Doc(`
 			http := import("http")
 			response := http.get("http://example.com")
 			response.body
 		`)), nil)
 		assert.NoError(t, err)
 
-		defaultTimeout = 1 * time.Millisecond
-		compiledScript, err := s.Compile()
+		defaultTimeout := 1 * time.Millisecond
+		defer func() { defaultTimeout = 5 * time.Second }()
+
+		err = s.Compile()
 		assert.NoError(t, err)
 
-		_, err = compiledScript.Run()
+		err = s.Run()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context deadline exceeded")
 	})
