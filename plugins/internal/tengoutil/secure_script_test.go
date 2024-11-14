@@ -77,7 +77,7 @@ func TestNewSecureScript(t *testing.T) {
 		`)), nil)
 		assert.NoError(t, err)
 
-		err = s.Compile()
+		_, err = s.Compile()
 		assert.NoError(t, err)
 	})
 
@@ -88,10 +88,10 @@ func TestNewSecureScript(t *testing.T) {
 		`)), nil)
 		assert.NoError(t, err)
 
-		err = s.Compile()
+		_, err = s.Compile()
 		assert.NoError(t, err)
 
-		err = s.Run()
+		_, err = s.Run()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "expected argument 1 (URL) to be a string")
 	})
@@ -104,10 +104,10 @@ func TestNewSecureScript(t *testing.T) {
 		`)), nil)
 		assert.NoError(t, err)
 
-		err = s.Compile()
+		_, err = s.Compile()
 		assert.NoError(t, err)
 
-		err = s.Run()
+		_, err = s.Run()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "header value for key 'User-Agent' must be a string")
 	})
@@ -120,13 +120,14 @@ func TestNewSecureScript(t *testing.T) {
 		`)), nil)
 		assert.NoError(t, err)
 
-		defaultTimeout := 1 * time.Millisecond
-		defer func() { defaultTimeout = 5 * time.Second }()
+		originalTimeout := defaultTimeout
+		defaultTimeout = 1 * time.Millisecond
+		defer func() { defaultTimeout = originalTimeout }()
 
-		err = s.Compile()
+		_, err = s.Compile()
 		assert.NoError(t, err)
 
-		err = s.Run()
+		_, err = s.Run()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context deadline exceeded")
 	})
