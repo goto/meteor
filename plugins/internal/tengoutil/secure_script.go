@@ -42,13 +42,28 @@ func createHTTPModule() map[string]tengo.Object {
 		"get": &tengo.UserFunction{
 			Name: "get",
 			Value: func(args ...tengo.Object) (tengo.Object, error) {
-				if len(args) != 1 {
-					return nil, fmt.Errorf("expected 1 argument, got %d", len(args))
+				if len(args) < 1 || len(args) > 2 {
+					return nil, fmt.Errorf("expected 1 or 2 arguments, got %d", len(args))
 				}
 
 				url, ok := tengo.ToString(args[0])
 				if !ok {
 					return nil, fmt.Errorf("expected argument 1 (URL) to be a string")
+				}
+
+				headers := make(map[string]string)
+				if len(args) == 2 {
+					headerMap, ok := args[1].(*tengo.Map)
+					if !ok {
+						return nil, fmt.Errorf("expected argument 2 (headers) to be a map")
+					}
+					for key, value := range headerMap.Value {
+						strValue, valueOk := tengo.ToString(value)
+						if !valueOk {
+							return nil, fmt.Errorf("header values must be strings")
+						}
+						headers[key] = strValue
+					}
 				}
 
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -58,6 +73,11 @@ func createHTTPModule() map[string]tengo.Object {
 				if err != nil {
 					return nil, err
 				}
+
+				for key, value := range headers {
+					req.Header.Add(key, value)
+				}
+
 				resp, err := http.DefaultClient.Do(req)
 				if err != nil {
 					return nil, err
@@ -79,3 +99,4 @@ func createHTTPModule() map[string]tengo.Object {
 		},
 	}
 }
+
