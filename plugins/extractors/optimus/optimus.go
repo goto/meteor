@@ -240,7 +240,6 @@ func (e *Extractor) buildDownstreams(task *pb.JobTask) ([]*v1beta2.Resource, err
 }
 
 func (e *Extractor) createResource(dependency string) (*v1beta2.Resource, error) {
-
 	switch {
 	case strings.HasPrefix(dependency, prefixMaxcompute):
 		return e.createMaxComputeResource(dependency)
