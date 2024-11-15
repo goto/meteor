@@ -1,0 +1,433 @@
+[
+    {
+        "urn": "urn:maxcompute:dummy_project:table:dummy_project.my_schema.dummy_table_view",
+        "name": "test-project-id",
+        "service": "maxcompute",
+        "type": "VIRTUAL_VIEW",
+        "url": "",
+        "description": "",
+        "data": {
+            "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
+            "profile": null,
+            "columns": [
+                {
+                    "name": "id",
+                    "description": "",
+                    "data_type": "BIGINT",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "name",
+                    "description": "",
+                    "data_type": "STRING",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "user_info",
+                    "description": "",
+                    "data_type": "STRUCT",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [
+                        {
+                            "name": "user_id",
+                            "description": "",
+                            "data_type": "BIGINT",
+                            "is_nullable": false,
+                            "length": "0",
+                            "profile": null,
+                            "columns": [],
+                            "attributes": null
+                        },
+                        {
+                            "name": "personal",
+                            "description": "",
+                            "data_type": "STRUCT",
+                            "is_nullable": false,
+                            "length": "0",
+                            "profile": null,
+                            "columns": [
+                                {
+                                    "name": "first_name",
+                                    "description": "",
+                                    "data_type": "STRING",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                },
+                                {
+                                    "name": "last_name",
+                                    "description": "",
+                                    "data_type": "STRING",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                },
+                                {
+                                    "name": "details",
+                                    "description": "",
+                                    "data_type": "STRUCT",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [
+                                        {
+                                            "name": "birth_date",
+                                            "description": "",
+                                            "data_type": "DATE",
+                                            "is_nullable": false,
+                                            "length": "0",
+                                            "profile": null,
+                                            "columns": [],
+                                            "attributes": null
+                                        },
+                                        {
+                                            "name": "gender",
+                                            "description": "",
+                                            "data_type": "STRING",
+                                            "is_nullable": false,
+                                            "length": "0",
+                                            "profile": null,
+                                            "columns": [],
+                                            "attributes": null
+                                        },
+                                        {
+                                            "name": "nationality",
+                                            "description": "",
+                                            "data_type": "STRING",
+                                            "is_nullable": false,
+                                            "length": "0",
+                                            "profile": null,
+                                            "columns": [],
+                                            "attributes": null
+                                        }
+                                    ],
+                                    "attributes": null
+                                }
+                            ],
+                            "attributes": null
+                        },
+                        {
+                            "name": "contact",
+                            "description": "",
+                            "data_type": "STRUCT",
+                            "is_nullable": false,
+                            "length": "0",
+                            "profile": null,
+                            "columns": [
+                                {
+                                    "name": "email",
+                                    "description": "",
+                                    "data_type": "STRING",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                },
+                                {
+                                    "name": "secondary_email",
+                                    "description": "",
+                                    "data_type": "STRING",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                },
+                                {
+                                    "name": "phones",
+                                    "description": "",
+                                    "data_type": "ARRAY<STRING>",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                }
+                            ],
+                            "attributes": null
+                        }
+                    ],
+                    "attributes": {}
+                }
+            ],
+            "preview_fields": [],
+            "preview_rows": null,
+            "attributes": {
+                "project_name": "dummy_project",
+                "resource_url": "/projects/dummy_project/tables/dummy_table_view",
+                "schema": "my_schema",
+                "sql": "SELECT id, name, user_info\nFROM dummy_project.default.my_dummy_table"
+            },
+            "create_time": "2024-11-14T06:41:35Z",
+            "update_time": "2024-11-14T06:41:35Z"
+        },
+        "owners": [],
+        "lineage": null,
+        "labels": {},
+        "event": null,
+        "create_time": "2024-11-14T06:41:35Z",
+        "update_time": "2024-11-14T06:41:35Z"
+    },
+    {
+        "urn": "urn:maxcompute:catalog_test:table:catalog_test.default.my_dummy_table2",
+        "name": "test-project-id",
+        "service": "maxcompute",
+        "type": "MANAGED_TABLE",
+        "url": "",
+        "description": "This is a dummy table with various data types and nested structs",
+        "data": {
+            "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
+            "profile": null,
+            "columns": [
+                {
+                    "name": "id",
+                    "description": "Primary identifier",
+                    "data_type": "BIGINT",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "name",
+                    "description": "Name",
+                    "data_type": "STRING",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "age",
+                    "description": "Age",
+                    "data_type": "INT",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "height_in_cm",
+                    "description": "Height",
+                    "data_type": "DOUBLE",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "join_date",
+                    "description": "Joining date",
+                    "data_type": "DATE",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "is_active",
+                    "description": "Active status",
+                    "data_type": "BOOLEAN",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "addresses",
+                    "description": "List of addresses",
+                    "data_type": "ARRAY<STRING>",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "phone_numbers",
+                    "description": "Phone types and numbers",
+                    "data_type": "MAP<STRING,STRING>",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {
+                        "label": "2"
+                    }
+                },
+                {
+                    "name": "user_info",
+                    "description": "User Information",
+                    "data_type": "STRUCT",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [
+                        {
+                            "name": "user_id",
+                            "description": "",
+                            "data_type": "BIGINT",
+                            "is_nullable": false,
+                            "length": "0",
+                            "profile": null,
+                            "columns": [],
+                            "attributes": null
+                        },
+                        {
+                            "name": "personal",
+                            "description": "",
+                            "data_type": "STRUCT",
+                            "is_nullable": false,
+                            "length": "0",
+                            "profile": null,
+                            "columns": [
+                                {
+                                    "name": "first_name",
+                                    "description": "",
+                                    "data_type": "STRING",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                },
+                                {
+                                    "name": "last_name",
+                                    "description": "",
+                                    "data_type": "STRING",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                },
+                                {
+                                    "name": "details",
+                                    "description": "",
+                                    "data_type": "STRUCT",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [
+                                        {
+                                            "name": "birth_date",
+                                            "description": "",
+                                            "data_type": "DATE",
+                                            "is_nullable": false,
+                                            "length": "0",
+                                            "profile": null,
+                                            "columns": [],
+                                            "attributes": null
+                                        },
+                                        {
+                                            "name": "gender",
+                                            "description": "",
+                                            "data_type": "STRING",
+                                            "is_nullable": false,
+                                            "length": "0",
+                                            "profile": null,
+                                            "columns": [],
+                                            "attributes": null
+                                        },
+                                        {
+                                            "name": "nationality",
+                                            "description": "",
+                                            "data_type": "STRING",
+                                            "is_nullable": false,
+                                            "length": "0",
+                                            "profile": null,
+                                            "columns": [],
+                                            "attributes": null
+                                        }
+                                    ],
+                                    "attributes": null
+                                }
+                            ],
+                            "attributes": null
+                        },
+                        {
+                            "name": "contact",
+                            "description": "",
+                            "data_type": "STRUCT",
+                            "is_nullable": false,
+                            "length": "0",
+                            "profile": null,
+                            "columns": [
+                                {
+                                    "name": "email",
+                                    "description": "",
+                                    "data_type": "STRING",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                },
+                                {
+                                    "name": "secondary_email",
+                                    "description": "",
+                                    "data_type": "STRING",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                },
+                                {
+                                    "name": "phones",
+                                    "description": "",
+                                    "data_type": "ARRAY<STRING>",
+                                    "is_nullable": false,
+                                    "length": "0",
+                                    "profile": null,
+                                    "columns": [],
+                                    "attributes": null
+                                }
+                            ],
+                            "attributes": null
+                        }
+                    ],
+                    "attributes": {
+                        "label": "2"
+                    }
+                }
+            ],
+            "preview_fields": [],
+            "preview_rows": null,
+            "attributes": {
+                "project_name": "catalog_test",
+                "resource_url": "/projects/catalog_test/tables/my_dummy_table",
+                "schema": "default"
+            },
+            "create_time": "2024-11-14T06:39:38Z",
+            "update_time": "2024-11-14T06:39:38Z"
+        },
+        "owners": [],
+        "lineage": null,
+        "labels": {},
+        "event": null,
+        "create_time": "2024-11-14T06:39:38Z",
+        "update_time": "2024-11-14T06:39:38Z"
+    }
+]

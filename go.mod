@@ -12,8 +12,6 @@ require (
 	github.com/ClickHouse/clickhouse-go v1.4.5
 	github.com/IBM/sarama v1.43.2
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.10
-	github.com/alibabacloud-go/maxcompute-20220104 v1.4.1
 	github.com/aliyun/aliyun-odps-go-sdk v0.3.14
 	github.com/aws/aws-sdk-go v1.44.151
 	github.com/blastrain/vitess-sqlparser v0.0.0-20201030050434-a139afbb1aba
@@ -85,14 +83,8 @@ require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
-	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
 	github.com/alibabacloud-go/debug v1.0.1 // indirect
-	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
-	github.com/alibabacloud-go/openapi-util v0.1.0 // indirect
 	github.com/alibabacloud-go/tea v1.2.2 // indirect
-	github.com/alibabacloud-go/tea-utils v1.3.1 // indirect
-	github.com/alibabacloud-go/tea-utils/v2 v2.0.6 // indirect
-	github.com/alibabacloud-go/tea-xml v1.1.3 // indirect
 	github.com/aliyun/credentials-go v1.3.10 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
@@ -115,7 +107,6 @@ require (
 	github.com/briandowns/spinner v1.20.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/charmbracelet/glamour v0.6.0 // indirect
-	github.com/clbanning/mxj/v2 v2.5.5 // indirect
 	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/cloudflare/golz4 v0.0.0-20150217214814-ef862a3cdc58 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
@@ -155,6 +146,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
+	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
@@ -225,7 +217,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
-	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect

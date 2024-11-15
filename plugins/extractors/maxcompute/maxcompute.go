@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
-	"github.com/aliyun/aliyun-odps-go-sdk/odps/account"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/datatype"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/tableschema"
 	"github.com/goto/meteor/models"
@@ -40,9 +39,12 @@ type Extractor struct {
 	logger log.Logger
 	config Config
 
-	client *odps.Odps
-	eg     *errgroup.Group
+	client    Client
+	newClient NewClientFunc
+	eg        *errgroup.Group
 }
+
+type NewClientFunc func(ctx context.Context, logger log.Logger, config Config) (Client, error)
 
 //go:embed README.md
 var summary string
@@ -70,9 +72,17 @@ var info = plugins.Info{
 	Summary:      summary,
 }
 
-func New(logger log.Logger) *Extractor {
+//go:generate mockery --name=Client -r --case underscore --with-expecter --structname MaxComputeClient --filename maxcompute_client_mock.go --output=./mocks
+type Client interface {
+	ListSchema(ctx context.Context) ([]*odps.Schema, error)
+	ListTable(ctx context.Context, schemaName string) ([]*odps.Table, error)
+	GetTable(ctx context.Context, table *odps.Table) (*odps.Table, error)
+}
+
+func New(logger log.Logger, clientFunc NewClientFunc) *Extractor {
 	e := &Extractor{
-		logger: logger,
+		logger:    logger,
+		newClient: clientFunc,
 	}
 	e.BaseExtractor = plugins.NewBaseExtractor(info, &e.config)
 	e.ScopeNotRequired = true
@@ -85,9 +95,24 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 		return err
 	}
 
-	aliAccount := account.NewAliyunAccount(e.config.AccessKey.ID, e.config.AccessKey.Secret)
-	e.client = odps.NewOdps(aliAccount, e.config.EndpointProject)
-	e.client.SetDefaultProjectName(e.config.ProjectName)
+	if e.config.ProjectName == "" {
+		return fmt.Errorf("project_name is required")
+	}
+	if e.config.AccessKey.ID == "" || e.config.AccessKey.Secret == "" {
+		return fmt.Errorf("access_key is required")
+	}
+	if e.config.EndpointProject == "" {
+		return fmt.Errorf("endpoint_project is required")
+	}
+	if e.config.Concurrency == 0 {
+		e.config.Concurrency = 1
+	}
+
+	var err error
+	e.client, err = e.newClient(ctx, e.logger, e.config)
+	if err != nil {
+		return err
+	}
 
 	e.eg = &errgroup.Group{}
 	e.eg.SetLimit(e.config.Concurrency)
@@ -95,59 +120,53 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 	return nil
 }
 
-func (e *Extractor) Extract(_ context.Context, emit plugins.Emit) error {
-	schemas := e.client.Project(e.config.ProjectName).Schemas()
-
-	err := schemas.List(func(schema *odps.Schema, err error) {
-		if err != nil {
-			e.logger.Error("failed to list schemas", "error", err)
-			return
-		}
-		if e.config.SchemaName != "" && schema.Name() != e.config.SchemaName {
-			return
-		}
-		if contains(e.config.Exclude.Schemas, schema.Name()) {
-			return
-		}
-
-		tables := odps.NewTables(e.client, e.config.ProjectName, schema.Name())
-
-		e.fetchTablesFromSchema(tables, emit)
-	})
+func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
+	schemas, err := e.client.ListSchema(ctx)
 	if err != nil {
 		return err
 	}
+
+	for _, schema := range schemas {
+		if e.config.SchemaName != "" && schema.Name() != e.config.SchemaName {
+			continue
+		}
+		if contains(e.config.Exclude.Schemas, schema.Name()) {
+			continue
+		}
+
+		err := e.fetchTablesFromSchema(ctx, schema, emit)
+		if err != nil {
+			return err
+		}
+	}
+
 	return e.eg.Wait()
 }
 
-func (e *Extractor) fetchTablesFromSchema(tables *odps.Tables, emit plugins.Emit) {
-	tables.List(
-		func(t *odps.Table, err error) {
-			if err != nil {
-				e.logger.Error("table list", err)
-				return
-			}
+func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Schema, emit plugins.Emit) error {
+	tables, err := e.client.ListTable(ctx, schema.Name())
+	if err != nil {
+		return err
+	}
 
-			if contains(e.config.Exclude.Tables, fmt.Sprintf("%s.%s", t.SchemaName(), t.Name())) {
-				return
-			}
+	for _, table := range tables {
+		if contains(e.config.Exclude.Tables, fmt.Sprintf("%s.%s", table.SchemaName(), table.Name())) {
+			continue
+		}
 
-			e.eg.Go(func() error {
-				return e.processTable(t, emit)
-			})
-		},
-	)
+		tbl := table
+		e.eg.Go(func() error {
+			return e.processTable(ctx, tbl, emit)
+		})
+	}
+
+	return nil
 }
 
-func (e *Extractor) processTable(table *odps.Table, emit plugins.Emit) error {
-	err := table.Load()
+func (e *Extractor) processTable(ctx context.Context, table *odps.Table, emit plugins.Emit) error {
+	table, err := e.client.GetTable(ctx, table)
 	if err != nil {
-		isView := table.Schema().IsVirtualView || table.Schema().IsMaterializedView
-		isLoaded := table.IsLoaded()
-		if !isView || (isView && !isLoaded) {
-			e.logger.Error("failed to get table info", "schema", table.SchemaName(), "table", table.Name(), "error", err)
-			return err
-		}
+		return err
 	}
 
 	asset, err := e.buildAsset(table)
@@ -256,6 +275,11 @@ func buildTableAttributesData(tableInfo *odps.Table) map[string]interface{} {
 		attributesData["resource_url"] = tableInfo.ResourceUrl()
 	}
 
+	// TODO: map the column and add the column name in the field
+	// if tableInfo.PartitionColumns() != nil {
+	// 	attributesData["partition_field"] = tableInfo.PartitionColumns()
+	// }
+
 	return attributesData
 }
 
@@ -294,8 +318,12 @@ func contains(slice []string, item string) bool {
 
 func init() {
 	if err := registry.Extractors.Register("maxcompute", func() plugins.Extractor {
-		return New(plugins.GetLog())
+		return New(plugins.GetLog(), CreateClient)
 	}); err != nil {
 		panic(err)
 	}
+}
+
+func CreateClient(_ context.Context, _ log.Logger, config Config) (Client, error) {
+	return NewMaxComputeClient(config), nil
 }
