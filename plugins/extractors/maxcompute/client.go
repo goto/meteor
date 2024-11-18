@@ -6,11 +6,14 @@ import (
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/account"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/tableschema"
+	"github.com/goto/meteor/plugins"
+	"github.com/goto/salt/log"
 )
 
 type MCClient struct {
 	client  *odps.Odps
 	project *odps.Project
+	log     log.Logger
 }
 
 func NewMaxComputeClient(config Config) *MCClient {
@@ -23,6 +26,7 @@ func NewMaxComputeClient(config Config) *MCClient {
 	return &MCClient{
 		client:  client,
 		project: project,
+		log:     plugins.GetLog(),
 	}
 }
 
@@ -30,6 +34,7 @@ func (c *MCClient) ListSchema(context.Context) (schemas []*odps.Schema, err erro
 	err = c.project.Schemas().List(func(schema *odps.Schema, err2 error) {
 		if err2 != nil {
 			err = err2
+			c.log.Error("failed to process schema", "with error:", err)
 			return
 		}
 		schemas = append(schemas, schema)
@@ -44,6 +49,7 @@ func (c *MCClient) ListTable(_ context.Context, schemaName string) (tables []*od
 		func(table *odps.Table, err2 error) {
 			if err2 != nil {
 				err = err2
+				c.log.Error("failed to process table", "with error:", err)
 				return
 			}
 			tables = append(tables, table)

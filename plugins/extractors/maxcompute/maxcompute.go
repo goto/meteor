@@ -124,7 +124,7 @@ func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
 
 func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 	schemas, err := e.client.ListSchema(ctx)
-	if err != nil {
+	if err != nil && len(schemas) == 0 {
 		return err
 	}
 
@@ -147,7 +147,7 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 
 func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Schema, emit plugins.Emit) error {
 	tables, err := e.client.ListTable(ctx, schema.Name())
-	if err != nil {
+	if err != nil && len(tables) == 0 {
 		return err
 	}
 
