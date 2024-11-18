@@ -5,6 +5,7 @@ import (
 
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/account"
+	"github.com/aliyun/aliyun-odps-go-sdk/odps/tableschema"
 )
 
 type MCClient struct {
@@ -51,14 +52,15 @@ func (c *MCClient) ListTable(_ context.Context, schemaName string) (tables []*od
 	return tables, err
 }
 
-func (*MCClient) GetTable(_ context.Context, table *odps.Table) (*odps.Table, error) {
+func (*MCClient) GetTableSchema(_ context.Context, table *odps.Table) (string, *tableschema.TableSchema, error) {
 	err := table.Load()
+	tableSchema := table.Schema()
 	if err != nil {
-		isView := table.Schema().IsVirtualView || table.Schema().IsMaterializedView
+		isView := tableSchema.IsVirtualView || tableSchema.IsMaterializedView
 		isLoaded := table.IsLoaded()
 		if !isView || (isView && !isLoaded) {
-			return nil, err
+			return "", nil, err
 		}
 	}
-	return table, nil
+	return table.Type().String(), &tableSchema, nil
 }

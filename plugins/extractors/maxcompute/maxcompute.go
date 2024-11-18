@@ -4,8 +4,10 @@ import (
 	"context"
 	_ "embed" // used to print the embedded assets
 	"fmt"
+	"time"
 
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
+	"github.com/aliyun/aliyun-odps-go-sdk/odps/common"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/datatype"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/tableschema"
 	"github.com/goto/meteor/models"
@@ -76,7 +78,7 @@ var info = plugins.Info{
 type Client interface {
 	ListSchema(ctx context.Context) ([]*odps.Schema, error)
 	ListTable(ctx context.Context, schemaName string) ([]*odps.Table, error)
-	GetTable(ctx context.Context, table *odps.Table) (*odps.Table, error)
+	GetTableSchema(ctx context.Context, table *odps.Table) (string, *tableschema.TableSchema, error)
 }
 
 func New(logger log.Logger, clientFunc NewClientFunc) *Extractor {
@@ -156,20 +158,20 @@ func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Sche
 
 		tbl := table
 		e.eg.Go(func() error {
-			return e.processTable(ctx, tbl, emit)
+			return e.processTable(ctx, schema, tbl, emit)
 		})
 	}
 
 	return nil
 }
 
-func (e *Extractor) processTable(ctx context.Context, table *odps.Table, emit plugins.Emit) error {
-	table, err := e.client.GetTable(ctx, table)
+func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table *odps.Table, emit plugins.Emit) error {
+	tableType, tableSchema, err := e.client.GetTableSchema(ctx, table)
 	if err != nil {
 		return err
 	}
 
-	asset, err := e.buildAsset(table)
+	asset, err := e.buildAsset(schema, table, tableType, tableSchema)
 	if err != nil {
 		e.logger.Error("failed to build asset", "table", table.Name(), "error", err)
 		return err
@@ -179,36 +181,35 @@ func (e *Extractor) processTable(ctx context.Context, table *odps.Table, emit pl
 	return nil
 }
 
-func (e *Extractor) buildAsset(tableInfo *odps.Table) (*v1beta2.Asset, error) {
+func (e *Extractor) buildAsset(schema *odps.Schema, _ *odps.Table, tableType string, tableSchema *tableschema.TableSchema) (*v1beta2.Asset, error) {
 	defaultSchema := "default"
-	schemaName := tableInfo.SchemaName()
+	schemaName := schema.Name()
 	if schemaName == "" {
 		schemaName = defaultSchema
 	}
 
-	tableURN := plugins.MaxComputeURN(tableInfo.ProjectName(), schemaName, tableInfo.Name())
+	tableURN := plugins.MaxComputeURN(e.config.ProjectName, schemaName, tableSchema.TableName)
 
-	schema := tableInfo.Schema()
 	asset := &v1beta2.Asset{
 		Urn:         tableURN,
-		Name:        schema.TableName,
-		Type:        tableInfo.Type().String(),
-		Description: schema.Comment,
-		CreateTime:  timestamppb.New(tableInfo.CreatedTime()),
-		UpdateTime:  timestamppb.New(tableInfo.LastModifiedTime()),
+		Name:        tableSchema.TableName,
+		Type:        tableType,
+		Description: tableSchema.Comment,
+		CreateTime:  timestamppb.New(time.Time(tableSchema.CreateTime)),
+		UpdateTime:  timestamppb.New(time.Time(tableSchema.LastModifiedTime)),
 		Service:     "maxcompute",
 	}
 
-	tableAttributesData := buildTableAttributesData(tableInfo)
+	tableAttributesData := e.buildTableAttributesData(schemaName, tableSchema)
 
 	var columns []*v1beta2.Column
-	for i, col := range schema.Columns {
+	for i, col := range tableSchema.Columns {
 		columnData := &v1beta2.Column{
 			Name:        col.Name,
 			DataType:    dataTypeToString(col.Type),
 			Description: col.Comment,
 			IsNullable:  col.IsNullable,
-			Attributes:  utils.TryParseMapToProto(buildColumnAttributesData(&schema.Columns[i])),
+			Attributes:  utils.TryParseMapToProto(buildColumnAttributesData(&tableSchema.Columns[i])),
 			Columns:     buildColumns(col.Type),
 		}
 		columns = append(columns, columnData)
@@ -217,15 +218,15 @@ func (e *Extractor) buildAsset(tableInfo *odps.Table) (*v1beta2.Asset, error) {
 	tableData := &v1beta2.Table{
 		Attributes: utils.TryParseMapToProto(tableAttributesData),
 		Columns:    columns,
-		CreateTime: timestamppb.New(tableInfo.CreatedTime()),
-		UpdateTime: timestamppb.New(tableInfo.LastModifiedTime()),
+		CreateTime: timestamppb.New(time.Time(tableSchema.CreateTime)),
+		UpdateTime: timestamppb.New(time.Time(tableSchema.LastModifiedTime)),
 	}
 
-	table, err := anypb.New(tableData)
+	tbl, err := anypb.New(tableData)
 	if err != nil {
 		e.logger.Warn("error creating Any struct", "error", err)
 	}
-	asset.Data = table
+	asset.Data = tbl
 
 	return asset, nil
 }
@@ -252,33 +253,26 @@ func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
 	return columns
 }
 
-func buildTableAttributesData(tableInfo *odps.Table) map[string]interface{} {
+func (e *Extractor) buildTableAttributesData(schemaName string, tableInfo *tableschema.TableSchema) map[string]interface{} {
 	attributesData := map[string]interface{}{}
 
-	if tableInfo == nil {
-		return attributesData
+	attributesData["project_name"] = e.config.ProjectName
+	attributesData["schema"] = schemaName
+
+	rb := common.ResourceBuilder{ProjectName: e.config.ProjectName}
+	attributesData["resource_url"] = rb.Table(tableInfo.TableName)
+
+	if tableInfo.ViewText != "" {
+		attributesData["sql"] = tableInfo.ViewText
 	}
 
-	if tableInfo.ProjectName() != "" {
-		attributesData["project_name"] = tableInfo.ProjectName()
+	if tableInfo.PartitionColumns != nil && len(tableInfo.PartitionColumns) > 0 {
+		partitionNames := make([]string, len(tableInfo.PartitionColumns))
+		for i, column := range tableInfo.PartitionColumns {
+			partitionNames[i] = column.Name
+		}
+		attributesData["partition_fields"] = partitionNames
 	}
-
-	if tableInfo.SchemaName() != "" {
-		attributesData["schema"] = tableInfo.SchemaName()
-	}
-
-	if tableInfo.ViewText() != "" {
-		attributesData["sql"] = tableInfo.ViewText()
-	}
-
-	if tableInfo.ResourceUrl() != "" {
-		attributesData["resource_url"] = tableInfo.ResourceUrl()
-	}
-
-	// TODO: map the column and add the column name in the field
-	// if tableInfo.PartitionColumns() != nil {
-	// 	attributesData["partition_field"] = tableInfo.PartitionColumns()
-	// }
 
 	return attributesData
 }
