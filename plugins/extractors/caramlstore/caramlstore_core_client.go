@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	og "github.com/goto/meteor/metrics/otelgrpc"
 	"github.com/goto/meteor/plugins/extractors/caramlstore/internal/core"
+	og "github.com/goto/salt/telemetry/otelgrpc"
 	grpcmw "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpcretry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -106,7 +106,7 @@ func (c *gRPCClient) createConnection(ctx context.Context, hostURL string, maxSi
 		maxSizeInMB = gRPCMaxClientRecvSizeMB
 	}
 
-	m := og.NewOtelGRPCMonitor(hostURL)
+	m := og.NewMeter(hostURL)
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),

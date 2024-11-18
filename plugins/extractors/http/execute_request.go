@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/goto/meteor/metrics/otelhttpclient"
+	"github.com/goto/salt/telemetry/otelhttpclient"
 )
 
 type executeRequestFunc func(ctx context.Context, reqCfg RequestConfig) (map[string]interface{}, error)
