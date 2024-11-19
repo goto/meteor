@@ -5,7 +5,7 @@
         "service": "maxcompute",
         "type": "VIRTUAL_VIEW",
         "url": "",
-        "description": "",
+        "description": "dummy table description",
         "data": {
             "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
             "profile": null,
@@ -23,12 +23,33 @@
                 {
                     "name": "name",
                     "description": "",
-                    "data_type": "STRING",
+                    "data_type": "STRUCT",
                     "is_nullable": true,
                     "length": "0",
                     "profile": null,
-                    "columns": [],
-                    "attributes": {}
+                    "attributes": {},
+                    "columns": [
+                        {
+                            "attributes": null,
+                            "columns": [],
+                            "data_type": "STRING",
+                            "description": "",
+                            "is_nullable": false,
+                            "length": "0",
+                            "name": "first_name",
+                            "profile": null
+                        },
+                        {
+                            "attributes": null,
+                            "columns": [],
+                            "data_type": "STRING",
+                            "description": "",
+                            "is_nullable": false,
+                            "length": "0",
+                            "name": "last_name",
+                            "profile": null
+                        }
+                    ]       	                    
                 }
             ],
             "preview_fields": [],

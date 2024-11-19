@@ -13,6 +13,8 @@ import (
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/extractors/maxcompute/client"
+	"github.com/goto/meteor/plugins/extractors/maxcompute/config"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
@@ -21,32 +23,17 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type Config struct {
-	ProjectName     string `mapstructure:"project_name"`
-	EndpointProject string `mapstructure:"endpoint_project"`
-	AccessKey       struct {
-		ID     string `mapstructure:"id"`
-		Secret string `mapstructure:"secret"`
-	} `mapstructure:"access_key"`
-	SchemaName string `mapstructure:"schema_name,omitempty"`
-	Exclude    struct {
-		Schemas []string `mapstructure:"schemas"`
-		Tables  []string `mapstructure:"tables"`
-	} `mapstructure:"exclude,omitempty"`
-	Concurrency int `mapstructure:"concurrency,omitempty"`
-}
-
 type Extractor struct {
 	plugins.BaseExtractor
 	logger log.Logger
-	config Config
+	config config.Config
 
 	client    Client
 	newClient NewClientFunc
 	eg        *errgroup.Group
 }
 
-type NewClientFunc func(ctx context.Context, logger log.Logger, config Config) (Client, error)
+type NewClientFunc func(ctx context.Context, logger log.Logger, conf config.Config) (Client, error)
 
 //go:embed README.md
 var summary string
@@ -92,8 +79,8 @@ func New(logger log.Logger, clientFunc NewClientFunc) *Extractor {
 	return e
 }
 
-func (e *Extractor) Init(ctx context.Context, config plugins.Config) error {
-	if err := e.BaseExtractor.Init(ctx, config); err != nil {
+func (e *Extractor) Init(ctx context.Context, conf plugins.Config) error {
+	if err := e.BaseExtractor.Init(ctx, conf); err != nil {
 		return err
 	}
 
@@ -318,6 +305,6 @@ func init() {
 	}
 }
 
-func CreateClient(_ context.Context, _ log.Logger, config Config) (Client, error) {
-	return NewMaxComputeClient(config), nil
+func CreateClient(_ context.Context, _ log.Logger, conf config.Config) (Client, error) {
+	return client.New(conf), nil
 }

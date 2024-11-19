@@ -16,6 +16,7 @@ import (
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/maxcompute"
+	"github.com/goto/meteor/plugins/extractors/maxcompute/config"
 	"github.com/goto/meteor/plugins/extractors/maxcompute/mocks"
 	mocks2 "github.com/goto/meteor/test/mocks"
 	"github.com/goto/meteor/test/utils"
@@ -63,8 +64,8 @@ func TestInit(t *testing.T) {
 	})
 }
 
-func createClient(client *mocks.MaxComputeClient) func(ctx context.Context, logger log.Logger, config maxcompute.Config) (maxcompute.Client, error) {
-	return func(ctx context.Context, logger log.Logger, config maxcompute.Config) (maxcompute.Client, error) {
+func createClient(client *mocks.MaxComputeClient) func(ctx context.Context, logger log.Logger, config config.Config) (maxcompute.Client, error) {
+	return func(ctx context.Context, logger log.Logger, config config.Config) (maxcompute.Client, error) {
 		return client, nil
 	}
 }
@@ -86,8 +87,19 @@ func TestExtract(t *testing.T) {
 	}
 
 	c2 := tableschema.Column{
-		Name:       "name",
-		Type:       datatype.StringType,
+		Name: "name",
+		Type: datatype.StructType{
+			Fields: []datatype.StructFieldType{
+				{
+					Name: "first_name",
+					Type: datatype.StringType,
+				},
+				{
+					Name: "last_name",
+					Type: datatype.StringType,
+				},
+			},
+		},
 		IsNullable: true,
 	}
 
@@ -103,6 +115,7 @@ func TestExtract(t *testing.T) {
 	}
 	dummyTableSchema.CreateTime = common.GMTTime(dummyCreateTime)
 	dummyTableSchema.LastModifiedTime = common.GMTTime(dummyCreateTime)
+	dummyTableSchema.Comment = "dummy table description"
 
 	c3 := tableschema.Column{
 		Name:       "user_id",

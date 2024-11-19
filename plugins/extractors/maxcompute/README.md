@@ -1,6 +1,7 @@
 # maxcompute
 ## Usage
-## TODO: Fix the description
+The `maxcompute` extractor allows you to extract metadata from MaxCompute tables and schemas. 
+It supports configuration for project name, endpoint, access keys, schema name, exclusions, and concurrency.
 
 ```yaml
 source:
@@ -46,13 +47,8 @@ source:
 | `resource.name`                | `table_name`                                                                                                                                                                                                                                                                                                                                                                                |                                                         |
 | `resource.service`             | `maxcompute`                                                                                                                                                                                                                                                                                                                                                                                  |                                                         |
 | `description`                  | `table description`                                                                                                                                                                                                                                                                                                                                                                         |                                                         |
-| `profile.total_rows`           | `2100`                                                                                                                                                                                                                                                                                                                                                                                      |                                                         |
-| `profile.usage_count`          | `15`                                                                                                                                                                                                                                                                                                                                                                                        |                                                         |
-| `profile.joins`                | [][Join](#Join)                                                                                                                                                                                                                                                                                                                                                                             |                                                         |
-| `profile.filters`              | [`"WHERE t.param_3 = 'the_param' AND t.column_1 = \"xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx\""`,`"WHERE event_timestamp >= TIMESTAMP(\"2021-10-29\", \"UTC\") AND event_timestamp < TIMESTAMP(\"2021-11-22T02:01:06Z\")"`]                                                                                                                                                                          |                                                         |
 | `schema`                       | [][Column](#column)                                                                                                                                                                                                                                                                                                                                                                         |                                                         |
 | `properties.partition_data`    | `"partition_data": {"partition_field": "data_date", "require_partition_filter": false, "time_partition": {"partition_by": "DAY","partition_expire": 0 } }`                                                                                                                                                                                                                                  | partition related data for time and range partitioning. |
-| `properties.clustering_fields` | `['created_at', 'updated_at']`                                                                                                                                                                                                                                                                                                                                                              | list of fields on which the table is clustered          |
 | `properties.partition_field`   | `created_at`                                                                                                                                                                                                                                                                                                                                                                                | returns the field on which table is time partitioned    |
 
 ### Partition Data
@@ -76,8 +72,6 @@ source:
 | `description` | `item's total price`                   |
 | `data_type`   | `decimal`                              |
 | `is_nullable` | `true`                                 |
-| `length`      | `12,2`                                 |
-| `profile`     | `{"min":...,"max": ...,"unique": ...}` |
 
 ### Join
 

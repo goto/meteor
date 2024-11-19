@@ -1,4 +1,4 @@
-package maxcompute
+package client
 
 import (
 	"context"
@@ -7,30 +7,31 @@ import (
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/account"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/tableschema"
 	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/extractors/maxcompute/config"
 	"github.com/goto/salt/log"
 )
 
-type MCClient struct {
+type Client struct {
 	client  *odps.Odps
 	project *odps.Project
 	log     log.Logger
 }
 
-func NewMaxComputeClient(config Config) *MCClient {
-	aliAccount := account.NewAliyunAccount(config.AccessKey.ID, config.AccessKey.Secret)
-	client := odps.NewOdps(aliAccount, config.EndpointProject)
-	client.SetDefaultProjectName(config.ProjectName)
+func New(conf config.Config) *Client {
+	aliAccount := account.NewAliyunAccount(conf.AccessKey.ID, conf.AccessKey.Secret)
+	client := odps.NewOdps(aliAccount, conf.EndpointProject)
+	client.SetDefaultProjectName(conf.ProjectName)
 
-	project := client.Project(config.ProjectName)
+	project := client.Project(conf.ProjectName)
 
-	return &MCClient{
+	return &Client{
 		client:  client,
 		project: project,
 		log:     plugins.GetLog(),
 	}
 }
 
-func (c *MCClient) ListSchema(context.Context) (schemas []*odps.Schema, err error) {
+func (c *Client) ListSchema(context.Context) (schemas []*odps.Schema, err error) {
 	err = c.project.Schemas().List(func(schema *odps.Schema, err2 error) {
 		if err2 != nil {
 			err = err2
@@ -43,7 +44,7 @@ func (c *MCClient) ListSchema(context.Context) (schemas []*odps.Schema, err erro
 	return schemas, err
 }
 
-func (c *MCClient) ListTable(_ context.Context, schemaName string) (tables []*odps.Table, err error) {
+func (c *Client) ListTable(_ context.Context, schemaName string) (tables []*odps.Table, err error) {
 	t := odps.NewTables(c.client, c.project.Name(), schemaName)
 	t.List(
 		func(table *odps.Table, err2 error) {
@@ -58,7 +59,7 @@ func (c *MCClient) ListTable(_ context.Context, schemaName string) (tables []*od
 	return tables, err
 }
 
-func (*MCClient) GetTableSchema(_ context.Context, table *odps.Table) (string, *tableschema.TableSchema, error) {
+func (*Client) GetTableSchema(_ context.Context, table *odps.Table) (string, *tableschema.TableSchema, error) {
 	err := table.Load()
 	tableSchema := table.Schema()
 	if err != nil {
