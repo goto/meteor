@@ -82,11 +82,6 @@ func MaxComputeTableFQNToURN(fqn string) (string, error) {
 	return MaxComputeURN(projectName, schemaName, tableName), nil
 }
 
-func MaxComputeURN(projectName, schemaName, tableName string) string {
-	fqn := fmt.Sprintf("%s.%s.%s", projectName, schemaName, tableName)
-	return models.NewURN("maxcompute", projectName, "table", fqn)
-}
-
 // BigQueryTableFQNToURN get URN from FQN (Fully Qualified Name) BigQuery
 func BigQueryTableFQNToURN(fqn string) (string, error) {
 	projectID, datasetID, tableID, err := parseBQTableFQN(fqn)
@@ -100,6 +95,12 @@ func BigQueryTableFQNToURN(fqn string) (string, error) {
 func BigQueryURN(projectID, datasetID, tableID string) string {
 	fqn := fmt.Sprintf("%s:%s.%s", projectID, datasetID, tableID)
 	return models.NewURN("bigquery", projectID, "table", fqn)
+}
+
+//urn:maxcompute:project:schema:table
+func MaxComputeURN(projectName, schemaName, tableName string) string {
+	fqn := fmt.Sprintf("%s.%s.%s", projectName, schemaName, tableName)
+	return models.NewURN("maxcompute", projectName, "table", fqn)
 }
 
 func KafkaURN(bootstrapServers, topic string) string {
