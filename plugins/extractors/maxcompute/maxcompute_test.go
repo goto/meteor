@@ -180,12 +180,15 @@ func TestExtract(t *testing.T) {
 					"secret": "access_key_secret",
 				},
 				"endpoint_project": "https://example.com/some-api",
+				"max_preview_rows": 3,
 			},
 		}, func(mockClient *mocks.MaxComputeClient) {
 			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
 			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1, nil)
+			// mockClient.EXPECT().GetTablePreview(mock.Anything, table1[0], 0, 10).Return(3)
 			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
 			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:], nil)
+			// mockClient.EXPECT().GetTablePreview(mock.Anything, table1[1], 0, 10).Return(3)
 			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
 		})
 

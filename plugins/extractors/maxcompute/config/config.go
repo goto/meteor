@@ -12,5 +12,7 @@ type Config struct {
 		Schemas []string `mapstructure:"schemas"`
 		Tables  []string `mapstructure:"tables"`
 	} `mapstructure:"exclude,omitempty"`
-	Concurrency int `mapstructure:"concurrency,omitempty"`
+	MaxPreviewRows int  `mapstructure:"max_preview_rows,omitempty"`
+	MixValues      bool `mapstructure:"mix_values,omitempty"`
+	Concurrency    int  `mapstructure:"concurrency,omitempty"`
 }
