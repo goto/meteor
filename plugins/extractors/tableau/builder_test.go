@@ -4,6 +4,7 @@
 package tableau
 
 import (
+	"errors"
 	"testing"
 
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
@@ -12,6 +13,13 @@ import (
 )
 
 func TestBuildLineageResource(t *testing.T) {
+	t.Run("error no table found because table is nil", func(t *testing.T) {
+		e := New(testutils.Logger)
+		res, err := e.buildLineageResources(nil)
+		assert.Error(t, errors.New("no table found"), err)
+		assert.Nil(t, res)
+	})
+
 	t.Run("building bigquery DatabaseServer resource from interface", func(t *testing.T) {
 		table := &Table{
 			ID:       "id_table_1",
@@ -34,6 +42,64 @@ func TestBuildLineageResource(t *testing.T) {
 			Urn:     "urn:bigquery:database_server:table:database_server:access_data.table1",
 			Type:    "table",
 			Service: table.Database["connectionType"].(string),
+		}
+
+		assert.Nil(t, err)
+		assert.Equal(t, expectedResource, res)
+	})
+
+	t.Run("building maxcompute with schema DatabaseServer resource from interface", func(t *testing.T) {
+		table := &Table{
+			ID:       "id_mc_table",
+			Name:     "mc_table_name",
+			FullName: "[mc_schema_name].[mc_table_name]",
+			Schema:   "mc_schema_name",
+			Database: Database{
+				"id":             "db_server",
+				"name":           "mc_project_name",
+				"connectionType": "maxcompute_jdbc",
+				"description":    "",
+				"hostName":       "",
+				"port":           -1,
+				"service":        "",
+			},
+		}
+		e := New(testutils.Logger)
+		res, err := e.buildLineageResources(table)
+
+		expectedResource := &v1beta2.Resource{
+			Urn:     "urn:maxcompute:mc_project_name:table:mc_project_name.mc_schema_name.mc_table_name",
+			Type:    "table",
+			Service: "maxcompute",
+		}
+
+		assert.Nil(t, err)
+		assert.Equal(t, expectedResource, res)
+	})
+
+	t.Run("building maxcompute without schema DatabaseServer resource from interface", func(t *testing.T) {
+		table := &Table{
+			ID:       "id_mc_table",
+			Name:     "mc_table_name",
+			FullName: "[mc_project_name].[mc_table_name]",
+			Schema:   "mc_project_name",
+			Database: Database{
+				"id":             "db_server",
+				"name":           "mc_project_name",
+				"connectionType": "maxcompute_jdbc",
+				"description":    "",
+				"hostName":       "",
+				"port":           -1,
+				"service":        "",
+			},
+		}
+		e := New(testutils.Logger)
+		res, err := e.buildLineageResources(table)
+
+		expectedResource := &v1beta2.Resource{
+			Urn:     "urn:maxcompute:mc_project_name:table:mc_project_name.default.mc_table_name",
+			Type:    "table",
+			Service: "maxcompute",
 		}
 
 		assert.Nil(t, err)
