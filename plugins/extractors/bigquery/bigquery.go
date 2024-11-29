@@ -19,7 +19,7 @@ import (
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/bigquery/auditlog"
-	"github.com/goto/meteor/plugins/extractors/bigquery/upstream"
+	"github.com/goto/meteor/plugins/internal/upstream"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"

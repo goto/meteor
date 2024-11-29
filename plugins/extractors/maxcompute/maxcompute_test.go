@@ -23,6 +23,7 @@ import (
 	"github.com/goto/salt/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -30,8 +31,10 @@ const (
 )
 
 func TestInit(t *testing.T) {
+
+	mockClient := mocks.NewMaxComputeClient(t)
 	t.Run("should return error if config is invalid", func(t *testing.T) {
-		extr := maxcompute.New(utils.Logger, maxcompute.CreateClient)
+		extr := maxcompute.New(utils.Logger, createClient(mockClient))
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
@@ -45,7 +48,7 @@ func TestInit(t *testing.T) {
 	})
 
 	t.Run("should return no error", func(t *testing.T) {
-		extr := maxcompute.New(utils.Logger, maxcompute.CreateClient)
+		extr := maxcompute.New(utils.Logger, createClient(mockClient))
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
@@ -170,7 +173,7 @@ func TestExtract(t *testing.T) {
 		return actual, err
 	}
 
-	t.Run("should return no error", func(t *testing.T) {
+	t.Run("should return no error without lineage", func(t *testing.T) {
 		actual, err := runTest(t, plugins.Config{
 			URNScope: "test-maxcompute",
 			RawConfig: map[string]interface{}{
@@ -179,22 +182,95 @@ func TestExtract(t *testing.T) {
 					"id":     "access_key_id",
 					"secret": "access_key_secret",
 				},
-				"endpoint_project": "https://example.com/some-api",
-				"max_preview_rows": 3,
+				"endpoint_project":   "https://example.com/some-api",
+				"max_preview_rows":   3,
+				"mix_values":         false,
+				"build_view_lineage": false,
 			},
 		}, func(mockClient *mocks.MaxComputeClient) {
 			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
+
 			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1, nil)
-			// mockClient.EXPECT().GetTablePreview(mock.Anything, table1[0], 0, 10).Return(3)
 			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
+			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[0], 3).Return(nil, nil, nil)
+
 			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:], nil)
-			// mockClient.EXPECT().GetTablePreview(mock.Anything, table1[1], 0, 10).Return(3)
 			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
+			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[1], 3).Return(
+				[]string{"user_id", "email"},
+				&structpb.ListValue{
+					Values: []*structpb.Value{
+						structpb.NewListValue(&structpb.ListValue{
+							Values: []*structpb.Value{
+								structpb.NewStringValue("1"),
+								structpb.NewStringValue("user1@example.com"),
+							},
+						}),
+						structpb.NewListValue(&structpb.ListValue{
+							Values: []*structpb.Value{
+								structpb.NewStringValue("2"),
+								structpb.NewStringValue("user2@example.com"),
+							},
+						}),
+					},
+				},
+				nil,
+			)
 		})
 
 		assert.Nil(t, err)
 		assert.NotEmpty(t, actual)
 		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets.json", actual)
+	})
+
+	t.Run("should return no error with lineage", func(t *testing.T) {
+		actual, err := runTest(t, plugins.Config{
+			URNScope: "test-maxcompute",
+			RawConfig: map[string]interface{}{
+				"project_name": projectID,
+				"access_key": map[string]interface{}{
+					"id":     "access_key_id",
+					"secret": "access_key_secret",
+				},
+				"endpoint_project":   "https://example.com/some-api",
+				"max_preview_rows":   3,
+				"mix_values":         false,
+				"build_view_lineage": true,
+			},
+		}, func(mockClient *mocks.MaxComputeClient) {
+			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
+
+			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1, nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
+			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[0], 3).Return(nil, nil, nil)
+
+			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:], nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
+			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[1], 3).Return(
+				[]string{"user_id", "email"},
+				&structpb.ListValue{
+					Values: []*structpb.Value{
+						structpb.NewListValue(&structpb.ListValue{
+							Values: []*structpb.Value{
+								structpb.NewStringValue("1"),
+								structpb.NewStringValue("user1@example.com"),
+							},
+						}),
+						structpb.NewListValue(&structpb.ListValue{
+							Values: []*structpb.Value{
+								structpb.NewStringValue("2"),
+								structpb.NewStringValue("user2@example.com"),
+							},
+						}),
+					},
+				},
+				nil,
+			)
+		})
+
+		assert.Nil(t, err)
+		assert.NotEmpty(t, actual)
+		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets-with-view-lineage.json", actual)
 	})
 
 	t.Run("should exclude tables based on exclusion rules", func(t *testing.T) {

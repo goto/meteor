@@ -15,6 +15,7 @@ import (
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/maxcompute/client"
 	"github.com/goto/meteor/plugins/extractors/maxcompute/config"
+	"github.com/goto/meteor/plugins/internal/upstream"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
@@ -58,6 +59,7 @@ exclude:
 concurrency: 10
 max_preview_rows: 3
 mix_values: false
+build_view_lineage: true,
 `
 
 var info = plugins.Info{
@@ -175,7 +177,9 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 	return nil
 }
 
-func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema, table *odps.Table, tableType string, tableSchema *tableschema.TableSchema) (*v1beta2.Asset, error) {
+func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
+	table *odps.Table, tableType string, tableSchema *tableschema.TableSchema,
+) (*v1beta2.Asset, error) {
 	defaultSchema := "default"
 	schemaName := schema.Name()
 	if schemaName == "" {
@@ -186,12 +190,10 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema, table *
 
 	var previewFields []string
 	var previewRows *structpb.ListValue
-	if tableType == "MANAGED_TABLE" {
-		var err error
-		previewFields, previewRows, err = e.buildPreview(ctx, table, tableSchema)
-		if err != nil {
-			e.logger.Warn("error building preview", "err", err, "table", tableSchema.TableName)
-		}
+	var err error
+	previewFields, previewRows, err = e.buildPreview(ctx, table, tableSchema)
+	if err != nil {
+		e.logger.Warn("error building preview", "err", err, "table", tableSchema.TableName)
 	}
 
 	asset := &v1beta2.Asset{
@@ -204,7 +206,18 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema, table *
 		Service:     "maxcompute",
 	}
 
-	tableAttributesData := e.buildTableAttributesData(schemaName, table, tableSchema)
+	tableAttributesData := e.buildTableAttributesData(schemaName, tableSchema)
+
+	if tableType == config.TableTypeView {
+		query := tableSchema.ViewText
+		tableAttributesData["sql"] = query
+		if e.config.BuildViewLineage {
+			upstreamResources := getUpstreamResources(query)
+			asset.Lineage = &v1beta2.Lineage{
+				Upstreams: upstreamResources,
+			}
+		}
+	}
 
 	var columns []*v1beta2.Column
 	for i, col := range tableSchema.Columns {
@@ -227,7 +240,7 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema, table *
 	}
 
 	maxPreviewRows := e.config.MaxPreviewRows
-	if maxPreviewRows != -1 {
+	if maxPreviewRows > 0 {
 		tableData.PreviewFields = previewFields
 		tableData.PreviewRows = previewRows
 	}
@@ -239,6 +252,22 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema, table *
 	asset.Data = tbl
 
 	return asset, nil
+}
+
+func getUpstreamResources(query string) []*v1beta2.Resource {
+	upstreamDependencies := upstream.ParseTopLevelUpstreamsFromQuery(query)
+	uniqueUpstreamDependencies := upstream.UniqueFilterResources(upstreamDependencies)
+	var upstreams []*v1beta2.Resource
+	for _, dependency := range uniqueUpstreamDependencies {
+		urn := plugins.MaxComputeURN(dependency.Project, dependency.Dataset, dependency.Name)
+		upstreams = append(upstreams, &v1beta2.Resource{
+			Urn:     urn,
+			Name:    dependency.Name,
+			Type:    "table",
+			Service: "maxcompute",
+		})
+	}
+	return upstreams
 }
 
 func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
@@ -263,7 +292,7 @@ func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
 	return columns
 }
 
-func (e *Extractor) buildTableAttributesData(schemaName string, table *odps.Table, tableInfo *tableschema.TableSchema) map[string]interface{} {
+func (e *Extractor) buildTableAttributesData(schemaName string, tableInfo *tableschema.TableSchema) map[string]interface{} {
 	attributesData := map[string]interface{}{}
 
 	attributesData["project_name"] = e.config.ProjectName
@@ -307,26 +336,30 @@ func (e *Extractor) buildPreview(ctx context.Context, t *odps.Table, tSchema *ta
 		return nil, nil, nil
 	}
 
-	var tempRows []interface{}
-
 	previewFields, previewRows, err := e.client.GetTablePreview(ctx, "", t, maxPreviewRows)
 	if err != nil {
 		e.logger.Error("failed to preview table", "table", t.Name(), "error", err)
 		return nil, nil, err
 	}
 
-	tempRows, err = e.mixValuesIfNeeded(tempRows, time.Time(tSchema.LastModifiedTime).Unix())
-	if err != nil {
-		return nil, nil, fmt.Errorf("mix values: %w", err)
-	}
+	if e.config.MixValues {
+		tempRows := make([]interface{}, len(previewRows.GetValues()))
+		for i, val := range previewRows.GetValues() {
+			tempRows[i] = val.AsInterface()
+		}
 
-	previewRows, err = structpb.NewList(tempRows)
-	if err != nil {
-		return nil, nil, fmt.Errorf("create preview list: %w", err)
+		tempRows, err = e.mixValuesIfNeeded(tempRows, time.Time(tSchema.LastModifiedTime).Unix())
+		if err != nil {
+			return nil, nil, fmt.Errorf("mix values: %w", err)
+		}
+
+		previewRows, err = structpb.NewList(tempRows)
+		if err != nil {
+			return nil, nil, fmt.Errorf("create preview list: %w", err)
+		}
 	}
 
 	return previewFields, previewRows, nil
-
 }
 
 func (e *Extractor) mixValuesIfNeeded(rows []interface{}, rndSeed int64) ([]interface{}, error) {
@@ -390,5 +423,5 @@ func init() {
 }
 
 func CreateClient(_ context.Context, _ log.Logger, conf config.Config) (Client, error) {
-	return client.New(conf), nil
+	return client.New(conf)
 }
