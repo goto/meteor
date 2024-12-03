@@ -64,7 +64,17 @@
             "update_time": "2024-11-14T06:41:35Z"
         },
         "owners": [],
-        "lineage": null,
+        "lineage": {
+            "downstreams": [],
+            "upstreams": [
+                {
+                    "name": "my_dummy_table",
+                    "service": "maxcompute",
+                    "type": "table",
+                    "urn": "urn:maxcompute:test-project-id:table:test-project-id.default.my_dummy_table"
+                }
+            ]
+        },
         "labels": {},
         "event": null,
         "create_time": "2024-11-14T06:41:35Z",

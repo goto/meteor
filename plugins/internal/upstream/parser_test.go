@@ -3,7 +3,7 @@ package upstream_test
 import (
 	"testing"
 
-	"github.com/goto/meteor/plugins/extractors/bigquery/upstream"
+	"github.com/goto/meteor/plugins/internal/upstream"
 	"github.com/stretchr/testify/assert"
 )
 
