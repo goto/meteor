@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed" // used to print the embedded assets
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
@@ -27,7 +28,6 @@ import (
 
 const (
 	maxcomputeService = "maxcompute"
-	typeTable         = "table"
 )
 
 type Extractor struct {
@@ -82,10 +82,11 @@ type Client interface {
 	GetTablePreview(ctx context.Context, partitionValue string, table *odps.Table, maxRows int) ([]string, *structpb.ListValue, error)
 }
 
-func New(logger log.Logger, clientFunc NewClientFunc) *Extractor {
+func New(logger log.Logger, clientFunc NewClientFunc, randFn randFn) *Extractor {
 	e := &Extractor{
 		logger:    logger,
 		newClient: clientFunc,
+		randFn:    randFn,
 	}
 	e.BaseExtractor = plugins.NewBaseExtractor(info, &e.config)
 	e.ScopeNotRequired = true
@@ -172,7 +173,6 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 		return err
 	}
 
-	fmt.Println("********************" + tableType + "********************")
 	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema)
 	if err != nil {
 		e.logger.Error("failed to build asset", "table", table.Name(), "error", err)
@@ -205,7 +205,7 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	asset := &v1beta2.Asset{
 		Urn:         tableURN,
 		Name:        tableSchema.TableName,
-		Type:        typeTable,
+		Type:        "table",
 		Description: tableSchema.Comment,
 		CreateTime:  timestamppb.New(time.Time(tableSchema.CreateTime)),
 		UpdateTime:  timestamppb.New(time.Time(tableSchema.LastModifiedTime)),
@@ -387,10 +387,6 @@ func (e *Extractor) mixValuesIfNeeded(rows []interface{}, rndSeed int64) ([]inte
 	numRows := len(table)
 	numColumns := len(table[0])
 
-	if e.randFn == nil {
-		return nil, fmt.Errorf("randFn is not initialized")
-	}
-
 	rndGen := e.randFn(rndSeed)
 	for col := 0; col < numColumns; col++ {
 		for row := 0; row < numRows; row++ {
@@ -428,9 +424,16 @@ func contains(slice []string, item string) bool {
 
 func init() {
 	if err := registry.Extractors.Register(maxcomputeService, func() plugins.Extractor {
-		return New(plugins.GetLog(), CreateClient)
+		return New(plugins.GetLog(), CreateClient, seededRandom)
 	}); err != nil {
 		panic(err)
+	}
+}
+
+func seededRandom(seed int64) func(max int64) int64 {
+	rnd := rand.New(rand.NewSource(seed)) //nolint:gosec
+	return func(max int64) int64 {
+		return rnd.Int63n(max)
 	}
 }
 

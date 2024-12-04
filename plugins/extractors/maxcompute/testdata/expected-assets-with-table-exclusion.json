@@ -3,7 +3,7 @@
         "urn": "urn:maxcompute:test-project-id:table:test-project-id.my_schema.new_table",
         "name": "new_table",
         "service": "maxcompute",
-        "type": "MANAGED_TABLE",
+        "type": "table",
         "url": "",
         "description": "",
         "data": {
@@ -37,7 +37,8 @@
                 "project_name": "test-project-id",
                 "resource_url": "/projects/test-project-id/tables/new_table",
                 "schema": "my_schema",
-                "sql": "SELECT user_id, email FROM test-project-id.my_schema.new_table"
+                "sql": "SELECT user_id, email FROM test-project-id.my_schema.new_table",
+                "type": "MANAGED_TABLE"
             },
             "create_time": "2024-11-18T08:00:00Z",
             "update_time": "2024-11-18T08:00:00Z"
