@@ -25,6 +25,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const (
+	maxcomputeService = "maxcompute"
+	typeTable         = "table"
+)
+
 type Extractor struct {
 	plugins.BaseExtractor
 	logger log.Logger
@@ -167,6 +172,7 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 		return err
 	}
 
+	fmt.Println("********************" + tableType + "********************")
 	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema)
 	if err != nil {
 		e.logger.Error("failed to build asset", "table", table.Name(), "error", err)
@@ -199,14 +205,14 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	asset := &v1beta2.Asset{
 		Urn:         tableURN,
 		Name:        tableSchema.TableName,
-		Type:        tableType,
+		Type:        typeTable,
 		Description: tableSchema.Comment,
 		CreateTime:  timestamppb.New(time.Time(tableSchema.CreateTime)),
 		UpdateTime:  timestamppb.New(time.Time(tableSchema.LastModifiedTime)),
-		Service:     "maxcompute",
+		Service:     maxcomputeService,
 	}
 
-	tableAttributesData := e.buildTableAttributesData(schemaName, tableSchema)
+	tableAttributesData := e.buildTableAttributesData(schemaName, tableType, tableSchema)
 
 	if tableType == config.TableTypeView {
 		query := tableSchema.ViewText
@@ -264,7 +270,7 @@ func getUpstreamResources(query string) []*v1beta2.Resource {
 			Urn:     urn,
 			Name:    dependency.Name,
 			Type:    "table",
-			Service: "maxcompute",
+			Service: maxcomputeService,
 		})
 	}
 	return upstreams
@@ -292,11 +298,12 @@ func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
 	return columns
 }
 
-func (e *Extractor) buildTableAttributesData(schemaName string, tableInfo *tableschema.TableSchema) map[string]interface{} {
+func (e *Extractor) buildTableAttributesData(schemaName, tableType string, tableInfo *tableschema.TableSchema) map[string]interface{} {
 	attributesData := map[string]interface{}{}
 
 	attributesData["project_name"] = e.config.ProjectName
 	attributesData["schema"] = schemaName
+	attributesData["type"] = tableType
 
 	rb := common.ResourceBuilder{ProjectName: e.config.ProjectName}
 	attributesData["resource_url"] = rb.Table(tableInfo.TableName)
@@ -305,8 +312,9 @@ func (e *Extractor) buildTableAttributesData(schemaName string, tableInfo *table
 		attributesData["sql"] = tableInfo.ViewText
 	}
 
-	partitionNames := make([]string, len(tableInfo.PartitionColumns))
+	var partitionNames []interface{}
 	if tableInfo.PartitionColumns != nil && len(tableInfo.PartitionColumns) > 0 {
+		partitionNames = make([]interface{}, len(tableInfo.PartitionColumns))
 		for i, column := range tableInfo.PartitionColumns {
 			partitionNames[i] = column.Name
 		}
@@ -379,6 +387,10 @@ func (e *Extractor) mixValuesIfNeeded(rows []interface{}, rndSeed int64) ([]inte
 	numRows := len(table)
 	numColumns := len(table[0])
 
+	if e.randFn == nil {
+		return nil, fmt.Errorf("randFn is not initialized")
+	}
+
 	rndGen := e.randFn(rndSeed)
 	for col := 0; col < numColumns; col++ {
 		for row := 0; row < numRows; row++ {
@@ -415,7 +427,7 @@ func contains(slice []string, item string) bool {
 }
 
 func init() {
-	if err := registry.Extractors.Register("maxcompute", func() plugins.Extractor {
+	if err := registry.Extractors.Register(maxcomputeService, func() plugins.Extractor {
 		return New(plugins.GetLog(), CreateClient)
 	}); err != nil {
 		panic(err)
