@@ -15,6 +15,8 @@ type Client struct {
 	client  *odps.Odps
 	project *odps.Project
 	tunnel  *tunnel.Tunnel
+
+	isSchemaEnabled bool
 }
 
 func New(conf config.Config) (*Client, error) {
@@ -28,14 +30,26 @@ func New(conf config.Config) (*Client, error) {
 		return nil, err
 	}
 
+	properties, err := project.GetAllProperties()
+	if err != nil {
+		return nil, err
+	}
+	isSchemaEnabled := properties.Get("odps.namespace.schema") == "true"
+
 	return &Client{
-		client:  client,
-		project: project,
-		tunnel:  tunnelInstance,
+		client:          client,
+		project:         project,
+		tunnel:          tunnelInstance,
+		isSchemaEnabled: isSchemaEnabled,
 	}, nil
 }
 
-func (c *Client) ListSchema(context.Context) (schemas []*odps.Schema, err error) {
+func (c *Client) ListSchema(_ context.Context) (schemas []*odps.Schema, err error) {
+	if !c.isSchemaEnabled {
+		schema := odps.NewSchema(nil, "", "default")
+		return []*odps.Schema{schema}, nil
+	}
+
 	err = c.project.Schemas().List(func(schema *odps.Schema, err2 error) {
 		if err2 != nil {
 			err = err2

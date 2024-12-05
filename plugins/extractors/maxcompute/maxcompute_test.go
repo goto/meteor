@@ -34,7 +34,7 @@ func TestInit(t *testing.T) {
 
 	mockClient := mocks.NewMaxComputeClient(t)
 	t.Run("should return error if config is invalid", func(t *testing.T) {
-		extr := maxcompute.New(utils.Logger, createClient(mockClient))
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
@@ -48,7 +48,7 @@ func TestInit(t *testing.T) {
 	})
 
 	t.Run("should return no error", func(t *testing.T) {
-		extr := maxcompute.New(utils.Logger, createClient(mockClient))
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
@@ -153,12 +153,12 @@ func TestExtract(t *testing.T) {
 		"new_table":   &newTableSchema,
 	}
 
-	runTest := func(t *testing.T, cfg plugins.Config, mockSetup func(mockClient *mocks.MaxComputeClient)) ([]*v1beta2.Asset, error) {
+	runTest := func(t *testing.T, cfg plugins.Config, mockSetup func(mockClient *mocks.MaxComputeClient), randomizer func(seed int64) func(int64) int64) ([]*v1beta2.Asset, error) {
 		mockClient := mocks.NewMaxComputeClient(t)
 		if mockSetup != nil {
 			mockSetup(mockClient)
 		}
-		extr := maxcompute.New(utils.Logger, createClient(mockClient))
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), randomizer)
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 		err := extr.Init(ctx, cfg)
@@ -216,7 +216,7 @@ func TestExtract(t *testing.T) {
 				},
 				nil,
 			)
-		})
+		}, nil)
 
 		assert.Nil(t, err)
 		assert.NotEmpty(t, actual)
@@ -266,7 +266,7 @@ func TestExtract(t *testing.T) {
 				},
 				nil,
 			)
-		})
+		}, nil)
 
 		assert.Nil(t, err)
 		assert.NotEmpty(t, actual)
@@ -291,7 +291,7 @@ func TestExtract(t *testing.T) {
 			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
 			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:], nil)
 			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
-		})
+		}, nil)
 
 		assert.Nil(t, err)
 		assert.NotEmpty(t, actual)
@@ -311,7 +311,7 @@ func TestExtract(t *testing.T) {
 			},
 		}, func(mockClient *mocks.MaxComputeClient) {
 			mockClient.EXPECT().ListSchema(mock.Anything).Return(nil, fmt.Errorf("ListSchema fails"))
-		})
+		}, nil)
 		assert.ErrorContains(t, err, "ListSchema fails")
 		assert.Nil(t, actual)
 	})

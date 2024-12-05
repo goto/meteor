@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed" // used to print the embedded assets
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
@@ -23,6 +24,10 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	maxcomputeService = "maxcompute"
 )
 
 type Extractor struct {
@@ -77,10 +82,11 @@ type Client interface {
 	GetTablePreview(ctx context.Context, partitionValue string, table *odps.Table, maxRows int) ([]string, *structpb.ListValue, error)
 }
 
-func New(logger log.Logger, clientFunc NewClientFunc) *Extractor {
+func New(logger log.Logger, clientFunc NewClientFunc, randFn randFn) *Extractor {
 	e := &Extractor{
 		logger:    logger,
 		newClient: clientFunc,
+		randFn:    randFn,
 	}
 	e.BaseExtractor = plugins.NewBaseExtractor(info, &e.config)
 	e.ScopeNotRequired = true
@@ -199,14 +205,14 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	asset := &v1beta2.Asset{
 		Urn:         tableURN,
 		Name:        tableSchema.TableName,
-		Type:        tableType,
+		Type:        "table",
 		Description: tableSchema.Comment,
 		CreateTime:  timestamppb.New(time.Time(tableSchema.CreateTime)),
 		UpdateTime:  timestamppb.New(time.Time(tableSchema.LastModifiedTime)),
-		Service:     "maxcompute",
+		Service:     maxcomputeService,
 	}
 
-	tableAttributesData := e.buildTableAttributesData(schemaName, tableSchema)
+	tableAttributesData := e.buildTableAttributesData(schemaName, tableType, tableSchema)
 
 	if tableType == config.TableTypeView {
 		query := tableSchema.ViewText
@@ -264,7 +270,7 @@ func getUpstreamResources(query string) []*v1beta2.Resource {
 			Urn:     urn,
 			Name:    dependency.Name,
 			Type:    "table",
-			Service: "maxcompute",
+			Service: maxcomputeService,
 		})
 	}
 	return upstreams
@@ -292,11 +298,12 @@ func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
 	return columns
 }
 
-func (e *Extractor) buildTableAttributesData(schemaName string, tableInfo *tableschema.TableSchema) map[string]interface{} {
+func (e *Extractor) buildTableAttributesData(schemaName, tableType string, tableInfo *tableschema.TableSchema) map[string]interface{} {
 	attributesData := map[string]interface{}{}
 
 	attributesData["project_name"] = e.config.ProjectName
 	attributesData["schema"] = schemaName
+	attributesData["type"] = tableType
 
 	rb := common.ResourceBuilder{ProjectName: e.config.ProjectName}
 	attributesData["resource_url"] = rb.Table(tableInfo.TableName)
@@ -305,8 +312,9 @@ func (e *Extractor) buildTableAttributesData(schemaName string, tableInfo *table
 		attributesData["sql"] = tableInfo.ViewText
 	}
 
-	partitionNames := make([]string, len(tableInfo.PartitionColumns))
+	var partitionNames []interface{}
 	if tableInfo.PartitionColumns != nil && len(tableInfo.PartitionColumns) > 0 {
+		partitionNames = make([]interface{}, len(tableInfo.PartitionColumns))
 		for i, column := range tableInfo.PartitionColumns {
 			partitionNames[i] = column.Name
 		}
@@ -415,10 +423,17 @@ func contains(slice []string, item string) bool {
 }
 
 func init() {
-	if err := registry.Extractors.Register("maxcompute", func() plugins.Extractor {
-		return New(plugins.GetLog(), CreateClient)
+	if err := registry.Extractors.Register(maxcomputeService, func() plugins.Extractor {
+		return New(plugins.GetLog(), CreateClient, seededRandom)
 	}); err != nil {
 		panic(err)
+	}
+}
+
+func seededRandom(seed int64) func(max int64) int64 {
+	rnd := rand.New(rand.NewSource(seed)) //nolint:gosec
+	return func(max int64) int64 {
+		return rnd.Int63n(max)
 	}
 }
 
