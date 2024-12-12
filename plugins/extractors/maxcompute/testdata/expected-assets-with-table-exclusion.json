@@ -35,7 +35,7 @@
             "preview_rows": null,
             "attributes": {
                 "project_name": "test-project-id",
-                "resource_url": "/projects/test-project-id/tables/new_table",
+                "resource_url": "/projects/test-project-id/schemas/my_schema/tables/new_table",
                 "schema": "my_schema",
                 "sql": "SELECT user_id, email FROM test-project-id.my_schema.new_table",
                 "type": "MANAGED_TABLE"
