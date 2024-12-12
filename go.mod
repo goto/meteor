@@ -12,7 +12,7 @@ require (
 	github.com/ClickHouse/clickhouse-go v1.4.5
 	github.com/IBM/sarama v1.43.2
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/aliyun/aliyun-odps-go-sdk v0.3.14
+	github.com/aliyun/aliyun-odps-go-sdk v0.4.0
 	github.com/aws/aws-sdk-go v1.44.151
 	github.com/blastrain/vitess-sqlparser v0.0.0-20201030050434-a139afbb1aba
 	github.com/cenkalti/backoff/v4 v4.2.1

@@ -84,9 +84,9 @@ func TestExtract(t *testing.T) {
 	}
 
 	c1 := tableschema.Column{
-		Name:       "id",
-		Type:       datatype.BigIntType,
-		IsNullable: true,
+		Name:    "id",
+		Type:    datatype.BigIntType,
+		NotNull: false,
 	}
 
 	c2 := tableschema.Column{
@@ -103,7 +103,7 @@ func TestExtract(t *testing.T) {
 				},
 			},
 		},
-		IsNullable: true,
+		NotNull: false,
 	}
 
 	// Schema for dummy_table
@@ -121,17 +121,17 @@ func TestExtract(t *testing.T) {
 	dummyTableSchema.Comment = "dummy table description"
 
 	c3 := tableschema.Column{
-		Name:       "user_id",
-		Type:       datatype.BigIntType,
-		Comment:    "Unique identifier for users",
-		IsNullable: false,
+		Name:    "user_id",
+		Type:    datatype.BigIntType,
+		Comment: "Unique identifier for users",
+		NotNull: true,
 	}
 
 	c4 := tableschema.Column{
-		Name:       "email",
-		Type:       datatype.StringType,
-		IsNullable: false,
-		Comment:    "User email address",
+		Name:    "email",
+		Type:    datatype.StringType,
+		NotNull: true,
+		Comment: "User email address",
 	}
 
 	// Schema for new_table

@@ -231,7 +231,7 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 			Name:        col.Name,
 			DataType:    dataTypeToString(col.Type),
 			Description: col.Comment,
-			IsNullable:  col.IsNullable,
+			IsNullable:  !col.NotNull,
 			Attributes:  utils.TryParseMapToProto(buildColumnAttributesData(&tableSchema.Columns[i])),
 			Columns:     buildColumns(col.Type),
 		}
@@ -306,7 +306,7 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 	attributesData["type"] = tableType
 
 	rb := common.ResourceBuilder{ProjectName: e.config.ProjectName}
-	attributesData["resource_url"] = rb.Table(tableInfo.TableName)
+	attributesData["resource_url"] = rb.Table(schemaName, tableInfo.TableName)
 
 	if tableInfo.ViewText != "" {
 		attributesData["sql"] = tableInfo.ViewText
