@@ -27,6 +27,71 @@ func (_m *MaxComputeClient) EXPECT() *MaxComputeClient_Expecter {
 	return &MaxComputeClient_Expecter{mock: &_m.Mock}
 }
 
+// GetPolicyTagsAndMaskingPolicy provides a mock function with given fields: table
+func (_m *MaxComputeClient) GetPolicyTagsAndMaskingPolicy(table *odps.Table) (string, []string, error) {
+	ret := _m.Called(table)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPolicyTagsAndMaskingPolicy")
+	}
+
+	var r0 string
+	var r1 []string
+	var r2 error
+	if rf, ok := ret.Get(0).(func(*odps.Table) (string, []string, error)); ok {
+		return rf(table)
+	}
+	if rf, ok := ret.Get(0).(func(*odps.Table) string); ok {
+		r0 = rf(table)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(*odps.Table) []string); ok {
+		r1 = rf(table)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func(*odps.Table) error); ok {
+		r2 = rf(table)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPolicyTagsAndMaskingPolicy'
+type MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call struct {
+	*mock.Call
+}
+
+// GetPolicyTagsAndMaskingPolicy is a helper method to define mock.On call
+//   - table *odps.Table
+func (_e *MaxComputeClient_Expecter) GetPolicyTagsAndMaskingPolicy(table interface{}) *MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call {
+	return &MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call{Call: _e.mock.On("GetPolicyTagsAndMaskingPolicy", table)}
+}
+
+func (_c *MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call) Run(run func(table *odps.Table)) *MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*odps.Table))
+	})
+	return _c
+}
+
+func (_c *MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call) Return(_a0 string, _a1 []string, _a2 error) *MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call) RunAndReturn(run func(*odps.Table) (string, []string, error)) *MaxComputeClient_GetPolicyTagsAndMaskingPolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetTablePreview provides a mock function with given fields: ctx, partitionValue, table, maxRows
 func (_m *MaxComputeClient) GetTablePreview(ctx context.Context, partitionValue string, table *odps.Table, maxRows int) ([]string, *structpb.ListValue, error) {
 	ret := _m.Called(ctx, partitionValue, table, maxRows)
