@@ -121,14 +121,13 @@ func (c *Client) GetTablePreview(_ context.Context, partitionValue string, table
 	return columnNames, protoList, nil
 }
 
-func (c *Client) GetPolicyTagsAndMaskingPolicy(table *odps.Table) (maskingPolicy string, policyTags []string, err error) { //nolint: revive
-	colPolicyTags, err := table.ColumnMaskInfos()
+func (*Client) GetMaskingPolicy(table *odps.Table) (maskingPolicies []string, err error) {
+	columnMaskInfos, err := table.ColumnMaskInfos()
 	if err != nil {
-		return maskingPolicy, nil, err
+		return maskingPolicies, err
 	}
-	for _, policyTag := range colPolicyTags {
-		maskingPolicy = policyTag.Name
-		policyTags = append(policyTags, policyTag.PolicyNameList...)
+	for _, columnMaskInfo := range columnMaskInfos {
+		maskingPolicies = append(maskingPolicies, columnMaskInfo.PolicyNameList...)
 	}
-	return maskingPolicy, policyTags, nil
+	return maskingPolicies, nil
 }

@@ -80,7 +80,7 @@ type Client interface {
 	ListTable(ctx context.Context, schemaName string) ([]*odps.Table, error)
 	GetTableSchema(ctx context.Context, table *odps.Table) (string, *tableschema.TableSchema, error)
 	GetTablePreview(ctx context.Context, partitionValue string, table *odps.Table, maxRows int) ([]string, *structpb.ListValue, error)
-	GetPolicyTagsAndMaskingPolicy(table *odps.Table) (string, []string, error)
+	GetMaskingPolicy(table *odps.Table) ([]string, error)
 }
 
 func New(logger log.Logger, clientFunc NewClientFunc, randFn randFn) *Extractor {
@@ -322,14 +322,15 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 		attributesData["partition_fields"] = partitionNames
 	}
 
-	maskingPolicy, policyTags, err := e.client.GetPolicyTagsAndMaskingPolicy(table)
+	maskingPolicy, err := e.client.GetMaskingPolicy(table)
 	if err != nil {
-		e.logger.Warn("error getting policy tags", "error", err)
+		e.logger.Warn("error getting masking policy", "error", err)
 	}
-	attributesData["masking_policy"] = maskingPolicy
-	if len(policyTags) > 0 {
-		attributesData["policy_tags"] = policyTags
+	maskingPolicyInterface := make([]interface{}, len(maskingPolicy))
+	for i, policy := range maskingPolicy {
+		maskingPolicyInterface[i] = policy
 	}
+	attributesData["masking_policy"] = maskingPolicyInterface
 
 	return attributesData
 }
