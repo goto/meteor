@@ -216,6 +216,7 @@ func TestExtract(t *testing.T) {
 				},
 				nil,
 			)
+			mockClient.EXPECT().GetMaskingPolicy(mock.Anything).Return([]string{}, nil)
 		}, nil)
 
 		assert.Nil(t, err)
@@ -266,6 +267,7 @@ func TestExtract(t *testing.T) {
 				},
 				nil,
 			)
+			mockClient.EXPECT().GetMaskingPolicy(mock.Anything).Return([]string{}, nil)
 		}, nil)
 
 		assert.Nil(t, err)
@@ -291,6 +293,7 @@ func TestExtract(t *testing.T) {
 			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
 			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:], nil)
 			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
+			mockClient.EXPECT().GetMaskingPolicy(mock.Anything).Return([]string{}, nil)
 		}, nil)
 
 		assert.Nil(t, err)
