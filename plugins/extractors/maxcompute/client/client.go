@@ -118,3 +118,14 @@ func (c *Client) GetTablePreview(_ context.Context, partitionValue string, table
 
 	return columnNames, protoList, nil
 }
+
+func (*Client) GetMaskingPolicy(table *odps.Table) (maskingPolicies []string, err error) {
+	columnMaskInfos, err := table.ColumnMaskInfos()
+	if err != nil {
+		return maskingPolicies, err
+	}
+	for _, columnMaskInfo := range columnMaskInfos {
+		maskingPolicies = append(maskingPolicies, columnMaskInfo.PolicyNameList...)
+	}
+	return maskingPolicies, nil
+}
