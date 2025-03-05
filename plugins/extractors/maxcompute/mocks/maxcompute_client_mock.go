@@ -27,12 +27,12 @@ func (_m *MaxComputeClient) EXPECT() *MaxComputeClient_Expecter {
 	return &MaxComputeClient_Expecter{mock: &_m.Mock}
 }
 
-// GetMaskingPolicy provides a mock function with given fields: table
-func (_m *MaxComputeClient) GetMaskingPolicy(table *odps.Table) ([]string, error) {
+// GetMaskingPolicies provides a mock function with given fields: table
+func (_m *MaxComputeClient) GetMaskingPolicies(table *odps.Table) ([]string, error) {
 	ret := _m.Called(table)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetMaskingPolicy")
+		panic("no return value specified for GetMaskingPolicies")
 	}
 
 	var r0 []string
@@ -57,30 +57,30 @@ func (_m *MaxComputeClient) GetMaskingPolicy(table *odps.Table) ([]string, error
 	return r0, r1
 }
 
-// MaxComputeClient_GetMaskingPolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetMaskingPolicy'
-type MaxComputeClient_GetMaskingPolicy_Call struct {
+// MaxComputeClient_GetMaskingPolicies_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetMaskingPolicies'
+type MaxComputeClient_GetMaskingPolicies_Call struct {
 	*mock.Call
 }
 
-// GetMaskingPolicy is a helper method to define mock.On call
+// GetMaskingPolicies is a helper method to define mock.On call
 //   - table *odps.Table
-func (_e *MaxComputeClient_Expecter) GetMaskingPolicy(table interface{}) *MaxComputeClient_GetMaskingPolicy_Call {
-	return &MaxComputeClient_GetMaskingPolicy_Call{Call: _e.mock.On("GetMaskingPolicy", table)}
+func (_e *MaxComputeClient_Expecter) GetMaskingPolicies(table interface{}) *MaxComputeClient_GetMaskingPolicies_Call {
+	return &MaxComputeClient_GetMaskingPolicies_Call{Call: _e.mock.On("GetMaskingPolicies", table)}
 }
 
-func (_c *MaxComputeClient_GetMaskingPolicy_Call) Run(run func(table *odps.Table)) *MaxComputeClient_GetMaskingPolicy_Call {
+func (_c *MaxComputeClient_GetMaskingPolicies_Call) Run(run func(table *odps.Table)) *MaxComputeClient_GetMaskingPolicies_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*odps.Table))
 	})
 	return _c
 }
 
-func (_c *MaxComputeClient_GetMaskingPolicy_Call) Return(_a0 []string, _a1 error) *MaxComputeClient_GetMaskingPolicy_Call {
+func (_c *MaxComputeClient_GetMaskingPolicies_Call) Return(_a0 []string, _a1 error) *MaxComputeClient_GetMaskingPolicies_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MaxComputeClient_GetMaskingPolicy_Call) RunAndReturn(run func(*odps.Table) ([]string, error)) *MaxComputeClient_GetMaskingPolicy_Call {
+func (_c *MaxComputeClient_GetMaskingPolicies_Call) RunAndReturn(run func(*odps.Table) ([]string, error)) *MaxComputeClient_GetMaskingPolicies_Call {
 	_c.Call.Return(run)
 	return _c
 }
