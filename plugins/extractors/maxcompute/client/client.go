@@ -34,7 +34,9 @@ func New(conf config.Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	isSchemaEnabled := properties.Get("odps.namespace.schema") == "true"
+
+	const schemaProperty = "odps.schema.model.enabled"
+	isSchemaEnabled := properties.Get(schemaProperty) == "true"
 
 	return &Client{
 		client:          client,
