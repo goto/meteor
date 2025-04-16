@@ -27,6 +27,64 @@ func (_m *MaxComputeClient) EXPECT() *MaxComputeClient_Expecter {
 	return &MaxComputeClient_Expecter{mock: &_m.Mock}
 }
 
+// GetMaskingPolicies provides a mock function with given fields: table
+func (_m *MaxComputeClient) GetMaskingPolicies(table *odps.Table) ([]string, error) {
+	ret := _m.Called(table)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetMaskingPolicies")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*odps.Table) ([]string, error)); ok {
+		return rf(table)
+	}
+	if rf, ok := ret.Get(0).(func(*odps.Table) []string); ok {
+		r0 = rf(table)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*odps.Table) error); ok {
+		r1 = rf(table)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MaxComputeClient_GetMaskingPolicies_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetMaskingPolicies'
+type MaxComputeClient_GetMaskingPolicies_Call struct {
+	*mock.Call
+}
+
+// GetMaskingPolicies is a helper method to define mock.On call
+//   - table *odps.Table
+func (_e *MaxComputeClient_Expecter) GetMaskingPolicies(table interface{}) *MaxComputeClient_GetMaskingPolicies_Call {
+	return &MaxComputeClient_GetMaskingPolicies_Call{Call: _e.mock.On("GetMaskingPolicies", table)}
+}
+
+func (_c *MaxComputeClient_GetMaskingPolicies_Call) Run(run func(table *odps.Table)) *MaxComputeClient_GetMaskingPolicies_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*odps.Table))
+	})
+	return _c
+}
+
+func (_c *MaxComputeClient_GetMaskingPolicies_Call) Return(_a0 []string, _a1 error) *MaxComputeClient_GetMaskingPolicies_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MaxComputeClient_GetMaskingPolicies_Call) RunAndReturn(run func(*odps.Table) ([]string, error)) *MaxComputeClient_GetMaskingPolicies_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetTablePreview provides a mock function with given fields: ctx, partitionValue, table, maxRows
 func (_m *MaxComputeClient) GetTablePreview(ctx context.Context, partitionValue string, table *odps.Table, maxRows int) ([]string, *structpb.ListValue, error) {
 	ret := _m.Called(ctx, partitionValue, table, maxRows)

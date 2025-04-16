@@ -55,6 +55,11 @@
             "preview_fields": [],
             "preview_rows": null,
             "attributes": {
+                "masking_policy": [
+                    "policyTag1",
+                    "policyTag2",
+                    "policyTag3"
+                ],
                 "project_name": "test-project-id",
                 "resource_url": "/projects/test-project-id/schemas/my_schema/tables/dummy_table",
                 "schema": "my_schema",
@@ -118,6 +123,11 @@
                 ]
             ],
             "attributes": {
+                "masking_policy": [
+                    "policyTag1",
+                    "policyTag2",
+                    "policyTag3"
+                ],
                 "project_name": "test-project-id",
                 "resource_url": "/projects/test-project-id/schemas/my_schema/tables/new_table",
                 "schema": "my_schema",

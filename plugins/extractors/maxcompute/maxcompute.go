@@ -80,6 +80,7 @@ type Client interface {
 	ListTable(ctx context.Context, schemaName string) ([]*odps.Table, error)
 	GetTableSchema(ctx context.Context, table *odps.Table) (string, *tableschema.TableSchema, error)
 	GetTablePreview(ctx context.Context, partitionValue string, table *odps.Table, maxRows int) ([]string, *structpb.ListValue, error)
+	GetMaskingPolicies(table *odps.Table) ([]string, error)
 }
 
 func New(logger log.Logger, clientFunc NewClientFunc, randFn randFn) *Extractor {
@@ -212,7 +213,7 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		Service:     maxcomputeService,
 	}
 
-	tableAttributesData := e.buildTableAttributesData(schemaName, tableType, tableSchema)
+	tableAttributesData := e.buildTableAttributesData(schemaName, tableType, table, tableSchema)
 
 	if tableType == config.TableTypeView {
 		query := tableSchema.ViewText
@@ -298,7 +299,7 @@ func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
 	return columns
 }
 
-func (e *Extractor) buildTableAttributesData(schemaName, tableType string, tableInfo *tableschema.TableSchema) map[string]interface{} {
+func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table *odps.Table, tableInfo *tableschema.TableSchema) map[string]interface{} {
 	attributesData := map[string]interface{}{}
 
 	attributesData["project_name"] = e.config.ProjectName
@@ -320,6 +321,16 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 		}
 		attributesData["partition_fields"] = partitionNames
 	}
+
+	maskingPolicy, err := e.client.GetMaskingPolicies(table)
+	if err != nil {
+		e.logger.Warn("error getting masking policy", "error", err)
+	}
+	maskingPolicyInterface := make([]interface{}, len(maskingPolicy))
+	for i, policy := range maskingPolicy {
+		maskingPolicyInterface[i] = policy
+	}
+	attributesData["masking_policy"] = maskingPolicyInterface
 
 	return attributesData
 }
