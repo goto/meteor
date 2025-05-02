@@ -11,6 +11,11 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+type (
+	Column = string
+	Policy = string
+)
+
 type Client struct {
 	client  *odps.Odps
 	project *odps.Project
@@ -121,21 +126,17 @@ func (c *Client) GetTablePreview(_ context.Context, partitionValue string, table
 	return columnNames, protoList, nil
 }
 
-func (*Client) GetMaskingPolicies(table *odps.Table) (maskingPolicies []string, err error) {
+func (*Client) GetMaskingPolicies(table *odps.Table) (maskingPolicies map[Column][]Policy, err error) {
 	columnMaskInfos, err := table.ColumnMaskInfos()
 	if err != nil {
 		return nil, err
 	}
 
-	policySet := make(map[string]struct{})
+	maskingPolicies = make(map[string][]string)
 	for _, columnMaskInfo := range columnMaskInfos {
-		for _, policyName := range columnMaskInfo.PolicyNameList {
-			policySet[policyName] = struct{}{}
+		if len(columnMaskInfo.PolicyNameList) > 0 {
+			maskingPolicies[columnMaskInfo.Name] = columnMaskInfo.PolicyNameList
 		}
-	}
-
-	for policyName := range policySet {
-		maskingPolicies = append(maskingPolicies, policyName)
 	}
 
 	return maskingPolicies, nil

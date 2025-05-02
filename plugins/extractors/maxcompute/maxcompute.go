@@ -27,7 +27,16 @@ import (
 )
 
 const (
-	maxcomputeService = "maxcompute"
+	maxcomputeService             = "maxcompute"
+	attributesDataSQL             = "sql"
+	attributesDataMaskingPolicy   = "masking_policy"
+	attributesDataProjectName     = "project_name"
+	attributesDataSchema          = "schema"
+	attributesDataType            = "type"
+	attributesDataResourceURL     = "resource_url"
+	attributesDataPartitionFields = "partition_fields"
+	attributesDataLabel           = "label"
+	attributesDataResourceType    = "resource_type"
 )
 
 type Extractor struct {
@@ -80,7 +89,7 @@ type Client interface {
 	ListTable(ctx context.Context, schemaName string) ([]*odps.Table, error)
 	GetTableSchema(ctx context.Context, table *odps.Table) (string, *tableschema.TableSchema, error)
 	GetTablePreview(ctx context.Context, partitionValue string, table *odps.Table, maxRows int) ([]string, *structpb.ListValue, error)
-	GetMaskingPolicies(table *odps.Table) ([]string, error)
+	GetMaskingPolicies(table *odps.Table) (map[client.Column][]client.Policy, error)
 }
 
 func New(logger log.Logger, clientFunc NewClientFunc, randFn randFn) *Extractor {
@@ -217,13 +226,18 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 
 	if tableType == config.TableTypeView {
 		query := tableSchema.ViewText
-		tableAttributesData["sql"] = query
+		tableAttributesData[attributesDataSQL] = query
 		if e.config.BuildViewLineage {
 			upstreamResources := getUpstreamResources(query)
 			asset.Lineage = &v1beta2.Lineage{
 				Upstreams: upstreamResources,
 			}
 		}
+	}
+
+	maskingPolicy, err := e.client.GetMaskingPolicies(table)
+	if err != nil {
+		e.logger.Warn("error getting masking policy", "error", err)
 	}
 
 	var columns []*v1beta2.Column
@@ -236,6 +250,19 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 			Attributes:  utils.TryParseMapToProto(buildColumnAttributesData(&tableSchema.Columns[i])),
 			Columns:     buildColumns(col.Type),
 		}
+
+		if policies, found := maskingPolicy[col.Name]; found {
+			policyValues := make([]*structpb.Value, 0, len(policies))
+			for _, policy := range policies {
+				policyValues = append(policyValues, structpb.NewStringValue(policy))
+			}
+			columnData.Attributes.Fields[attributesDataMaskingPolicy] = &structpb.Value{
+				Kind: &structpb.Value_ListValue{
+					ListValue: &structpb.ListValue{Values: policyValues},
+				},
+			}
+		}
+
 		columns = append(columns, columnData)
 	}
 
@@ -302,15 +329,15 @@ func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
 func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table *odps.Table, tableInfo *tableschema.TableSchema) map[string]interface{} {
 	attributesData := map[string]interface{}{}
 
-	attributesData["project_name"] = e.config.ProjectName
-	attributesData["schema"] = schemaName
-	attributesData["type"] = tableType
+	attributesData[attributesDataProjectName] = e.config.ProjectName
+	attributesData[attributesDataSchema] = schemaName
+	attributesData[attributesDataType] = tableType
 
 	rb := common.ResourceBuilder{ProjectName: e.config.ProjectName}
-	attributesData["resource_url"] = rb.Table(schemaName, tableInfo.TableName)
+	attributesData[attributesDataResourceURL] = rb.Table(schemaName, tableInfo.TableName)
 
 	if tableInfo.ViewText != "" {
-		attributesData["sql"] = tableInfo.ViewText
+		attributesData[attributesDataSQL] = tableInfo.ViewText
 	}
 
 	var partitionNames []interface{}
@@ -319,18 +346,8 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 		for i, column := range tableInfo.PartitionColumns {
 			partitionNames[i] = column.Name
 		}
-		attributesData["partition_fields"] = partitionNames
+		attributesData[attributesDataPartitionFields] = partitionNames
 	}
-
-	maskingPolicy, err := e.client.GetMaskingPolicies(table)
-	if err != nil {
-		e.logger.Warn("error getting masking policy", "error", err)
-	}
-	maskingPolicyInterface := make([]interface{}, len(maskingPolicy))
-	for i, policy := range maskingPolicy {
-		maskingPolicyInterface[i] = policy
-	}
-	attributesData["masking_policy"] = maskingPolicyInterface
 
 	return attributesData
 }
@@ -343,7 +360,7 @@ func buildColumnAttributesData(column *tableschema.Column) map[string]interface{
 	}
 
 	if column.Label != "" {
-		attributesData["label"] = column.Label
+		attributesData[attributesDataLabel] = column.Label
 	}
 
 	return attributesData
