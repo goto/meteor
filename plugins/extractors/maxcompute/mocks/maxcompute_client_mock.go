@@ -28,23 +28,23 @@ func (_m *MaxComputeClient) EXPECT() *MaxComputeClient_Expecter {
 }
 
 // GetMaskingPolicies provides a mock function with given fields: table
-func (_m *MaxComputeClient) GetMaskingPolicies(table *odps.Table) ([]string, error) {
+func (_m *MaxComputeClient) GetMaskingPolicies(table *odps.Table) (map[string][]string, error) {
 	ret := _m.Called(table)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetMaskingPolicies")
 	}
 
-	var r0 []string
+	var r0 map[string][]string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(*odps.Table) ([]string, error)); ok {
+	if rf, ok := ret.Get(0).(func(*odps.Table) (map[string][]string, error)); ok {
 		return rf(table)
 	}
-	if rf, ok := ret.Get(0).(func(*odps.Table) []string); ok {
+	if rf, ok := ret.Get(0).(func(*odps.Table) map[string][]string); ok {
 		r0 = rf(table)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]string)
+			r0 = ret.Get(0).(map[string][]string)
 		}
 	}
 
@@ -75,12 +75,12 @@ func (_c *MaxComputeClient_GetMaskingPolicies_Call) Run(run func(table *odps.Tab
 	return _c
 }
 
-func (_c *MaxComputeClient_GetMaskingPolicies_Call) Return(_a0 []string, _a1 error) *MaxComputeClient_GetMaskingPolicies_Call {
+func (_c *MaxComputeClient_GetMaskingPolicies_Call) Return(_a0 map[string][]string, _a1 error) *MaxComputeClient_GetMaskingPolicies_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MaxComputeClient_GetMaskingPolicies_Call) RunAndReturn(run func(*odps.Table) ([]string, error)) *MaxComputeClient_GetMaskingPolicies_Call {
+func (_c *MaxComputeClient_GetMaskingPolicies_Call) RunAndReturn(run func(*odps.Table) (map[string][]string, error)) *MaxComputeClient_GetMaskingPolicies_Call {
 	_c.Call.Return(run)
 	return _c
 }
