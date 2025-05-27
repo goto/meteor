@@ -20,6 +20,7 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -91,22 +92,33 @@ func (s *Sink) Init(ctx context.Context, config plugins.Config) error {
 }
 
 func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
-	for _, record := range batch {
-		asset := record.Data()
-		s.logger.Info("sinking record to compass", "record", asset.GetUrn())
-
-		compassPayload, err := s.buildCompassPayload(asset)
-		if err != nil {
-			return fmt.Errorf("build compass payload: %w", err)
-		}
-		if err = s.send(ctx, compassPayload); err != nil {
-			return fmt.Errorf("send data: %w", err)
-		}
-
-		s.logger.Info("successfully sinked record to compass", "record", asset.GetUrn())
+	if len(batch) == 0 {
+		return nil
 	}
 
-	return nil
+	errGroup := errgroup.Group{}
+	errGroup.SetLimit(len(batch))
+
+	for _, record := range batch {
+		record := record
+		errGroup.Go(func() error {
+			asset := record.Data()
+			s.logger.Info("sinking record to compass", "record", asset.GetUrn())
+
+			compassPayload, err := s.buildCompassPayload(asset)
+			if err != nil {
+				return fmt.Errorf("build compass payload: %w", err)
+			}
+			if err := s.send(ctx, compassPayload); err != nil {
+				return fmt.Errorf("send data: %w", err)
+			}
+
+			s.logger.Info("successfully sinked record to compass", "record", asset.GetUrn())
+			return nil
+		})
+	}
+
+	return errGroup.Wait()
 }
 
 func (*Sink) Close() error { return nil }
