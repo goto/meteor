@@ -154,6 +154,7 @@ func (e *Extractor) buildJob(ctx context.Context, jobSpec *pb.JobSpecification, 
 		Attributes: utils.TryParseMapToProto(map[string]interface{}{
 			"version":          jobSpec.Version,
 			"project":          project,
+			"project_id":       project,
 			"namespace":        namespace,
 			"owner":            jobSpec.Owner,
 			"startDate":        strOrNil(jobSpec.StartDate),
