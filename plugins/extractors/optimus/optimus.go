@@ -7,15 +7,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goto/salt/log"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/optimus/client"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
-	pb "github.com/goto/optimus/protos/gotocompany/optimus/core/v1beta1"
-	"github.com/goto/salt/log"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -161,10 +162,11 @@ func (e *Extractor) buildJob(ctx context.Context, jobSpec *pb.JobSpecification, 
 			"interval":         jobSpec.Interval,
 			"dependsOnPast":    jobSpec.DependsOnPast,
 			"catchUp":          jobSpec.CatchUp,
-			"taskName":         jobSpec.TaskName,
-			"windowSize":       jobSpec.WindowSize,
-			"windowOffset":     jobSpec.WindowOffset,
-			"windowTruncateTo": jobSpec.WindowTruncateTo,
+			"taskName":         jobSpec.Task.Name,
+			"windowPreset":     jobSpec.Window.Preset,
+			"windowSize":       jobSpec.Window.Size,
+			"windowShiftBy":    jobSpec.Window.ShiftBy,
+			"windowTruncateTo": jobSpec.Window.TruncateTo,
 			"sql":              jobSpec.Assets["query.sql"],
 			"task": map[string]interface{}{
 				"name":        task.Name,
@@ -184,6 +186,7 @@ func (e *Extractor) buildJob(ctx context.Context, jobSpec *pb.JobSpecification, 
 		Description: jobSpec.Description,
 		Type:        "job",
 		Data:        jobModel,
+		Labels:      jobSpec.Labels,
 		Owners: []*v1beta2.Owner{
 			{
 				Urn:   jobSpec.Owner,

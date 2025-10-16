@@ -26,7 +26,7 @@ help:           ##@help show this help
 NAME="github.com/goto/meteor"
 VERSION=$(shell git describe --always --tags 2>/dev/null)
 COVERFILE="/tmp/app.coverprofile"
-PROTON_COMMIT := "5b5dc727b525925bcec025b355983ca61d7ccf68"
+PROTON_COMMIT := "e1c8918640228ec055cb975bab604435c9c06fbe"
 
 TOOLS_MOD_DIR = ./tools
 TOOLS_DIR = $(abspath ./.tools)
@@ -64,7 +64,7 @@ lint: $(TOOLS_DIR)/golangci-lint ##@dev_setup lint source
 
 generate-proto: $(TOOLS_DIR)/buf ## regenerate protos
 	@echo " > generating protobuf"
-	$(TOOLS_DIR)/buf generate --template buf.gen.yaml https://github.com/goto/proton/archive/${PROTON_COMMIT}.zip#strip_components=1 --path gotocompany/assets/v1beta2
+	$(TOOLS_DIR)/buf generate --template buf.gen.yaml https://github.com/goto/proton/archive/${PROTON_COMMIT}.zip#strip_components=1 --path gotocompany/assets/v1beta2 --path gotocompany/optimus/core
 	@echo " > protobuf compilation finished"
 
 build:

@@ -8,16 +8,17 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/goto/meteor/plugins"
-	"github.com/goto/meteor/plugins/extractors/optimus"
-	"github.com/goto/meteor/test/mocks"
-	testutils "github.com/goto/meteor/test/utils"
-	pb "github.com/goto/optimus/protos/gotocompany/optimus/core/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
+	"github.com/goto/meteor/plugins"
+	"github.com/goto/meteor/plugins/extractors/optimus"
+	"github.com/goto/meteor/test/mocks"
+	testutils "github.com/goto/meteor/test/utils"
 )
 
 var (
@@ -128,7 +129,6 @@ func TestExtract(t *testing.T) {
 					Config: map[string]string{
 						"BAR": "foo",
 					},
-					Secrets: []*pb.ProjectSpecification_ProjectSecret{},
 				},
 			},
 		}, nil).Once()
@@ -159,7 +159,6 @@ func TestExtract(t *testing.T) {
 					Config: map[string]string{
 						"BAR": "foo",
 					},
-					Secrets: []*pb.ProjectSpecification_ProjectSecret{},
 				},
 			},
 		}, nil).Once()
@@ -204,7 +203,6 @@ func TestExtract(t *testing.T) {
 					Config: map[string]string{
 						"BAR": "foo",
 					},
-					Secrets: []*pb.ProjectSpecification_ProjectSecret{},
 				},
 			},
 		}, nil).Once()
@@ -307,21 +305,18 @@ func setupExtractExpectation(ctx context.Context, client *mockClient) {
 				Config: map[string]string{
 					"BAR": "foo",
 				},
-				Secrets: []*pb.ProjectSpecification_ProjectSecret{},
 			},
 			{
 				Name: "projectMaxCompute-A",
 				Config: map[string]string{
 					"BAR": "foo",
 				},
-				Secrets: []*pb.ProjectSpecification_ProjectSecret{},
 			},
 			{
 				Name: "project-B",
 				Config: map[string]string{
 					"FOO": "bar",
 				},
-				Secrets: []*pb.ProjectSpecification_ProjectSecret{},
 			},
 		},
 	}, nil).Once()
@@ -368,21 +363,24 @@ func setupExtractExpectation(ctx context.Context, client *mockClient) {
 				Interval:      "0 19 * * *",
 				DependsOnPast: false,
 				CatchUp:       false,
-				TaskName:      "bq2bq",
-				Config: []*pb.JobConfigItem{
-					{
-						Name:  "FOO_A_1",
-						Value: "BAR_A_1",
-					},
-					{
-						Name:  "FOO_A_2",
-						Value: "BAR_A_2",
+				Task: &pb.JobSpecTask{
+					Name: "bq2bq",
+					Config: []*pb.JobConfigItem{
+						{
+							Name:  "FOO_A_1",
+							Value: "BAR_A_1",
+						},
+						{
+							Name:  "FOO_A_2",
+							Value: "BAR_A_2",
+						},
 					},
 				},
-				WindowSize:       "48h",
-				WindowOffset:     "24h",
-				WindowTruncateTo: "d",
-				Dependencies:     []*pb.JobDependency{},
+				Window: &pb.JobSpecification_Window{
+					Size:    "2d",
+					ShiftBy: "1d",
+				},
+				Dependencies: []*pb.JobDependency{},
 				Assets: map[string]string{
 					"query.sql": "SELECT * FROM projectA.datasetB.tableC",
 				},
@@ -411,21 +409,24 @@ func setupExtractExpectation(ctx context.Context, client *mockClient) {
 				Interval:      "0 19 1 * *",
 				DependsOnPast: false,
 				CatchUp:       true,
-				TaskName:      "bq2bq",
-				Config: []*pb.JobConfigItem{
-					{
-						Name:  "FOO_B_1",
-						Value: "BAR_B_1",
-					},
-					{
-						Name:  "FOO_B_2",
-						Value: "BAR_B_2",
+				Task: &pb.JobSpecTask{
+					Name: "bq2bq",
+					Config: []*pb.JobConfigItem{
+						{
+							Name:  "FOO_B_1",
+							Value: "BAR_B_1",
+						},
+						{
+							Name:  "FOO_B_2",
+							Value: "BAR_B_2",
+						},
 					},
 				},
-				WindowSize:       "720h",
-				WindowOffset:     "-720h",
-				WindowTruncateTo: "M",
-				Dependencies:     []*pb.JobDependency{},
+				Window: &pb.JobSpecification_Window{
+					Size:    "1M",
+					ShiftBy: "-1M",
+				},
+				Dependencies: []*pb.JobDependency{},
 				Assets: map[string]string{
 					"query.sql": "SELECT * FROM projectZ.datasetY.tableX",
 				},
@@ -454,21 +455,24 @@ func setupExtractExpectation(ctx context.Context, client *mockClient) {
 				Interval:      "0 19 1 * *",
 				DependsOnPast: false,
 				CatchUp:       true,
-				TaskName:      "gcs2bq",
-				Config: []*pb.JobConfigItem{
-					{
-						Name:  "FOO_B_1",
-						Value: "BAR_B_1",
-					},
-					{
-						Name:  "FOO_B_2",
-						Value: "BAR_B_2",
+				Task: &pb.JobSpecTask{
+					Name: "gcs2bq",
+					Config: []*pb.JobConfigItem{
+						{
+							Name:  "FOO_B_1",
+							Value: "BAR_B_1",
+						},
+						{
+							Name:  "FOO_B_2",
+							Value: "BAR_B_2",
+						},
 					},
 				},
-				WindowSize:       "720h",
-				WindowOffset:     "-720h",
-				WindowTruncateTo: "M",
-				Dependencies:     []*pb.JobDependency{},
+				Window: &pb.JobSpecification_Window{
+					Size:    "1M",
+					ShiftBy: "-1M",
+				},
+				Dependencies: []*pb.JobDependency{},
 				Assets: map[string]string{
 					"query.sql": "SELECT * FROM projectZ.datasetY.tableX",
 				},
@@ -505,21 +509,24 @@ func setupExtractExpectation(ctx context.Context, client *mockClient) {
 				Interval:      "0 19 1 * *",
 				DependsOnPast: false,
 				CatchUp:       true,
-				TaskName:      "mc2mc",
-				Config: []*pb.JobConfigItem{
-					{
-						Name:  "FOO_B_1",
-						Value: "BAR_B_1",
-					},
-					{
-						Name:  "FOO_B_2",
-						Value: "BAR_B_2",
+				Task: &pb.JobSpecTask{
+					Name: "mc2mc",
+					Config: []*pb.JobConfigItem{
+						{
+							Name:  "FOO_B_1",
+							Value: "BAR_B_1",
+						},
+						{
+							Name:  "FOO_B_2",
+							Value: "BAR_B_2",
+						},
 					},
 				},
-				WindowSize:       "720h",
-				WindowOffset:     "-720h",
-				WindowTruncateTo: "M",
-				Dependencies:     []*pb.JobDependency{},
+				Window: &pb.JobSpecification_Window{
+					Size:    "1M",
+					ShiftBy: "-1M",
+				},
+				Dependencies: []*pb.JobDependency{},
 				Assets: map[string]string{
 					"query.sql": "SELECT * FROM projectZ.schemaY.tableX",
 				},
@@ -548,21 +555,24 @@ func setupExtractExpectation(ctx context.Context, client *mockClient) {
 				Interval:      "0 19 1 * *",
 				DependsOnPast: false,
 				CatchUp:       true,
-				TaskName:      "gcs2mc",
-				Config: []*pb.JobConfigItem{
-					{
-						Name:  "FOO_B_1",
-						Value: "BAR_B_1",
-					},
-					{
-						Name:  "FOO_B_2",
-						Value: "BAR_B_2",
+				Task: &pb.JobSpecTask{
+					Name: "gcs2mc",
+					Config: []*pb.JobConfigItem{
+						{
+							Name:  "FOO_B_1",
+							Value: "BAR_B_1",
+						},
+						{
+							Name:  "FOO_B_2",
+							Value: "BAR_B_2",
+						},
 					},
 				},
-				WindowSize:       "720h",
-				WindowOffset:     "-720h",
-				WindowTruncateTo: "M",
-				Dependencies:     []*pb.JobDependency{},
+				Window: &pb.JobSpecification_Window{
+					Size:    "1M",
+					ShiftBy: "-1M",
+				},
+				Dependencies: []*pb.JobDependency{},
 				Assets: map[string]string{
 					"query.sql": "SELECT * FROM projectZ.schemaY.tableX",
 				},

@@ -3,3 +3,6 @@ plugins:
   - plugin: buf.build/protocolbuffers/go:v1.30.0
     out: models
     opt: paths=source_relative
+  - name: go-grpc
+    out: models
+    opt: paths=source_relative
