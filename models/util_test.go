@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/goto/meteor/models"
 	assetsv1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewURN(t *testing.T) {
@@ -56,6 +57,7 @@ func TestToJSON(t *testing.T) {
 				{
 					"name": "test",
 					"urn": "",
+					"refreshed_at":null,
 					"service": "",
 					"type": "",
 					"url": "",
@@ -63,6 +65,7 @@ func TestToJSON(t *testing.T) {
 					"data": null,
 					"owners": [],
 					"lineage": null,
+					"is_deleted": false,
 					"labels": {},
 					"event": null,
 					"create_time": null,

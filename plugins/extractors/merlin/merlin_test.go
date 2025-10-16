@@ -10,13 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/merlin/internal/merlin"
 	intrnlmcks "github.com/goto/meteor/plugins/extractors/merlin/internal/mocks"
 	"github.com/goto/meteor/test/mocks"
 	testutils "github.com/goto/meteor/test/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (

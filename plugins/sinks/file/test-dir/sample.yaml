@@ -31,9 +31,11 @@
   owners: []
   lineage: null
   labels: {}
+  isdeleted: false
   event: null
   createtime: null
   updatetime: null
+  refreshedat: null
 - urn: elasticsearch.index2
   name: index2
   service: ""
@@ -67,6 +69,8 @@
   owners: []
   lineage: null
   labels: {}
+  isdeleted: false
   event: null
   createtime: null
   updatetime: null
+  refreshedat: null

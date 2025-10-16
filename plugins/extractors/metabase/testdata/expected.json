@@ -199,6 +199,7 @@
         },
         "description": "HELPFUL DESCRIPTION",
         "event": null,
+        "is_deleted": false,
         "labels": {},
         "lineage": {
             "downstreams": [],
@@ -231,6 +232,7 @@
         },
         "name": "Main",
         "owners": [],
+        "refreshed_at": null,
         "service": "metabase",
         "type": "dashboard",
         "update_time": null,

@@ -7,11 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/goto/meteor/metrics/otelgrpc"
-	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+
+	"github.com/goto/meteor/metrics/otelgrpc"
+	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
 )
 
 func Test_otelGRPCMonitor_Record(t *testing.T) {

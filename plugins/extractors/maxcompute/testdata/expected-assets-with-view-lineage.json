@@ -77,6 +77,8 @@
             ]
         },
         "labels": {},
+        "is_deleted": false,
+        "refreshed_at": null,
         "event": null,
         "create_time": "2024-11-14T06:41:35Z",
         "update_time": "2024-11-14T06:41:35Z"
@@ -139,7 +141,9 @@
         },
         "owners": [],
         "lineage": null,
+        "is_deleted": false,
         "labels": {},
+        "refreshed_at": null,
         "event": null,
         "create_time": "2024-11-18T08:00:00Z",
         "update_time": "2024-11-18T08:00:00Z"

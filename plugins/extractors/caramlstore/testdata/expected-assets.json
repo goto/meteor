@@ -105,6 +105,7 @@
     },
     "description": "",
     "event": null,
+    "is_deleted": false,
     "labels": {},
     "lineage": {
       "downstreams": [],
@@ -119,6 +120,7 @@
     },
     "name": "merchant_uuid_t2_discovery",
     "owners": [],
+    "refreshed_at": null,
     "service": "caramlstore",
     "type": "feature_table",
     "update_time": null,
@@ -171,6 +173,7 @@
     },
     "description": "",
     "event": null,
+    "is_deleted": false,
     "labels": {},
     "lineage": {
       "downstreams": [],
@@ -185,6 +188,7 @@
     },
     "name": "avg_dispatch_arrival_time_10_mins",
     "owners": [],
+    "refreshed_at": null,
     "service": "caramlstore",
     "type": "feature_table",
     "update_time": null,
@@ -297,6 +301,7 @@
     },
     "description": "",
     "event": null,
+    "is_deleted": false,
     "labels": {},
     "lineage": {
       "downstreams": [],
@@ -311,6 +316,7 @@
     },
     "name": "merchant_uuid_t2_discovery",
     "owners": [],
+    "refreshed_at": null,
     "service": "caramlstore",
     "type": "feature_table",
     "update_time": null,
@@ -363,6 +369,7 @@
     },
     "description": "",
     "event": null,
+    "is_deleted": false,
     "labels": {},
     "lineage": {
       "downstreams": [],
@@ -377,6 +384,7 @@
     },
     "name": "avg_dispatch_arrival_time_10_mins",
     "owners": [],
+    "refreshed_at": null,
     "service": "caramlstore",
     "type": "feature_table",
     "update_time": null,
