@@ -26,6 +26,7 @@
                     "data_source": "",
                     "description": "HELPFUL CHART DESC",
                     "event": null,
+                    "is_deleted": false,
                     "lineage": {
                         "downstreams": [],
                         "upstreams": [
@@ -39,6 +40,7 @@
                     },
                     "name": "Orders, Filtered by Quantity",
                     "owners": [],
+                    "refreshed_at": null,
                     "raw_query": "",
                     "source": "metabase",
                     "type": "",
@@ -63,6 +65,7 @@
                     "data_source": "",
                     "description": "This shows only exceptional users.",
                     "event": null,
+                    "is_deleted": false,
                     "lineage": {
                         "downstreams": [],
                         "upstreams": [
@@ -76,6 +79,7 @@
                     },
                     "name": "Exceptional Users",
                     "owners": [],
+                    "refreshed_at": null,
                     "raw_query": "",
                     "source": "metabase",
                     "type": "",
@@ -100,6 +104,7 @@
                     "data_source": "",
                     "description": "Users, Average of Total Followers",
                     "event": null,
+                    "is_deleted": false,
                     "lineage": {
                         "downstreams": [],
                         "upstreams": [
@@ -113,6 +118,7 @@
                     },
                     "name": "Users, Average of Total Followers and Cumulative sum of Total Likes, Filtered by Total Followers",
                     "owners": [],
+                    "refreshed_at": null,
                     "raw_query": "",
                     "source": "metabase",
                     "type": "",
@@ -137,6 +143,7 @@
                     "data_source": "",
                     "description": "",
                     "event": null,
+                    "is_deleted": false,
                     "lineage": {
                         "downstreams": [],
                         "upstreams": [
@@ -156,6 +163,7 @@
                     },
                     "name": "BCR",
                     "owners": [],
+                    "refreshed_at": null,
                     "raw_query": "",
                     "source": "metabase",
                     "type": "",
@@ -180,12 +188,14 @@
                     "data_source": "",
                     "description": "When template-tags contains invalid type it should not returning downstream",
                     "event": null,
+                    "is_deleted": false,
                     "lineage": {
                         "downstreams": [],
                         "upstreams": []
                     },
                     "name": "Exceptional Users",
                     "owners": [],
+                    "refreshed_at": null,
                     "raw_query": "",
                     "source": "metabase",
                     "type": "",

@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	og "github.com/goto/meteor/metrics/otelgrpc"
+	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	og "github.com/goto/meteor/metrics/otelgrpc"
-	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
 )
 
 const (
