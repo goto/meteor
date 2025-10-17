@@ -47,6 +47,7 @@
     },
     "description": "",
     "event": null,
+    "is_deleted": false,
     "labels": {
       "stream": "roger",
       "team": "pirates"
@@ -70,6 +71,7 @@
         "urn": "gol.d.roger@onepiece.com"
       }
     ],
+    "refreshed_at": null,
     "service": "merlin",
     "type": "model",
     "update_time": null,
@@ -136,6 +138,7 @@
     },
     "description": "",
     "event": null,
+    "is_deleted": false,
     "labels": {
       "stream": "roger",
       "team": "pirates"
@@ -159,6 +162,7 @@
         "urn": "gol.d.roger@onepiece.com"
       }
     ],
+    "refreshed_at": null,
     "service": "merlin",
     "type": "model",
     "update_time": null,
@@ -245,6 +249,7 @@
     },
     "description": "",
     "event": null,
+    "is_deleted": false,
     "labels": {
       "stream": "whitebeard",
       "team": "pirates"
@@ -262,6 +267,7 @@
         "urn": "edward.newgate@onepiece.com"
       }
     ],
+    "refreshed_at": null,
     "service": "merlin",
     "type": "model",
     "update_time": null,
@@ -352,6 +358,7 @@
     },
     "description": "",
     "event": null,
+    "is_deleted": false,
     "labels": {
       "stream": "whitebeard",
       "team": "pirates"
@@ -400,6 +407,7 @@
         "urn": "edward.newgate@onepiece.com"
       }
     ],
+    "refreshed_at": null,
     "service": "merlin",
     "type": "model",
     "update_time": null,

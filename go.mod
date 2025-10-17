@@ -12,7 +12,7 @@ require (
 	github.com/ClickHouse/clickhouse-go v1.4.5
 	github.com/IBM/sarama v1.43.2
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/aliyun/aliyun-odps-go-sdk v0.4.0
+	github.com/aliyun/aliyun-odps-go-sdk v0.4.12
 	github.com/aws/aws-sdk-go v1.44.151
 	github.com/blastrain/vitess-sqlparser v0.0.0-20201030050434-a139afbb1aba
 	github.com/cenkalti/backoff/v4 v4.2.1
@@ -25,14 +25,14 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/gocql/gocql v0.0.0-20210817081954-bc256bbb90de
-	github.com/google/go-cmp v0.5.9
+	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v37 v37.0.0
 	github.com/googleapis/gax-go/v2 v2.7.1
-	github.com/goto/optimus v0.6.0-rc.6.0.20230315121505-734e3d9dda98
 	github.com/goto/salt v0.3.0
 	github.com/goto/shield v0.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.0
 	github.com/lib/pq v1.10.7
 	github.com/mcuadros/go-defaults v1.2.0
 	github.com/mitchellh/mapstructure v1.5.0
@@ -112,7 +112,7 @@ require (
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dlclark/regexp2 v1.7.0 // indirect
+	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/docker/cli v20.10.14+incompatible // indirect
 	github.com/docker/docker v20.10.13+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -148,7 +148,6 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect

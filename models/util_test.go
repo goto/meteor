@@ -56,6 +56,7 @@ func TestToJSON(t *testing.T) {
 				{
 					"name": "test",
 					"urn": "",
+					"refreshed_at":null,
 					"service": "",
 					"type": "",
 					"url": "",
@@ -63,6 +64,7 @@ func TestToJSON(t *testing.T) {
 					"data": null,
 					"owners": [],
 					"lineage": null,
+					"is_deleted": false,
 					"labels": {},
 					"event": null,
 					"create_time": null,

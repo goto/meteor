@@ -6,7 +6,7 @@ import (
 	"time"
 
 	og "github.com/goto/meteor/metrics/otelgrpc"
-	pb "github.com/goto/optimus/protos/gotocompany/optimus/core/v1beta1"
+	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"

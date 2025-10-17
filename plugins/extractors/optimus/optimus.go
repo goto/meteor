@@ -9,11 +9,11 @@ import (
 
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/optimus/client"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
-	pb "github.com/goto/optimus/protos/gotocompany/optimus/core/v1beta1"
 	"github.com/goto/salt/log"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -150,29 +150,39 @@ func (e *Extractor) buildJob(ctx context.Context, jobSpec *pb.JobSpecification, 
 	jobID := fmt.Sprintf("%s.%s.%s", project, namespace, jobSpec.Name)
 	urn := models.NewURN(service, e.UrnScope, "job", jobID)
 
+	dataAttributes := map[string]interface{}{
+		"version":       jobSpec.Version,
+		"project":       project,
+		"namespace":     namespace,
+		"owner":         jobSpec.Owner,
+		"startDate":     strOrNil(jobSpec.StartDate),
+		"endDate":       strOrNil(jobSpec.EndDate),
+		"interval":      jobSpec.Interval,
+		"dependsOnPast": jobSpec.DependsOnPast,
+		"catchUp":       jobSpec.CatchUp, //nolint:staticcheck
+		"sql":           jobSpec.Assets["query.sql"],
+		"task": map[string]interface{}{
+			"name":        task.Name,
+			"description": task.Description,
+			"image":       task.Image,
+		},
+	}
+
+	if jobSpec.Task != nil {
+		dataAttributes["taskName"] = jobSpec.Task.Name
+	}
+	if jobSpec.Window != nil {
+		dataAttributes["windowPreset"] = jobSpec.Window.Preset
+		dataAttributes["windowSize"] = jobSpec.Window.Size
+		dataAttributes["windowShiftBy"] = jobSpec.Window.ShiftBy
+		dataAttributes["windowTruncateTo"] = jobSpec.Window.TruncateTo
+	}
+	if jobSpec.Labels != nil && jobSpec.Labels["category_table_tag"] != "" {
+		dataAttributes["category"] = jobSpec.Labels["category_table_tag"]
+	}
+
 	jobModel, err := anypb.New(&v1beta2.Job{
-		Attributes: utils.TryParseMapToProto(map[string]interface{}{
-			"version":          jobSpec.Version,
-			"project":          project,
-			"project_id":       project,
-			"namespace":        namespace,
-			"owner":            jobSpec.Owner,
-			"startDate":        strOrNil(jobSpec.StartDate),
-			"endDate":          strOrNil(jobSpec.EndDate),
-			"interval":         jobSpec.Interval,
-			"dependsOnPast":    jobSpec.DependsOnPast,
-			"catchUp":          jobSpec.CatchUp,
-			"taskName":         jobSpec.TaskName,
-			"windowSize":       jobSpec.WindowSize,
-			"windowOffset":     jobSpec.WindowOffset,
-			"windowTruncateTo": jobSpec.WindowTruncateTo,
-			"sql":              jobSpec.Assets["query.sql"],
-			"task": map[string]interface{}{
-				"name":        task.Name,
-				"description": task.Description,
-				"image":       task.Image,
-			},
-		}),
+		Attributes: utils.TryParseMapToProto(dataAttributes),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create Any struct: %w", err)
@@ -185,6 +195,7 @@ func (e *Extractor) buildJob(ctx context.Context, jobSpec *pb.JobSpecification, 
 		Description: jobSpec.Description,
 		Type:        "job",
 		Data:        jobModel,
+		Labels:      jobSpec.Labels,
 		Owners: []*v1beta2.Owner{
 			{
 				Urn:   jobSpec.Owner,

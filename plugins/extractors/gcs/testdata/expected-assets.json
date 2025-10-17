@@ -37,9 +37,11 @@
     },
     "description": "",
     "event": null,
+    "is_deleted": false,
     "labels": {},
     "lineage": null,
     "owners": [],
+    "refreshed_at": null,
     "update_time": null,
     "url": ""
   }
