@@ -151,29 +151,35 @@ func (e *Extractor) buildJob(ctx context.Context, jobSpec *pb.JobSpecification, 
 	jobID := fmt.Sprintf("%s.%s.%s", project, namespace, jobSpec.Name)
 	urn := models.NewURN(service, e.UrnScope, "job", jobID)
 
+	dataAttributes := map[string]interface{}{
+		"version":          jobSpec.Version,
+		"project":          project,
+		"namespace":        namespace,
+		"owner":            jobSpec.Owner,
+		"startDate":        strOrNil(jobSpec.StartDate),
+		"endDate":          strOrNil(jobSpec.EndDate),
+		"interval":         jobSpec.Interval,
+		"dependsOnPast":    jobSpec.DependsOnPast,
+		"catchUp":          jobSpec.CatchUp, //nolint:staticcheck
+		"taskName":         jobSpec.Task.Name,
+		"windowPreset":     jobSpec.Window.Preset,
+		"windowSize":       jobSpec.Window.Size,
+		"windowShiftBy":    jobSpec.Window.ShiftBy,
+		"windowTruncateTo": jobSpec.Window.TruncateTo,
+		"sql":              jobSpec.Assets["query.sql"],
+		"task": map[string]interface{}{
+			"name":        task.Name,
+			"description": task.Description,
+			"image":       task.Image,
+		},
+	}
+
+	if jobSpec.Labels != nil && jobSpec.Labels["category_table_tag"] != "" {
+		dataAttributes["category"] = jobSpec.Labels["category_table_tag"]
+	}
+
 	jobModel, err := anypb.New(&v1beta2.Job{
-		Attributes: utils.TryParseMapToProto(map[string]interface{}{
-			"version":          jobSpec.Version,
-			"project":          project,
-			"namespace":        namespace,
-			"owner":            jobSpec.Owner,
-			"startDate":        strOrNil(jobSpec.StartDate),
-			"endDate":          strOrNil(jobSpec.EndDate),
-			"interval":         jobSpec.Interval,
-			"dependsOnPast":    jobSpec.DependsOnPast,
-			"catchUp":          jobSpec.CatchUp,
-			"taskName":         jobSpec.Task.Name,
-			"windowPreset":     jobSpec.Window.Preset,
-			"windowSize":       jobSpec.Window.Size,
-			"windowShiftBy":    jobSpec.Window.ShiftBy,
-			"windowTruncateTo": jobSpec.Window.TruncateTo,
-			"sql":              jobSpec.Assets["query.sql"],
-			"task": map[string]interface{}{
-				"name":        task.Name,
-				"description": task.Description,
-				"image":       task.Image,
-			},
-		}),
+		Attributes: utils.TryParseMapToProto(dataAttributes),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create Any struct: %w", err)

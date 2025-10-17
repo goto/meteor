@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/goto/meteor/models"
 	assetsv1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewURN(t *testing.T) {
