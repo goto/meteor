@@ -83,6 +83,13 @@ func TestExtract(t *testing.T) {
 		odps.NewTable(nil, projectID, "my_schema", "new_table"),
 	}
 
+	table2 := []*odps.Table{
+		odps.NewTable(nil, projectID, "my_schema", "dummy_table"),
+		odps.NewTable(nil, projectID, "my_schema", "new_table"),
+		odps.NewTable(nil, projectID, "my_schema", "table_lifecycle_3"),
+		odps.NewTable(nil, projectID, "my_schema", "table_lifecycle_8"),
+	}
+
 	c1 := tableschema.Column{
 		Name:    "id",
 		Type:    datatype.BigIntType,
@@ -139,6 +146,7 @@ func TestExtract(t *testing.T) {
 	newTableSchemaBuilder.Name("new_table").
 		Columns(c3, c4)
 	newTableSchema := newTableSchemaBuilder.Build()
+	newTableSchema.TableName = "new_table"
 	newTableSchema.ViewText = "SELECT user_id, email FROM test-project-id.my_schema.new_table"
 	newCreateTime, err := time.Parse(time.RFC3339, "2024-11-18T08:00:00Z")
 	if err != nil {
@@ -147,10 +155,24 @@ func TestExtract(t *testing.T) {
 	newTableSchema.CreateTime = common.GMTTime(newCreateTime)
 	newTableSchema.LastModifiedTime = common.GMTTime(newCreateTime)
 
+	// Schema for table_lifecycle_3
+	tableLifecycle3Schema := newTableSchema // copy
+	tableLifecycle3Schema.TableName = "table_lifecycle_3"
+	tableLifecycle3Schema.ViewText = "SELECT user_id, email FROM test-project-id.my_schema.table_lifecycle_3"
+	tableLifecycle3Schema.Lifecycle = 3
+
+	// Schema for table_lifecycle_8
+	tableLifecycle8Schema := newTableSchema // copy
+	tableLifecycle8Schema.TableName = "table_lifecycle_8"
+	tableLifecycle8Schema.ViewText = "SELECT user_id, email FROM test-project-id.my_schema.table_lifecycle_8"
+	tableLifecycle8Schema.Lifecycle = 8
+
 	// Schema mapping
 	schemaMapping := map[string]*tableschema.TableSchema{
-		"dummy_table": &dummyTableSchema,
-		"new_table":   &newTableSchema,
+		"dummy_table":       &dummyTableSchema,
+		"new_table":         &newTableSchema,
+		"table_lifecycle_3": &tableLifecycle3Schema,
+		"table_lifecycle_8": &tableLifecycle8Schema,
 	}
 
 	runTest := func(t *testing.T, cfg plugins.Config, mockSetup func(mockClient *mocks.MaxComputeClient), randomizer func(seed int64) func(int64) int64) ([]*v1beta2.Asset, error) {
@@ -289,13 +311,16 @@ func TestExtract(t *testing.T) {
 				},
 				"endpoint_project": "https://example.com/some-api",
 				"exclude": map[string]interface{}{
-					"tables": []string{"my_schema.dummy_table"},
+					"tables":              []string{"my_schema.dummy_table"},
+					"min_table_lifecycle": 8,
 				},
 			},
 		}, func(mockClient *mocks.MaxComputeClient) {
 			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
-			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:], nil)
-			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
+			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table2, nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table2[1]).Return("MANAGED_TABLE", schemaMapping[table2[1].Name()], nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table2[2]).Return("MANAGED_TABLE", schemaMapping[table2[2].Name()], nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table2[3]).Return("MANAGED_TABLE", schemaMapping[table2[3].Name()], nil)
 			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
 		}, nil)
 

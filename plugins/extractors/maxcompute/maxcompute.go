@@ -145,6 +145,7 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 			continue
 		}
 		if contains(e.config.Exclude.Schemas, schema.Name()) {
+			e.logger.Info("skipping schema as it is in the exclude list", "schema", schema.Name())
 			continue
 		}
 
@@ -164,7 +165,9 @@ func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Sche
 	}
 
 	for _, table := range tables {
-		if contains(e.config.Exclude.Tables, fmt.Sprintf("%s.%s", table.SchemaName(), table.Name())) {
+		tableName := fmt.Sprintf("%s.%s", schema.Name(), table.Name())
+		if contains(e.config.Exclude.Tables, tableName) {
+			e.logger.Info("skipping table as it is in the exclude list", "table", tableName)
 			continue
 		}
 
@@ -181,6 +184,18 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 	tableType, tableSchema, err := e.client.GetTableSchema(ctx, table)
 	if err != nil {
 		return err
+	}
+
+	// If lifecycle is less than the minimum lifecycle (days), skip the table
+	if e.config.Exclude.MinTableLifecycle > 1 {
+		lifecyclePermanent := tableSchema.Lifecycle == -1
+		lifecycleNotConfigured := tableSchema.Lifecycle == 0
+		if !lifecyclePermanent && !lifecycleNotConfigured && tableSchema.Lifecycle < e.config.Exclude.MinTableLifecycle {
+			tableName := fmt.Sprintf("%s.%s", schema.Name(), table.Name())
+			e.logger.Info("skipping table due to lifecycle less than minimum configured lifecycle",
+				"table", tableName, "lifecycle", tableSchema.Lifecycle)
+			return nil
+		}
 	}
 
 	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema)

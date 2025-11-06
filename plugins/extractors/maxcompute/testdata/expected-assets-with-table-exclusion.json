@@ -1,55 +1,108 @@
 [
-    {
-        "urn": "urn:maxcompute:test-project-id:table:test-project-id.my_schema.new_table",
-        "name": "new_table",
-        "service": "maxcompute",
-        "type": "table",
-        "url": "",
-        "description": "",
-        "data": {
-            "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
-            "profile": null,
-            "columns": [
-                {
-                    "name": "user_id",
-                    "description": "Unique identifier for users",
-                    "data_type": "BIGINT",
-                    "is_nullable": false,
-                    "length": "0",
-                    "profile": null,
-                    "columns": [],
-                    "attributes": {}
-                },
-                {
-                    "name": "email",
-                    "description": "User email address",
-                    "data_type": "STRING",
-                    "is_nullable": false,
-                    "length": "0",
-                    "profile": null,
-                    "columns": [],
-                    "attributes": {}
-                }
-            ],
-            "preview_fields": [],
-            "preview_rows": null,
-            "attributes": {
-                "project_name": "test-project-id",
-                "resource_url": "/projects/test-project-id/schemas/my_schema/tables/new_table",
-                "schema": "my_schema",
-                "sql": "SELECT user_id, email FROM test-project-id.my_schema.new_table",
-                "type": "MANAGED_TABLE"
-            },
-            "create_time": "2024-11-18T08:00:00Z",
-            "update_time": "2024-11-18T08:00:00Z"
+  {
+    "urn": "urn:maxcompute:test-project-id:table:test-project-id.my_schema.new_table",
+    "name": "new_table",
+    "service": "maxcompute",
+    "type": "table",
+    "url": "",
+    "description": "",
+    "data": {
+      "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
+      "profile": null,
+      "columns": [
+        {
+          "name": "user_id",
+          "description": "Unique identifier for users",
+          "data_type": "BIGINT",
+          "is_nullable": false,
+          "length": "0",
+          "profile": null,
+          "columns": [],
+          "attributes": {}
         },
-        "owners": [],
-        "lineage": null,
-        "is_deleted": false,
-        "labels": {},
-        "refreshed_at": null,
-        "event": null,
-        "create_time": "2024-11-18T08:00:00Z",
-        "update_time": "2024-11-18T08:00:00Z"
-    }
+        {
+          "name": "email",
+          "description": "User email address",
+          "data_type": "STRING",
+          "is_nullable": false,
+          "length": "0",
+          "profile": null,
+          "columns": [],
+          "attributes": {}
+        }
+      ],
+      "preview_fields": [],
+      "preview_rows": null,
+      "attributes": {
+        "project_name": "test-project-id",
+        "resource_url": "/projects/test-project-id/schemas/my_schema/tables/new_table",
+        "schema": "my_schema",
+        "sql": "SELECT user_id, email FROM test-project-id.my_schema.new_table",
+        "type": "MANAGED_TABLE"
+      },
+      "create_time": "2024-11-18T08:00:00Z",
+      "update_time": "2024-11-18T08:00:00Z"
+    },
+    "owners": [],
+    "lineage": null,
+    "is_deleted": false,
+    "labels": {},
+    "refreshed_at": null,
+    "event": null,
+    "create_time": "2024-11-18T08:00:00Z",
+    "update_time": "2024-11-18T08:00:00Z"
+  },
+  {
+    "urn": "urn:maxcompute:test-project-id:table:test-project-id.my_schema.table_lifecycle_8",
+    "name": "table_lifecycle_8",
+    "service": "maxcompute",
+    "type": "table",
+    "url": "",
+    "description": "",
+    "data": {
+      "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
+      "profile": null,
+      "columns": [
+        {
+          "name": "user_id",
+          "description": "Unique identifier for users",
+          "data_type": "BIGINT",
+          "is_nullable": false,
+          "length": "0",
+          "profile": null,
+          "columns": [],
+          "attributes": {}
+        },
+        {
+          "name": "email",
+          "description": "User email address",
+          "data_type": "STRING",
+          "is_nullable": false,
+          "length": "0",
+          "profile": null,
+          "columns": [],
+          "attributes": {}
+        }
+      ],
+      "preview_fields": [],
+      "preview_rows": null,
+      "attributes": {
+        "project_name": "test-project-id",
+        "resource_url": "/projects/test-project-id/schemas/my_schema/tables/table_lifecycle_8",
+        "schema": "my_schema",
+        "sql": "SELECT user_id, email FROM test-project-id.my_schema.table_lifecycle_8",
+        "type": "MANAGED_TABLE"
+      },
+      "create_time": "2024-11-18T08:00:00Z",
+      "update_time": "2024-11-18T08:00:00Z"
+    },
+    "owners": [],
+    "lineage": null,
+    "is_deleted": false,
+    "labels": {},
+    "refreshed_at": null,
+    "event": null,
+    "create_time": "2024-11-18T08:00:00Z",
+    "update_time": "2024-11-18T08:00:00Z"
+  }
 ]
