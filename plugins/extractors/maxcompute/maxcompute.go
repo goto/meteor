@@ -282,6 +282,7 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	}
 
 	tableData := &v1beta2.Table{
+		Profile:    &v1beta2.TableProfile{TotalRows: int64(tableSchema.RecordNum)},
 		Attributes: utils.TryParseMapToProto(tableAttributesData),
 		Columns:    columns,
 		CreateTime: timestamppb.New(time.Time(tableSchema.CreateTime)),

@@ -8,7 +8,14 @@
     "description": "",
     "data": {
       "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
-      "profile": null,
+      "profile": {
+        "common_joins": [],
+        "filters": [],
+        "partition_key": "",
+        "partition_value": "",
+        "total_rows": "0",
+        "usage_count": "0"
+      },
       "columns": [
         {
           "name": "user_id",
@@ -61,7 +68,14 @@
     "description": "",
     "data": {
       "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
-      "profile": null,
+      "profile": {
+        "common_joins": [],
+        "filters": [],
+        "partition_key": "",
+        "partition_value": "",
+        "total_rows": "200",
+        "usage_count": "0"
+      },
       "columns": [
         {
           "name": "user_id",

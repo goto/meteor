@@ -160,12 +160,14 @@ func TestExtract(t *testing.T) {
 	tableLifecycle3Schema.TableName = "table_lifecycle_3"
 	tableLifecycle3Schema.ViewText = "SELECT user_id, email FROM test-project-id.my_schema.table_lifecycle_3"
 	tableLifecycle3Schema.Lifecycle = 3
+	tableLifecycle3Schema.RecordNum = 100
 
 	// Schema for table_lifecycle_8
 	tableLifecycle8Schema := newTableSchema // copy
 	tableLifecycle8Schema.TableName = "table_lifecycle_8"
 	tableLifecycle8Schema.ViewText = "SELECT user_id, email FROM test-project-id.my_schema.table_lifecycle_8"
 	tableLifecycle8Schema.Lifecycle = 8
+	tableLifecycle8Schema.RecordNum = 200
 
 	// Schema mapping
 	schemaMapping := map[string]*tableschema.TableSchema{
