@@ -19,21 +19,23 @@ source:
                 - schema_b
             tables:
                 - schema_c.table_a
+            min_table_lifecycle: 8
         concurrency: 10
 ```
 
 ## Inputs
 
-| Key | Value | Example | Description |    |
-| :-- | :---- | :------ | :---------- | :-- |
-| `project_name` | `string` | `goto_test` | MaxCompute Project Name | *required* |
-| `endpoint_project` | `string` | `http://goto_test-maxcompute.com` | Endpoint Project URL | *required* |
-| `access_key.id` | `string` | `access_key_id` | Access Key ID | *required* |
-| `access_key.secret` | `string` | `access_key_secret` | Access Key Secret | *required* |
-| `schema_name` | `string` | `DEFAULT` | Default schema name | *optional* |
-| `exclude.schemas` | `[]string` | `["schema_a", "schema_b"]` | List of schemas to exclude | *optional* |
-| `exclude.tables` | `[]string` | `["schema_c.table_a"]` | List of tables to exclude | *optional* |
-| `concurrency` | `int` | `10` | Number of concurrent requests to MaxCompute | *optional* |
+| Key                           | Value      | Example                           | Description                                                                             |    |
+|:------------------------------|:-----------|:----------------------------------|:----------------------------------------------------------------------------------------| :-- |
+| `project_name`                | `string`   | `goto_test`                       | MaxCompute Project Name                                                                 | *required* |
+| `endpoint_project`            | `string`   | `http://goto_test-maxcompute.com` | Endpoint Project URL                                                                    | *required* |
+| `access_key.id`               | `string`   | `access_key_id`                   | Access Key ID                                                                           | *required* |
+| `access_key.secret`           | `string`   | `access_key_secret`               | Access Key Secret                                                                       | *required* |
+| `schema_name`                 | `string`   | `DEFAULT`                         | Default schema name                                                                     | *optional* |
+| `exclude.schemas`             | `[]string` | `["schema_a", "schema_b"]`        | List of schemas to exclude                                                              | *optional* |
+| `exclude.tables`              | `[]string` | `["schema_c.table_a"]`            | List of tables to exclude                                                               | *optional* |
+| `exclude.min_table_lifecycle` | `int`      | `8`                               | Exclude tables with a lifecycle less than this value (in days). Value must more than 1. | *optional* |
+| `concurrency`                 | `int`      | `10`                              | Number of concurrent requests to MaxCompute                                             | *optional* |
 
 ### *Notes*
 

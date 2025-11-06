@@ -11,8 +11,9 @@ type Config struct {
 	} `mapstructure:"access_key"`
 	SchemaName string `mapstructure:"schema_name,omitempty"`
 	Exclude    struct {
-		Schemas []string `mapstructure:"schemas"`
-		Tables  []string `mapstructure:"tables"`
+		Schemas           []string `mapstructure:"schemas"`
+		Tables            []string `mapstructure:"tables"`
+		MinTableLifecycle int      `mapstructure:"min_table_lifecycle"`
 	} `mapstructure:"exclude,omitempty"`
 	MaxPreviewRows   int  `mapstructure:"max_preview_rows,omitempty"`
 	MixValues        bool `mapstructure:"mix_values,omitempty"`

@@ -36,7 +36,7 @@ const (
 	attributesDataResourceURL     = "resource_url"
 	attributesDataPartitionFields = "partition_fields"
 	attributesDataLabel           = "label"
-	attributesDataResourceType    = "resource_type"
+	attributesDataLifecycle       = "lifecycle"
 )
 
 type Extractor struct {
@@ -145,6 +145,7 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 			continue
 		}
 		if contains(e.config.Exclude.Schemas, schema.Name()) {
+			e.logger.Info("skipping schema as it is in the exclude list", "schema", schema.Name())
 			continue
 		}
 
@@ -164,7 +165,9 @@ func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Sche
 	}
 
 	for _, table := range tables {
-		if contains(e.config.Exclude.Tables, fmt.Sprintf("%s.%s", table.SchemaName(), table.Name())) {
+		tableName := fmt.Sprintf("%s.%s", schema.Name(), table.Name())
+		if contains(e.config.Exclude.Tables, tableName) {
+			e.logger.Info("skipping table as it is in the exclude list", "table", tableName)
 			continue
 		}
 
@@ -181,6 +184,18 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 	tableType, tableSchema, err := e.client.GetTableSchema(ctx, table)
 	if err != nil {
 		return err
+	}
+
+	// If lifecycle is less than the minimum lifecycle (days), skip the table
+	if e.config.Exclude.MinTableLifecycle > 1 {
+		lifecyclePermanent := tableSchema.Lifecycle == -1
+		lifecycleNotConfigured := tableSchema.Lifecycle == 0
+		if !lifecyclePermanent && !lifecycleNotConfigured && tableSchema.Lifecycle < e.config.Exclude.MinTableLifecycle {
+			tableName := fmt.Sprintf("%s.%s", schema.Name(), table.Name())
+			e.logger.Info("skipping table due to lifecycle less than minimum configured lifecycle",
+				"table", tableName, "lifecycle", tableSchema.Lifecycle)
+			return nil
+		}
 	}
 
 	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema)
@@ -222,7 +237,7 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		Service:     maxcomputeService,
 	}
 
-	tableAttributesData := e.buildTableAttributesData(schemaName, tableType, table, tableSchema)
+	tableAttributesData := e.buildTableAttributesData(schemaName, tableType, tableSchema)
 
 	if tableType == config.TableTypeView {
 		query := tableSchema.ViewText
@@ -266,7 +281,13 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		columns = append(columns, columnData)
 	}
 
+	tableProfile := &v1beta2.TableProfile{}
+	if tableSchema.RecordNum >= 0 {
+		tableProfile.TotalRows = int64(tableSchema.RecordNum)
+	}
+
 	tableData := &v1beta2.Table{
+		Profile:    tableProfile,
 		Attributes: utils.TryParseMapToProto(tableAttributesData),
 		Columns:    columns,
 		CreateTime: timestamppb.New(time.Time(tableSchema.CreateTime)),
@@ -326,7 +347,7 @@ func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
 	return columns
 }
 
-func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table *odps.Table, tableInfo *tableschema.TableSchema) map[string]interface{} {
+func (e *Extractor) buildTableAttributesData(schemaName, tableType string, tableInfo *tableschema.TableSchema) map[string]interface{} {
 	attributesData := map[string]interface{}{}
 
 	attributesData[attributesDataProjectName] = e.config.ProjectName
@@ -338,6 +359,10 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 
 	if tableInfo.ViewText != "" {
 		attributesData[attributesDataSQL] = tableInfo.ViewText
+	}
+
+	if tableInfo.Lifecycle != 0 {
+		attributesData[attributesDataLifecycle] = tableInfo.Lifecycle
 	}
 
 	var partitionNames []interface{}
