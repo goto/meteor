@@ -36,7 +36,7 @@ const (
 	attributesDataResourceURL     = "resource_url"
 	attributesDataPartitionFields = "partition_fields"
 	attributesDataLabel           = "label"
-	attributesDataResourceType    = "resource_type"
+	attributesDataLifecycle       = "lifecycle"
 )
 
 type Extractor struct {
@@ -237,7 +237,7 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		Service:     maxcomputeService,
 	}
 
-	tableAttributesData := e.buildTableAttributesData(schemaName, tableType, table, tableSchema)
+	tableAttributesData := e.buildTableAttributesData(schemaName, tableType, tableSchema)
 
 	if tableType == config.TableTypeView {
 		query := tableSchema.ViewText
@@ -341,7 +341,7 @@ func buildColumns(dataType datatype.DataType) []*v1beta2.Column {
 	return columns
 }
 
-func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table *odps.Table, tableInfo *tableschema.TableSchema) map[string]interface{} {
+func (e *Extractor) buildTableAttributesData(schemaName, tableType string, tableInfo *tableschema.TableSchema) map[string]interface{} {
 	attributesData := map[string]interface{}{}
 
 	attributesData[attributesDataProjectName] = e.config.ProjectName
@@ -353,6 +353,10 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 
 	if tableInfo.ViewText != "" {
 		attributesData[attributesDataSQL] = tableInfo.ViewText
+	}
+
+	if tableInfo.Lifecycle != 0 {
+		attributesData[attributesDataLifecycle] = tableInfo.Lifecycle
 	}
 
 	var partitionNames []interface{}
