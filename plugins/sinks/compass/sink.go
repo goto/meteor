@@ -246,7 +246,7 @@ func (s *Sink) buildLineage(asset *v1beta2.Asset) (upstreams, downstreams []Line
 		}
 	}
 
-	s.logger.Info("build lineage request", "upstreams", upstreams, "downstreams", downstreams)
+	s.logger.Info(fmt.Sprintf("build lineage request for %s", asset.GetUrn()), "upstreams", upstreams, "downstreams", downstreams)
 	return upstreams, downstreams
 }
 
