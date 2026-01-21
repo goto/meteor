@@ -92,3 +92,6 @@ test-coverage: # test test-plugins
 	cp coverage.out coverage-all.out
 	tail -n +2 coverage-plugins.out >> coverage-all.out
 	go tool cover -html=coverage-all.out
+
+test-all: test test-plugins test-e2e ##@tests run all tests
+	@echo " > All tests passed!"
