@@ -301,6 +301,13 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		tableData.PreviewRows = previewRows
 	}
 
+	ddl, err := getDDLQuery(tableSchema, e.config.ProjectName, schemaName)
+	if err != nil {
+		e.logger.Warn("error generating DDL", "error", err, "table", tableSchema.TableName)
+	} else {
+		tableData.DdlStatement = ddl
+	}
+
 	tbl, err := anypb.New(tableData)
 	if err != nil {
 		e.logger.Warn("error creating Any struct", "error", err)
@@ -375,27 +382,20 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 		attributesData[attributesDataPartitionFields] = partitionNames
 	}
 
-	ddl, err := getDDLQuery(tableInfo, e.config.ProjectName, schemaName)
-	if err != nil {
-		e.logger.Warn("error generating DDL", "error", err, "table", tableInfo.TableName)
-	} else {
-		attributesData[attributesDataDDLStatement] = ddl
-	}
-
 	return attributesData
 }
 
-func getDDLQuery(tableInfo *tableschema.TableSchema, projectName, schemaName string) (string, error) {
+func getDDLQuery(tableSchema *tableschema.TableSchema, projectName, schemaName string) (string, error) {
 	var ddl string
 	var err error
 
 	switch {
-	case tableInfo.IsVirtualView || tableInfo.IsMaterializedView:
-		ddl, err = tableInfo.ToViewSQLString(projectName, schemaName, true, true, false)
-	case !tableInfo.IsExternal:
-		ddl, err = tableInfo.ToSQLString(projectName, schemaName, true)
+	case tableSchema.IsVirtualView || tableSchema.IsMaterializedView:
+		ddl, err = tableSchema.ToViewSQLString(projectName, schemaName, true, true, false)
+	case !tableSchema.IsExternal:
+		ddl, err = tableSchema.ToSQLString(projectName, schemaName, true)
 	default:
-		ddl, err = tableInfo.ToExternalSQLString(projectName, schemaName, true, nil, nil)
+		ddl, err = tableSchema.ToExternalSQLString(projectName, schemaName, true, nil, nil)
 	}
 
 	if err != nil {
