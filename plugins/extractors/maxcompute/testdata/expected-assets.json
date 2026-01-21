@@ -62,6 +62,7 @@
             "preview_fields": [],
             "preview_rows": null,
             "attributes": {
+                "ddl_statement": "create table if not exists test-project-id.`my_schema`.`dummy_table` (\n    `id` BIGINT  ,\n    `name` STRUCT<`first_name`:STRING,`last_name`:STRING>  \n)\ncomment 'dummy table description';",
                 "project_name": "test-project-id",
                 "resource_url": "/projects/test-project-id/schemas/my_schema/tables/dummy_table",
                 "schema": "my_schema",
@@ -129,15 +130,16 @@
             ],
             "preview_rows": [
                 [
-            	    "1",
-            	    "user1@example.com"
-            	],
+                	    "1",
+                	    "user1@example.com"
+                	],
                 [
                     "2",
                     "user2@example.com"
                 ]
             ],
             "attributes": {
+                "ddl_statement": "create table if not exists test-project-id.`my_schema`.`new_table` (\n    `user_id` BIGINT not null comment 'Unique identifier for users',\n    `email` STRING not null comment 'User email address'\n);",
                 "project_name": "test-project-id",
                 "resource_url": "/projects/test-project-id/schemas/my_schema/tables/new_table",
                 "schema": "my_schema",

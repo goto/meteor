@@ -37,6 +37,7 @@ const (
 	attributesDataPartitionFields = "partition_fields"
 	attributesDataLabel           = "label"
 	attributesDataLifecycle       = "lifecycle"
+	attributesDataDDLStatement    = "ddl_statement"
 )
 
 type Extractor struct {
@@ -186,7 +187,7 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 		return err
 	}
 
-	// If lifecycle is less than the minimum lifecycle (days), skip the table
+	// If the lifecycle is less than the minimum lifecycle (days), skip the table
 	if e.config.Exclude.MinTableLifecycle > 1 {
 		lifecyclePermanent := tableSchema.Lifecycle == -1
 		lifecycleNotConfigured := tableSchema.Lifecycle == 0
@@ -374,7 +375,33 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 		attributesData[attributesDataPartitionFields] = partitionNames
 	}
 
+	ddl, err := getDDLQuery(tableInfo, e.config.ProjectName, schemaName)
+	if err != nil {
+		e.logger.Warn("error generating DDL", "error", err, "table", tableInfo.TableName)
+	} else {
+		attributesData[attributesDataDDLStatement] = ddl
+	}
+
 	return attributesData
+}
+
+func getDDLQuery(tableInfo *tableschema.TableSchema, projectName, schemaName string) (string, error) {
+	var ddl string
+	var err error
+
+	switch {
+	case tableInfo.IsVirtualView || tableInfo.IsMaterializedView:
+		ddl, err = tableInfo.ToViewSQLString(projectName, schemaName, true, true, false)
+	case !tableInfo.IsExternal:
+		ddl, err = tableInfo.ToSQLString(projectName, schemaName, true)
+	default:
+		ddl, err = tableInfo.ToExternalSQLString(projectName, schemaName, true, nil, nil)
+	}
+
+	if err != nil {
+		return "", err
+	}
+	return ddl, nil
 }
 
 func buildColumnAttributesData(column *tableschema.Column) map[string]interface{} {
