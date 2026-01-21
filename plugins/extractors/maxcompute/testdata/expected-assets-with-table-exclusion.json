@@ -40,6 +40,7 @@
       ],
       "preview_fields": [],
       "preview_rows": null,
+      "ddl_statement": "create table if not exists test-project-id.`my_schema`.`new_table` (\n    `user_id` BIGINT not null comment 'Unique identifier for users',\n    `email` STRING not null comment 'User email address'\n);",
       "attributes": {
         "project_name": "test-project-id",
         "resource_url": "/projects/test-project-id/schemas/my_schema/tables/new_table",
@@ -100,6 +101,7 @@
       ],
       "preview_fields": [],
       "preview_rows": null,
+      "ddl_statement": "create table if not exists test-project-id.`my_schema`.`table_lifecycle_8` (\n    `user_id` BIGINT not null comment 'Unique identifier for users',\n    `email` STRING not null comment 'User email address'\n)\nlifecycle 8;",
       "attributes": {
         "lifecycle": 8,
         "project_name": "test-project-id",
