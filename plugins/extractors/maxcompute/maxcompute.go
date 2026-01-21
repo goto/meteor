@@ -301,7 +301,7 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		tableData.PreviewRows = previewRows
 	}
 
-	ddl, err := getDDLQuery(tableSchema, e.config.ProjectName, schemaName)
+	ddl, err := getDDLStatement(tableSchema, e.config.ProjectName, schemaName)
 	if err != nil {
 		e.logger.Warn("error generating DDL", "error", err, "table", tableSchema.TableName)
 	} else {
@@ -385,7 +385,7 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 	return attributesData
 }
 
-func getDDLQuery(tableSchema *tableschema.TableSchema, projectName, schemaName string) (string, error) {
+func getDDLStatement(tableSchema *tableschema.TableSchema, projectName, schemaName string) (string, error) {
 	var ddl string
 	var err error
 
