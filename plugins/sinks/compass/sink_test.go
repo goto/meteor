@@ -194,11 +194,11 @@ func TestSink(t *testing.T) {
 		{
 			description: "should create the right request to compass",
 			data: &v1beta2.Asset{
-				Urn:         "my-topic-urn",
-				Name:        "my-topic",
-				Service:     "kafka",
-				Type:        "topic",
-				Description: "topic information",
+				Urn:         "my-table-urn",
+				Name:        "my-table",
+				Service:     "maxcompute",
+				Type:        "table",
+				Description: "table information",
 				Url:         "http://test.com",
 				Data: testutils.BuildAny(t, &v1beta2.Table{
 					Columns: []*v1beta2.Column{
@@ -221,12 +221,12 @@ func TestSink(t *testing.T) {
 			},
 			expected: compass.RequestPayload{
 				Asset: compass.Asset{
-					URN:         "my-topic-urn",
-					Name:        "my-topic",
-					Service:     "kafka",
-					Type:        "topic",
+					URN:         "my-table-urn",
+					Name:        "my-table",
+					Service:     "maxcompute",
+					Type:        "table",
 					URL:         "http://test.com",
-					Description: "topic information",
+					Description: "table information",
 					Data: map[string]interface{}{
 						"@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
 						"columns": []map[string]interface{}{
@@ -242,6 +242,7 @@ func TestSink(t *testing.T) {
 							},
 						},
 						"create_time":    nil,
+						"ddl_statement":  "",
 						"preview_fields": []interface{}{},
 						"preview_rows":   nil,
 						"profile":        nil,
@@ -258,11 +259,11 @@ func TestSink(t *testing.T) {
 		{
 			description: "should build compass labels if labels is defined in config",
 			data: &v1beta2.Asset{
-				Urn:         "my-topic-urn",
-				Name:        "my-topic",
-				Service:     "kafka",
-				Type:        "topic",
-				Description: "topic information",
+				Urn:         "my-table-urn",
+				Name:        "my-table",
+				Service:     "maxcompute",
+				Type:        "table",
+				Description: "table information",
 				Data: testutils.BuildAny(t, &v1beta2.Table{
 					Attributes: utils.TryParseMapToProto(map[string]interface{}{
 						"attrA": "valueAttrA",
@@ -279,11 +280,11 @@ func TestSink(t *testing.T) {
 			},
 			expected: compass.RequestPayload{
 				Asset: compass.Asset{
-					URN:         "my-topic-urn",
-					Name:        "my-topic",
-					Service:     "kafka",
-					Type:        "topic",
-					Description: "topic information",
+					URN:         "my-table-urn",
+					Name:        "my-table",
+					Service:     "maxcompute",
+					Type:        "table",
+					Description: "table information",
 					Labels: map[string]string{
 						"foo": "valueAttrA",
 						"bar": "valueAttrB",
@@ -296,6 +297,7 @@ func TestSink(t *testing.T) {
 						},
 						"columns":        []interface{}{},
 						"create_time":    nil,
+						"ddl_statement":  "",
 						"preview_fields": []interface{}{},
 						"preview_rows":   nil,
 						"profile":        nil,
@@ -307,10 +309,10 @@ func TestSink(t *testing.T) {
 		{
 			description: "should merge labels from assets and config",
 			data: &v1beta2.Asset{
-				Urn:     "my-topic-urn",
-				Name:    "my-topic",
-				Service: "kafka",
-				Type:    "topic",
+				Urn:     "my-table-urn",
+				Name:    "my-table",
+				Service: "maxcompute",
+				Type:    "table",
 				Data: testutils.BuildAny(t, &v1beta2.Table{
 					Attributes: utils.TryParseMapToProto(map[string]interface{}{
 						"newFoo": "newBar",
@@ -329,10 +331,10 @@ func TestSink(t *testing.T) {
 			},
 			expected: compass.RequestPayload{
 				Asset: compass.Asset{
-					URN:     "my-topic-urn",
-					Name:    "my-topic",
-					Service: "kafka",
-					Type:    "topic",
+					URN:     "my-table-urn",
+					Name:    "my-table",
+					Service: "maxcompute",
+					Type:    "table",
 					Labels: map[string]string{
 						"foo1": "bar1",
 						"foo2": "newBar",
@@ -344,6 +346,7 @@ func TestSink(t *testing.T) {
 						},
 						"columns":        []interface{}{},
 						"create_time":    nil,
+						"ddl_statement":  "",
 						"preview_fields": []interface{}{},
 						"preview_rows":   nil,
 						"profile":        nil,
