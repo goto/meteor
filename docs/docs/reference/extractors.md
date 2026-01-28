@@ -24,6 +24,8 @@ that particular extractor can be found by visiting the link in the `type` field.
 | [`redshift`][redshift-readme]     | ✅          | ✅       | ✅      | ✗       | ✗         | ✗      |
 | [`presto`][presto-readme]         | ✅          | ✅       | ✅      | ✗       | ✗         | ✗      |
 | [`snowflake`][snowflake-readme]   | ✅          | ✅       | ✅      | ✗       | ✗         | ✗      |
+| [`bigquery`][bigquery-readme]     | ✅          | ✅       | ✅      | ✗       | ✗         | ✗      |
+| [`maxcompute`][maxcompute-readme] | ✅          | ✅       | ✅      | ✗       | ✗         | ✗      |
 
 ### Dashboard
 
@@ -113,6 +115,10 @@ of asset.
 [presto-readme]: https://github.com/goto/meteor/tree/main/plugins/extractors/presto/README.md
 
 [snowflake-readme]: https://github.com/goto/meteor/tree/main/plugins/extractors/snowflake/README.md
+
+[bigquery-readme]: https://github.com/goto/meteor/tree/main/plugins/extractors/bigquery/README.md
+
+[maxcompute-readme]: https://github.com/goto/meteor/tree/main/plugins/extractors/maxcompute/README.md
 
 [grafana-readme]: https://github.com/goto/meteor/tree/main/plugins/extractors/grafana/README.md
 
