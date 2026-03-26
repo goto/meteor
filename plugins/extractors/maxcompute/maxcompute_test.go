@@ -125,7 +125,13 @@ func TestExtract(t *testing.T) {
 	}
 	dummyTableSchema.CreateTime = common.GMTTime(dummyCreateTime)
 	dummyTableSchema.LastModifiedTime = common.GMTTime(dummyCreateTime)
-	dummyTableSchema.Comment = "dummy table description"
+	dummyTableSchema.Comment = `{"description": "dummy table description", "data_owner_team": "dummy_team"}`
+	dummyTableSchema.PartitionColumns = []tableschema.Column{
+		{
+			Name: "data_date",
+			Type: datatype.DateType,
+		},
+	}
 
 	c3 := tableschema.Column{
 		Name:    "user_id",
@@ -247,6 +253,7 @@ func TestExtract(t *testing.T) {
 		}, nil)
 
 		assert.Nil(t, err)
+		fmt.Println(len(actual))
 		assert.NotEmpty(t, actual)
 		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets.json", actual)
 	})
@@ -270,7 +277,7 @@ func TestExtract(t *testing.T) {
 
 			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1, nil)
 			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
-			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[0], 3).Return(nil, nil, nil)
+			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[0], 3).Return(nil, nil, fmt.Errorf("failed to get table preview"))
 
 			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:], nil)
 			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
@@ -347,5 +354,56 @@ func TestExtract(t *testing.T) {
 		}, nil)
 		assert.ErrorContains(t, err, "ListSchema fails")
 		assert.Nil(t, actual)
+	})
+
+	t.Run("should return no error if GetTablePreview fails", func(t *testing.T) {
+		actual, err := runTest(t, plugins.Config{
+			URNScope: "test-maxcompute",
+			RawConfig: map[string]interface{}{
+				"project_name": projectID,
+				"access_key": map[string]interface{}{
+					"id":     "access_key_id",
+					"secret": "access_key_secret",
+				},
+				"endpoint_project":   "https://example.com/some-api",
+				"max_preview_rows":   3,
+				"mix_values":         false,
+				"build_view_lineage": true,
+			},
+		}, func(mockClient *mocks.MaxComputeClient) {
+			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
+
+			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1, nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
+			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[0], 3).Return(nil, nil, fmt.Errorf("failed to get table preview"))
+
+			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:], nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
+			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[1], 3).Return(
+				[]string{"user_id", "email"},
+				&structpb.ListValue{
+					Values: []*structpb.Value{
+						structpb.NewListValue(&structpb.ListValue{
+							Values: []*structpb.Value{
+								structpb.NewStringValue("1"),
+								structpb.NewStringValue("user1@example.com"),
+							},
+						}),
+						structpb.NewListValue(&structpb.ListValue{
+							Values: []*structpb.Value{
+								structpb.NewStringValue("2"),
+								structpb.NewStringValue("user2@example.com"),
+							},
+						}),
+					},
+				},
+				nil,
+			)
+			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
+		}, nil)
+
+		assert.Nil(t, err)
+		assert.NotEmpty(t, actual)
+		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets-with-view-lineage.json", actual)
 	})
 }

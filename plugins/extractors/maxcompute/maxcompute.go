@@ -3,6 +3,7 @@ package maxcompute
 import (
 	"context"
 	_ "embed" // used to print the embedded assets
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
@@ -293,6 +294,16 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		Columns:    columns,
 		CreateTime: timestamppb.New(time.Time(tableSchema.CreateTime)),
 		UpdateTime: timestamppb.New(time.Time(tableSchema.LastModifiedTime)),
+	}
+
+	var decodedComment map[string]string
+	_ = json.Unmarshal([]byte(tableSchema.Comment), &decodedComment)
+
+	if decodedComment != nil {
+		if desc, ok := decodedComment["description"]; ok {
+			asset.Description = desc
+		}
+		tableData.Labels = decodedComment
 	}
 
 	maxPreviewRows := e.config.MaxPreviewRows
