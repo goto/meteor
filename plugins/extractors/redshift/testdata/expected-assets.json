@@ -60,7 +60,8 @@
             "preview_fields": [],
             "preview_rows": null,
             "profile": null,
-            "update_time": null
+            "update_time": null,
+            "labels": {}
         },
         "description": "",
         "event": null,
@@ -98,7 +99,8 @@
             "preview_fields": [],
             "preview_rows": null,
             "profile": null,
-            "update_time": null
+            "update_time": null,
+            "labels": {}
         },
         "description": "",
         "event": null,
@@ -136,7 +138,8 @@
             "preview_fields": [],
             "preview_rows": null,
             "profile": null,
-            "update_time": null
+            "update_time": null,
+            "labels": {}
         },
         "description": "",
         "event": null,

@@ -237,7 +237,8 @@
         "total_rows": "5",
         "usage_count": "0"
       },
-      "update_time": "2023-06-13T03:46:12.372974Z"
+      "update_time": "2023-06-13T03:46:12.372974Z",
+      "labels": {}
     },
     "description": "",
     "event": null,
