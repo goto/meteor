@@ -26,7 +26,7 @@ help:           ##@help show this help
 NAME="github.com/goto/meteor"
 VERSION=$(shell git describe --always --tags 2>/dev/null)
 COVERFILE="/tmp/app.coverprofile"
-PROTON_COMMIT := "bb657cf6eabd4592c7a7655e949829c87c05fd80"
+PROTON_COMMIT := "a1be9cb7d4fcc9a334009a03c6b59e851b9b39bf"
 
 TOOLS_MOD_DIR = ./tools
 TOOLS_DIR = $(abspath ./.tools)
