@@ -61,16 +61,21 @@
             ],
             "preview_fields": [],
             "preview_rows": null,
-            "ddl_statement": "create table if not exists test-project-id.`my_schema`.`dummy_table` (\n    `id` BIGINT  ,\n    `name` STRUCT<`first_name`:STRING,`last_name`:STRING>  \n)\ncomment 'dummy table description';",
+            "ddl_statement": "create table if not exists test-project-id.`my_schema`.`dummy_table` (\n    `id` BIGINT  ,\n    `name` STRUCT<`first_name`:STRING,`last_name`:STRING>  \n)\ncomment '{\"description\": \"dummy table description\", \"data_owner_team\": \"dummy_team\"}'\npartitioned by (`data_date` DATE);",
             "attributes": {
                 "project_name": "test-project-id",
                 "resource_url": "/projects/test-project-id/schemas/my_schema/tables/dummy_table",
                 "schema": "my_schema",
                 "sql": "SELECT id, name, user_info\nFROM test-project-id.default.my_dummy_table",
-                "type": "VIRTUAL_VIEW"
+                "type": "VIRTUAL_VIEW",
+                "partition_fields": ["data_date"]
             },
             "create_time": "2024-11-14T06:41:35Z",
-            "update_time": "2024-11-14T06:41:35Z"
+            "update_time": "2024-11-14T06:41:35Z",
+            "labels": {
+                "description": "dummy table description",
+                "data_owner_team": "dummy_team"
+            }
         },
         "owners": [],
         "lineage": {
@@ -153,7 +158,8 @@
                 "type": "MANAGED_TABLE"
             },
             "create_time": "2024-11-18T08:00:00Z",
-            "update_time": "2024-11-18T08:00:00Z"
+            "update_time": "2024-11-18T08:00:00Z",
+            "labels": {}
         },
         "owners": [],
         "lineage": null,

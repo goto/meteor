@@ -248,6 +248,7 @@ func TestSink(t *testing.T) {
 						"profile":        nil,
 						"update_time":    nil,
 						"attributes":     map[string]interface{}{},
+						"labels":         map[string]string{},
 					},
 					Labels: map[string]string{
 						"labelA": "valueLabelA",
@@ -302,6 +303,7 @@ func TestSink(t *testing.T) {
 						"preview_rows":   nil,
 						"profile":        nil,
 						"update_time":    nil,
+						"labels":         map[string]string{},
 					},
 				},
 			},
@@ -351,6 +353,7 @@ func TestSink(t *testing.T) {
 						"preview_rows":   nil,
 						"profile":        nil,
 						"update_time":    nil,
+						"labels":         map[string]string{},
 					},
 				},
 			},
