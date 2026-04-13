@@ -406,4 +406,43 @@ func TestExtract(t *testing.T) {
 		assert.NotEmpty(t, actual)
 		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets-with-view-lineage.json", actual)
 	})
+
+	t.Run("should extract partition column name from generate expression", func(t *testing.T) {
+		autoPartitionTable := odps.NewTable(nil, projectID, "my_schema", "auto_partition_table")
+
+		autoPartitionSchemaBuilder := tableschema.NewSchemaBuilder()
+		autoPartitionSchemaBuilder.Name("auto_partition_table").Columns(c3, c4)
+		autoPartitionSchema := autoPartitionSchemaBuilder.Build()
+		autoPartitionSchema.TableName = "auto_partition_table"
+		autoPartitionSchema.CreateTime = common.GMTTime(newCreateTime)
+		autoPartitionSchema.LastModifiedTime = common.GMTTime(newCreateTime)
+		autoPartitionSchema.PartitionColumns = []tableschema.Column{
+			{
+				Name:               "_partition_value",
+				Type:               datatype.StringType,
+				GenerateExpression: tableschema.NewTruncTime("start_date", tableschema.DAY),
+			},
+		}
+
+		actual, err := runTest(t, plugins.Config{
+			URNScope: "test-maxcompute",
+			RawConfig: map[string]interface{}{
+				"project_name": projectID,
+				"access_key": map[string]interface{}{
+					"id":     "access_key_id",
+					"secret": "access_key_secret",
+				},
+				"endpoint_project": "https://example.com/some-api",
+			},
+		}, func(mockClient *mocks.MaxComputeClient) {
+			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
+			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return([]*odps.Table{autoPartitionTable}, nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, autoPartitionTable).Return("MANAGED_TABLE", &autoPartitionSchema, nil)
+			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
+		}, nil)
+
+		assert.Nil(t, err)
+		assert.NotEmpty(t, actual)
+		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets-auto-partition.json", actual)
+	})
 }
