@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"regexp"
 	"time"
 
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
@@ -385,10 +386,16 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 	}
 
 	var partitionNames []interface{}
-	if tableInfo.PartitionColumns != nil && len(tableInfo.PartitionColumns) > 0 {
-		partitionNames = make([]interface{}, len(tableInfo.PartitionColumns))
-		for i, column := range tableInfo.PartitionColumns {
-			partitionNames[i] = column.Name
+	if len(tableInfo.PartitionColumns) > 0 {
+		partitionNames = make([]interface{}, 0, len(tableInfo.PartitionColumns))
+		for _, column := range tableInfo.PartitionColumns {
+			name := column.Name
+			if column.GenerateExpression != nil {
+				if refCol := extractPartitionReferenceColumn(column.GenerateExpression); refCol != "" {
+					name = refCol
+				}
+			}
+			partitionNames = append(partitionNames, name)
 		}
 		attributesData[attributesDataPartitionFields] = partitionNames
 	}
@@ -502,6 +509,24 @@ func dataTypeToString(dataType datatype.DataType) string {
 		return dataType.Name()
 	}
 	return dataType.ID().String()
+}
+
+func extractPartitionReferenceColumn(expr interface{ String() string }) string {
+	if expr == nil {
+		return ""
+	}
+	raw := expr.String()
+	if raw == "" {
+		return ""
+	}
+
+	// TruncTime.String() in the SDK returns: trunc_time(`columnName`, 'datePart')
+	truncTimeRefRegex := regexp.MustCompile("(?i)trunc_time\\s*\\(\\s*`?([a-zA-Z_][a-zA-Z0-9_]*)`?")
+	if matches := truncTimeRefRegex.FindStringSubmatch(raw); len(matches) == 2 {
+		return matches[1]
+	}
+
+	return ""
 }
 
 func contains(slice []string, item string) bool {

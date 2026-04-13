@@ -1,0 +1,64 @@
+[
+    {
+        "urn": "urn:maxcompute:test-project-id:table:test-project-id.my_schema.auto_partition_table",
+        "name": "auto_partition_table",
+        "service": "maxcompute",
+        "type": "table",
+        "url": "",
+        "description": "",
+        "data": {
+            "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
+            "profile": {
+                "common_joins": [],
+                "filters": [],
+                "partition_key": "",
+                "partition_value": "",
+                "total_rows": "0",
+                "usage_count": "0"
+            },
+            "columns": [
+                {
+                    "name": "user_id",
+                    "description": "Unique identifier for users",
+                    "data_type": "BIGINT",
+                    "is_nullable": false,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "email",
+                    "description": "User email address",
+                    "data_type": "STRING",
+                    "is_nullable": false,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                }
+            ],
+            "preview_fields": [],
+            "preview_rows": null,
+            "ddl_statement": "create table if not exists test-project-id.`my_schema`.`auto_partition_table` (\n    `user_id` BIGINT not null comment 'Unique identifier for users',\n    `email` STRING not null comment 'User email address'\n)\nauto partitioned by (trunc_time(`start_date`, 'day') AS _partition_value);",
+            "attributes": {
+                "project_name": "test-project-id",
+                "resource_url": "/projects/test-project-id/schemas/my_schema/tables/auto_partition_table",
+                "schema": "my_schema",
+                "type": "MANAGED_TABLE",
+                "partition_fields": ["start_date"]
+            },
+            "create_time": "2024-11-18T08:00:00Z",
+            "update_time": "2024-11-18T08:00:00Z",
+            "labels": {}
+        },
+        "owners": [],
+        "lineage": null,
+        "is_deleted": false,
+        "labels": {},
+        "event": null,
+        "refreshed_at": null,
+        "create_time": "2024-11-18T08:00:00Z",
+        "update_time": "2024-11-18T08:00:00Z"
+    }
+]
