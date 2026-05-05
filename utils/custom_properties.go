@@ -61,11 +61,14 @@ func SetAttributes(asset *v1beta2.Asset, customFields map[string]interface{}) (r
 	return asset, nil
 }
 
-// TryParseMapToProto parses given map to proto struct
+// TryParseMapToProto parses given map to proto struct, returning nil on failure
 func TryParseMapToProto(src map[string]interface{}) *structpb.Struct {
+	if src == nil {
+		return nil
+	}
 	res, err := parseMapToProto(src)
 	if err != nil {
-		panic(err)
+		return &structpb.Struct{}
 	}
 
 	return res

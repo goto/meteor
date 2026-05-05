@@ -131,9 +131,6 @@ func (e *Extractor) Init(ctx context.Context, conf plugins.Config) error {
 		return err
 	}
 
-	e.eg = &errgroup.Group{}
-	e.eg.SetLimit(e.config.Concurrency)
-
 	return nil
 }
 
@@ -152,13 +149,19 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 			continue
 		}
 
-		err := e.fetchTablesFromSchema(ctx, schema, emit)
-		if err != nil {
+		e.eg = &errgroup.Group{}
+		e.eg.SetLimit(e.config.Concurrency)
+
+		if err := e.fetchTablesFromSchema(ctx, schema, emit); err != nil {
+			return err
+		}
+
+		if err := e.eg.Wait(); err != nil {
 			return err
 		}
 	}
 
-	return e.eg.Wait()
+	return nil
 }
 
 func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Schema, emit plugins.Emit) error {

@@ -8,6 +8,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestTryParseMapToProto(t *testing.T) {
+	t.Run("should return nil for nil input", func(t *testing.T) {
+		assert.Nil(t, TryParseMapToProto(nil))
+	})
+
+	t.Run("should return struct for valid input", func(t *testing.T) {
+		result := TryParseMapToProto(map[string]interface{}{"key": "value"})
+		assert.NotNil(t, result)
+		assert.Equal(t, "value", result.Fields["key"].GetStringValue())
+	})
+
+	t.Run("should return empty struct for unsupported value type instead of panicking", func(t *testing.T) {
+		result := TryParseMapToProto(map[string]interface{}{
+			"bad": map[string]string{"nested": "not-supported"},
+		})
+		assert.NotNil(t, result)
+		assert.Empty(t, result.Fields)
+	})
+}
+
 func TestGetAttributes(t *testing.T) {
 	cases := []struct {
 		name     string
