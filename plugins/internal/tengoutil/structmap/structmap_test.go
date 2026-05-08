@@ -11,10 +11,18 @@ import (
 	testutils "github.com/goto/meteor/test/utils"
 	"github.com/goto/meteor/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func mustParseMapToProto(t *testing.T, m map[string]interface{}) *structpb.Struct {
+	t.Helper()
+	s, err := utils.TryParseMapToProto(m)
+	require.NoError(t, err)
+	return s
+}
 
 func TestAsMap(t *testing.T) {
 	cases := []struct {
@@ -41,7 +49,7 @@ func TestAsMap(t *testing.T) {
 		{
 			name: "ProtoMessage",
 			input: &v1beta2.Job{
-				Attributes: utils.TryParseMapToProto(map[string]interface{}{
+				Attributes: mustParseMapToProto(t, map[string]interface{}{
 					"id":   "test-id",
 					"name": "test-name",
 				}),

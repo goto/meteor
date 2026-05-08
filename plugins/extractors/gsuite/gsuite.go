@@ -16,6 +16,7 @@ import (
 	admin "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 //go:embed README.md
@@ -123,11 +124,17 @@ func (e *Extractor) buildAsset(gsuiteUser *admin.User) (*v1beta2.Asset, error) {
 	userAttributes["aliases"] = strings.Join(gsuiteUser.Aliases, ",")
 	userAttributes["org_unit_path"] = gsuiteUser.OrgUnitPath
 
+	userAttrs, err := utils.TryParseMapToProto(userAttributes)
+	if err != nil {
+		e.logger.Warn("error building user attributes, using empty attributes", "user", gsuiteUser.PrimaryEmail, "error", err)
+		userAttrs = &structpb.Struct{}
+	}
+
 	assetUser, err := anypb.New(&v1beta2.User{
 		Email:      gsuiteUser.PrimaryEmail,
 		FullName:   gsuiteUser.Name.FullName,
 		Status:     status,
-		Attributes: utils.TryParseMapToProto(userAttributes),
+		Attributes: userAttrs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error when creating anypb.Any: %w", err)

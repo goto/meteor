@@ -466,10 +466,16 @@ func (e *Extractor) buildAsset(ctx context.Context, t *bigquery.Table, md *bigqu
 		}
 	}
 
+	tableAttrs, err := utils.TryParseMapToProto(attributesData)
+	if err != nil {
+		e.logger.Warn("error building table attributes, using empty attributes", "error", err)
+		tableAttrs = &structpb.Struct{}
+	}
+
 	tableData := &v1beta2.Table{
 		Columns:    e.buildColumns(ctx, md.Schema, md),
 		Profile:    tableProfile,
-		Attributes: utils.TryParseMapToProto(attributesData),
+		Attributes: tableAttrs,
 		CreateTime: timestamppb.New(md.CreationTime),
 		UpdateTime: timestamppb.New(md.LastModifiedTime),
 	}
@@ -518,12 +524,18 @@ func (e *Extractor) buildColumn(ctx context.Context, field *bigquery.FieldSchema
 		attributesMap["policy_tags"] = colPolicyTags
 	}
 
+	colAttrs, err := utils.TryParseMapToProto(attributesMap)
+	if err != nil {
+		e.logger.Warn("error building column attributes", "column", field.Name, "error", err)
+		colAttrs = &structpb.Struct{}
+	}
+
 	col := &v1beta2.Column{
 		Name:        field.Name,
 		Description: field.Description,
 		DataType:    string(field.Type),
 		IsNullable:  !(field.Required || field.Repeated),
-		Attributes:  utils.TryParseMapToProto(attributesMap),
+		Attributes:  colAttrs,
 	}
 
 	if len(field.Schema) > 0 {

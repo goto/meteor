@@ -16,6 +16,7 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -181,8 +182,14 @@ func (e *Extractor) buildJob(ctx context.Context, jobSpec *pb.JobSpecification, 
 		dataAttributes["category"] = jobSpec.Labels["category_table_tag"]
 	}
 
+	jobAttrs, err := utils.TryParseMapToProto(dataAttributes)
+	if err != nil {
+		e.logger.Warn("error building job attributes, using empty attributes", "error", err)
+		jobAttrs = &structpb.Struct{}
+	}
+
 	jobModel, err := anypb.New(&v1beta2.Job{
-		Attributes: utils.TryParseMapToProto(dataAttributes),
+		Attributes: jobAttrs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create Any struct: %w", err)

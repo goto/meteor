@@ -23,7 +23,15 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func mustParseMapToProto(t *testing.T, m map[string]interface{}) *structpb.Struct {
+	t.Helper()
+	s, err := ut.TryParseMapToProto(m)
+	require.NoError(t, err)
+	return s
+}
 
 var db *sql.DB
 
@@ -169,7 +177,7 @@ func getExpected(t *testing.T) []*v1beta2.Asset {
 						Length:     20,
 					},
 				},
-				Attributes: ut.TryParseMapToProto(map[string]interface{}{
+				Attributes: mustParseMapToProto(t, map[string]interface{}{
 					"grants": []interface{}{
 						map[string]interface{}{
 							"user":            "test_user",
@@ -199,7 +207,7 @@ func getExpected(t *testing.T) []*v1beta2.Asset {
 						Length:     20,
 					},
 				},
-				Attributes: ut.TryParseMapToProto(map[string]interface{}{
+				Attributes: mustParseMapToProto(t, map[string]interface{}{
 					"grants": []interface{}{
 						map[string]interface{}{
 							"user":            "test_user",

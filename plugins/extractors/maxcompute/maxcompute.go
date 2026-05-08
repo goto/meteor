@@ -263,12 +263,17 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 
 	var columns []*v1beta2.Column
 	for i, col := range tableSchema.Columns {
+		colAttrs, err := utils.TryParseMapToProto(buildColumnAttributesData(&tableSchema.Columns[i]))
+		if err != nil {
+			e.logger.Warn("error building column attributes, using empty attributes", "column", col.Name, "error", err)
+			colAttrs = &structpb.Struct{}
+		}
 		columnData := &v1beta2.Column{
 			Name:        col.Name,
 			DataType:    dataTypeToString(col.Type),
 			Description: col.Comment,
 			IsNullable:  !col.NotNull,
-			Attributes:  utils.TryParseMapToProto(buildColumnAttributesData(&tableSchema.Columns[i])),
+			Attributes:  colAttrs,
 			Columns:     buildColumns(col.Type),
 		}
 
@@ -292,9 +297,15 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		tableProfile.TotalRows = int64(tableSchema.RecordNum)
 	}
 
+	tableAttrs, err := utils.TryParseMapToProto(tableAttributesData)
+	if err != nil {
+		e.logger.Warn("error building table attributes, using empty attributes", "table", tableSchema.TableName, "error", err)
+		tableAttrs = &structpb.Struct{}
+	}
+
 	tableData := &v1beta2.Table{
 		Profile:    tableProfile,
-		Attributes: utils.TryParseMapToProto(tableAttributesData),
+		Attributes: tableAttrs,
 		Columns:    columns,
 		CreateTime: timestamppb.New(time.Time(tableSchema.CreateTime)),
 		UpdateTime: timestamppb.New(time.Time(tableSchema.LastModifiedTime)),

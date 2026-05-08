@@ -18,6 +18,7 @@ import (
 	"github.com/goto/salt/log"
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 //go:embed README.md
@@ -161,10 +162,15 @@ func (e *Extractor) getTablesInfo(ctx context.Context, emit plugins.Emit) error 
 					return
 				}
 				familyInfoBytes, _ := json.Marshal(tableInfo.FamilyInfos)
+				tableAttrs, attrErr := utils.TryParseMapToProto(map[string]interface{}{
+					"column_family": string(familyInfoBytes),
+				})
+				if attrErr != nil {
+					e.logger.Warn("error building table attributes", "table", table, "error", attrErr)
+					tableAttrs = &structpb.Struct{}
+				}
 				tableMeta, err := anypb.New(&v1beta2.Table{
-					Attributes: utils.TryParseMapToProto(map[string]interface{}{
-						"column_family": string(familyInfoBytes),
-					}),
+					Attributes: tableAttrs,
 				})
 				if err != nil {
 					e.logger.Warn("error creating Any struct", "error", err)

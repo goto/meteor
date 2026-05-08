@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/goto/meteor/models"
@@ -24,6 +25,13 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func mustParseMapToProto(t *testing.T, m map[string]interface{}) *structpb.Struct {
+	t.Helper()
+	s, err := utils.TryParseMapToProto(m)
+	require.NoError(t, err)
+	return s
+}
 
 var host = "http://compass.com"
 
@@ -120,7 +128,7 @@ func TestSink(t *testing.T) {
 			Type:        "topic",
 			Description: "topic information",
 			Data: testutils.BuildAny(t, &v1beta2.Topic{
-				Attributes: utils.TryParseMapToProto(map[string]interface{}{
+				Attributes: mustParseMapToProto(t, map[string]interface{}{
 					"attrA": "valueAttrA",
 					"attrB": "valueAttrB",
 				}),
@@ -266,7 +274,7 @@ func TestSink(t *testing.T) {
 				Type:        "table",
 				Description: "table information",
 				Data: testutils.BuildAny(t, &v1beta2.Table{
-					Attributes: utils.TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(t, map[string]interface{}{
 						"attrA": "valueAttrA",
 						"attrB": "valueAttrB",
 					}),
@@ -316,7 +324,7 @@ func TestSink(t *testing.T) {
 				Service: "maxcompute",
 				Type:    "table",
 				Data: testutils.BuildAny(t, &v1beta2.Table{
-					Attributes: utils.TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(t, map[string]interface{}{
 						"newFoo": "newBar",
 					}),
 				}),
@@ -566,7 +574,68 @@ func TestSink(t *testing.T) {
 	}
 }
 
+func TestSinkConcurrency(t *testing.T) {
+	cases := []struct {
+		description string
+		concurrency int
+		batchSize   int
+	}{
+		{
+			description: "Concurrency=0 defaults to 10, all records sinked",
+			concurrency: 0,
+			batchSize:   15,
+		},
+		{
+			description: "Concurrency<0 defaults to 10, all records sinked",
+			concurrency: -5,
+			batchSize:   15,
+		},
+		{
+			description: "Concurrency=1 serialises execution, all records sinked",
+			concurrency: 1,
+			batchSize:   5,
+		},
+		{
+			description: "Batch size 20 with Concurrency=5 sinks all 20 records",
+			concurrency: 5,
+			batchSize:   20,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.description, func(t *testing.T) {
+			client := newMockHTTPClient(map[string]interface{}{"host": host}, http.MethodPatch, url, compass.RequestPayload{})
+			client.SetupResponse(200, "")
+			ctx := context.TODO()
+
+			compassSink := compass.New(client, testutils.Logger)
+			err := compassSink.Init(ctx, plugins.Config{RawConfig: map[string]interface{}{
+				"host":        host,
+				"concurrency": tc.concurrency,
+			}})
+			require.NoError(t, err)
+
+			batch := make([]models.Record, tc.batchSize)
+			for i := range batch {
+				table, err := anypb.New(&v1beta2.Table{})
+				require.NoError(t, err)
+				batch[i] = models.NewRecord(&v1beta2.Asset{
+					Urn:  fmt.Sprintf("urn:test:table:%d", i),
+					Type: "table",
+					Data: table,
+				})
+			}
+
+			err = compassSink.Sink(ctx, batch)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.batchSize, client.CallCount())
+		})
+	}
+}
+
 type mockHTTPClient struct {
+	mu             sync.Mutex
+	callCount      int
 	URL            string
 	Method         string
 	Headers        map[string]string
@@ -594,8 +663,17 @@ func (m *mockHTTPClient) SetupResponse(statusCode int, json string) {
 	m.ResponseJSON = json
 }
 
+func (m *mockHTTPClient) CallCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.callCount
+}
+
 func (m *mockHTTPClient) Do(req *http.Request) (res *http.Response, err error) {
+	m.mu.Lock()
+	m.callCount++
 	m.req = req
+	m.mu.Unlock()
 
 	res = &http.Response{
 		// default values

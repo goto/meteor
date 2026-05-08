@@ -47,6 +47,8 @@ var info = plugins.Info{
 	SampleConfig: heredoc.Doc(`
 	# The hostname of the compass service
 	host: https://compass.com
+	# Concurrency controls the maximum number of records sent to compass in parallel. Defaults to 10.
+	concurrency: 10
 	# Additional HTTP headers send to compass, multiple headers value are separated by a comma
 	headers:
 	  Compass-User-Email: meteor@gotocompany.com

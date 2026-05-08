@@ -445,4 +445,77 @@ func TestExtract(t *testing.T) {
 		assert.NotEmpty(t, actual)
 		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets-auto-partition.json", actual)
 	})
+
+	t.Run("multi-schema: all assets from schema A emitted before schema B is processed", func(t *testing.T) {
+		schemaA := odps.NewSchema(nil, projectID, "schema_a")
+		schemaB := odps.NewSchema(nil, projectID, "schema_b")
+		tableA := odps.NewTable(nil, projectID, "schema_a", "table_a")
+		tableB := odps.NewTable(nil, projectID, "schema_b", "table_b")
+
+		tableASchemaBuilder := tableschema.NewSchemaBuilder()
+		tableASchemaBuilder.Name("table_a").Columns(c3)
+		tableASchema := tableASchemaBuilder.Build()
+		tableASchema.TableName = "table_a"
+
+		tableBSchemaBuilder := tableschema.NewSchemaBuilder()
+		tableBSchemaBuilder.Name("table_b").Columns(c4)
+		tableBSchema := tableBSchemaBuilder.Build()
+		tableBSchema.TableName = "table_b"
+
+		actual, err := runTest(t, plugins.Config{
+			URNScope: "test-maxcompute",
+			RawConfig: map[string]interface{}{
+				"project_name": projectID,
+				"access_key": map[string]interface{}{
+					"id":     "access_key_id",
+					"secret": "access_key_secret",
+				},
+				"endpoint_project": "https://example.com/some-api",
+				"concurrency":      2,
+			},
+		}, func(mockClient *mocks.MaxComputeClient) {
+			mockClient.EXPECT().ListSchema(mock.Anything).Return([]*odps.Schema{schemaA, schemaB}, nil)
+
+			mockClient.EXPECT().ListTable(mock.Anything, "schema_a").Return([]*odps.Table{tableA}, nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, tableA).Return("MANAGED_TABLE", &tableASchema, nil)
+			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil).Once()
+
+			mockClient.EXPECT().ListTable(mock.Anything, "schema_b").Return([]*odps.Table{tableB}, nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, tableB).Return("MANAGED_TABLE", &tableBSchema, nil)
+			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil).Once()
+		}, nil)
+
+		assert.NoError(t, err)
+		assert.Len(t, actual, 2)
+
+		urns := []string{actual[0].Urn, actual[1].Urn}
+		assert.Contains(t, urns, plugins.MaxComputeURN(projectID, "schema_a", "table_a"))
+		assert.Contains(t, urns, plugins.MaxComputeURN(projectID, "schema_b", "table_b"))
+	})
+
+	t.Run("error in schema A goroutine causes Extract to return early; schema B is never processed", func(t *testing.T) {
+		schemaA := odps.NewSchema(nil, projectID, "schema_a")
+		schemaB := odps.NewSchema(nil, projectID, "schema_b")
+		tableA := odps.NewTable(nil, projectID, "schema_a", "table_a")
+
+		actual, err := runTest(t, plugins.Config{
+			URNScope: "test-maxcompute",
+			RawConfig: map[string]interface{}{
+				"project_name": projectID,
+				"access_key": map[string]interface{}{
+					"id":     "access_key_id",
+					"secret": "access_key_secret",
+				},
+				"endpoint_project": "https://example.com/some-api",
+			},
+		}, func(mockClient *mocks.MaxComputeClient) {
+			mockClient.EXPECT().ListSchema(mock.Anything).Return([]*odps.Schema{schemaA, schemaB}, nil)
+
+			mockClient.EXPECT().ListTable(mock.Anything, "schema_a").Return([]*odps.Table{tableA}, nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, tableA).Return("", nil, fmt.Errorf("schema_a table error"))
+		}, nil)
+
+		assert.ErrorContains(t, err, "schema_a table error")
+		assert.Empty(t, actual)
+	})
 }
