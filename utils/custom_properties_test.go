@@ -6,7 +6,43 @@ import (
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	testutils "github.com/goto/meteor/test/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/structpb"
 )
+
+// mustParseMapToProto is a test helper that panics if TryParseMapToProto returns an error.
+// Only use this in tests with known-good maps.
+func mustParseMapToProto(m map[string]interface{}) *structpb.Struct {
+	s, err := TryParseMapToProto(m)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
+func TestTryParseMapToProto(t *testing.T) {
+	t.Run("should return empty struct for nil input", func(t *testing.T) {
+		result, err := TryParseMapToProto(nil)
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Empty(t, result.Fields)
+	})
+
+	t.Run("should return struct for valid input", func(t *testing.T) {
+		result, err := TryParseMapToProto(map[string]interface{}{"key": "value"})
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "value", result.Fields["key"].GetStringValue())
+	})
+
+	t.Run("should return error for unsupported value type", func(t *testing.T) {
+		result, err := TryParseMapToProto(map[string]interface{}{
+			"bad": map[string]string{"nested": "not-supported"},
+		})
+		assert.Error(t, err)
+		assert.Nil(t, result)
+	})
+}
 
 func TestGetAttributes(t *testing.T) {
 	cases := []struct {
@@ -18,7 +54,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "Table",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Table{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -39,7 +75,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "Topic",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Topic{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -60,7 +96,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "Dashboard",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Dashboard{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -81,7 +117,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "Job",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Job{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -102,7 +138,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "User",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.User{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -123,7 +159,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "Bucket",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Bucket{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -144,7 +180,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "Group",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Group{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -165,7 +201,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "Model",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Model{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -186,7 +222,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "Experiment",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Experiment{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -207,7 +243,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "Metric",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Metric{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -254,7 +290,7 @@ func TestGetAttributes(t *testing.T) {
 			name: "AssetWithNilAttributes",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Metric{
-					Attributes: TryParseMapToProto(nil),
+					Attributes: mustParseMapToProto(nil),
 				}),
 			},
 			expected: map[string]interface{}{},
@@ -289,7 +325,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Table{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -313,7 +349,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Topic{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -337,7 +373,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Dashboard{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -361,7 +397,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Job{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -385,7 +421,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.User{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -409,7 +445,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Bucket{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -433,7 +469,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Group{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -457,7 +493,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Model{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -481,7 +517,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Experiment{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -505,7 +541,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Metric{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -529,7 +565,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Application{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -553,7 +589,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.FeatureTable{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{
@@ -567,7 +603,7 @@ func TestSetAttributes(t *testing.T) {
 			name: "TableWithAttrs",
 			asset: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Table{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"d": map[string]interface{}{
 							"e": true,
 						},
@@ -583,7 +619,7 @@ func TestSetAttributes(t *testing.T) {
 			},
 			expected: &v1beta2.Asset{
 				Data: testutils.BuildAny(t, &v1beta2.Table{
-					Attributes: TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(map[string]interface{}{
 						"a": 1,
 						"b": "2",
 						"c": map[string]interface{}{

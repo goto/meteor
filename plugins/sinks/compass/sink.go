@@ -28,12 +28,16 @@ import (
 //go:embed README.md
 var summary string
 
+const defaultConcurrency = 10
+
 type Config struct {
 	Host    string            `mapstructure:"host" validate:"required"`
 	Headers map[string]string `mapstructure:"headers"`
 	Labels  map[string]string `mapstructure:"labels"`
 	// RemoveUnsetFieldsInData if set to true do not populate fields in final sink data which are unset in initial data.
 	RemoveUnsetFieldsInData bool `mapstructure:"remove_unset_fields_in_data"`
+	// Concurrency controls the maximum number of records sent to compass in parallel. Defaults to 10.
+	Concurrency int `mapstructure:"concurrency"`
 }
 
 var info = plugins.Info{
@@ -43,6 +47,8 @@ var info = plugins.Info{
 	SampleConfig: heredoc.Doc(`
 	# The hostname of the compass service
 	host: https://compass.com
+	# Concurrency controls the maximum number of records sent to compass in parallel. Defaults to 10.
+	concurrency: 10
 	# Additional HTTP headers send to compass, multiple headers value are separated by a comma
 	headers:
 	  Compass-User-Email: meteor@gotocompany.com
@@ -96,8 +102,13 @@ func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
 		return nil
 	}
 
+	concurrency := s.config.Concurrency
+	if concurrency <= 0 {
+		concurrency = defaultConcurrency
+	}
+
 	errGroup := errgroup.Group{}
-	errGroup.SetLimit(len(batch))
+	errGroup.SetLimit(concurrency)
 
 	for _, record := range batch {
 		record := record

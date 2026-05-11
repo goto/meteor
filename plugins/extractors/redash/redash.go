@@ -19,6 +19,7 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 //go:embed README.md
@@ -105,12 +106,18 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 func (e *Extractor) buildDashboard(dashboard Results) (*v1beta2.Asset, error) {
 	dashboardUrn := models.NewURN("redash", e.UrnScope, "dashboard", fmt.Sprintf("%d", dashboard.Id))
 
+	dashboardAttrs, err := utils.TryParseMapToProto(map[string]interface{}{
+		"user_id": dashboard.UserId,
+		"version": dashboard.Version,
+		"slug":    dashboard.Slug,
+	})
+	if err != nil {
+		e.logger.Warn("error building dashboard attributes, using empty attributes", "dashboard", dashboard.Id, "error", err)
+		dashboardAttrs = &structpb.Struct{}
+	}
+
 	data, err := anypb.New(&v1beta2.Dashboard{
-		Attributes: utils.TryParseMapToProto(map[string]interface{}{
-			"user_id": dashboard.UserId,
-			"version": dashboard.Version,
-			"slug":    dashboard.Slug,
-		}),
+		Attributes: dashboardAttrs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create Any struct: %w", err)

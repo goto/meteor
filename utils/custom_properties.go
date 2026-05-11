@@ -61,20 +61,12 @@ func SetAttributes(asset *v1beta2.Asset, customFields map[string]interface{}) (r
 	return asset, nil
 }
 
-// TryParseMapToProto parses given map to proto struct
-func TryParseMapToProto(src map[string]interface{}) *structpb.Struct {
-	res, err := parseMapToProto(src)
-	if err != nil {
-		panic(err)
-	}
-
-	return res
-}
-
-func parseMapToProto(src map[string]interface{}) (*structpb.Struct, error) {
+// TryParseMapToProto parses src into a *structpb.Struct.
+// Returns a non-nil empty struct and nil error when src is nil.
+// Callers must inspect the returned error before using the struct.
+func TryParseMapToProto(src map[string]interface{}) (*structpb.Struct, error) {
 	if src == nil {
-		return nil, nil
+		return &structpb.Struct{}, nil
 	}
-
 	return structpb.NewStruct(src)
 }

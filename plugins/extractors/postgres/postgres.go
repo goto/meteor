@@ -241,7 +241,7 @@ func (e *Extractor) userPrivilegesInfo(ctx context.Context, db *sql.DB, dbName, 
 	grants := map[string]interface{}{
 		"grants": usrs,
 	}
-	return utils.TryParseMapToProto(grants), nil
+	return utils.TryParseMapToProto(grants)
 }
 
 // Convert nullable string to a boolean

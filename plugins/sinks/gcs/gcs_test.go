@@ -15,8 +15,17 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func mustParseMapToProto(t *testing.T, m map[string]interface{}) *structpb.Struct {
+	t.Helper()
+	s, err := utils.TryParseMapToProto(m)
+	require.NoError(t, err)
+	return s
+}
 
 var validConfig = map[string]interface{}{
 	"project_id":             "google-project-id",
@@ -59,7 +68,7 @@ func TestSink(t *testing.T) {
 		u := &v1beta2.User{
 			FullName: "John Doe",
 			Email:    "john.doe@gotocompany.com",
-			Attributes: utils.TryParseMapToProto(map[string]interface{}{
+			Attributes: mustParseMapToProto(t, map[string]interface{}{
 				"org_unit_path": "/",
 				"aliases":       "doe.john@gotocompany.com,johndoe@gotocompany.com",
 			}),

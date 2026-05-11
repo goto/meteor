@@ -19,7 +19,15 @@ import (
 	util "github.com/goto/meteor/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func mustParseMapToProto(t *testing.T, m map[string]interface{}) *structpb.Struct {
+	t.Helper()
+	s, err := util.TryParseMapToProto(m)
+	require.NoError(t, err)
+	return s
+}
 
 var (
 	testServer *httptest.Server
@@ -72,7 +80,7 @@ func TestExtract(t *testing.T) {
 				Service: "redash",
 				Type:    "dashboard",
 				Data: testUtils.BuildAny(t, &v1beta2.Dashboard{
-					Attributes: util.TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(t, map[string]interface{}{
 						"user_id": 1,
 						"version": 1,
 						"slug":    "new-dashboard-copy",
@@ -85,7 +93,7 @@ func TestExtract(t *testing.T) {
 				Service: "redash",
 				Type:    "dashboard",
 				Data: testUtils.BuildAny(t, &v1beta2.Dashboard{
-					Attributes: util.TryParseMapToProto(map[string]interface{}{
+					Attributes: mustParseMapToProto(t, map[string]interface{}{
 						"user_id": 1,
 						"version": 2,
 						"slug":    "test-dashboard-updated",

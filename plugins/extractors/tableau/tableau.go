@@ -13,6 +13,7 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -117,17 +118,24 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 func (e *Extractor) buildDashboard(wb *Workbook) (*v1beta2.Asset, error) {
 	lineages := e.buildLineage(wb.UpstreamTables)
 	dashboardURN := models.NewURN("tableau", e.UrnScope, "workbook", wb.ID)
+
+	dashboardAttrs, err := utils.TryParseMapToProto(map[string]interface{}{
+		"id":           wb.ID,
+		"name":         wb.Name,
+		"project_name": wb.ProjectName,
+		"uri":          wb.URI,
+		"owner_id":     wb.Owner.ID,
+		"owner_name":   wb.Owner.Name,
+		"owner_email":  wb.Owner.Email,
+	})
+	if err != nil {
+		e.logger.Warn("error building dashboard attributes, using empty attributes", "workbook", wb.ID, "error", err)
+		dashboardAttrs = &structpb.Struct{}
+	}
+
 	data, err := anypb.New(&v1beta2.Dashboard{
-		Charts: e.buildCharts(dashboardURN, wb),
-		Attributes: utils.TryParseMapToProto(map[string]interface{}{
-			"id":           wb.ID,
-			"name":         wb.Name,
-			"project_name": wb.ProjectName,
-			"uri":          wb.URI,
-			"owner_id":     wb.Owner.ID,
-			"owner_name":   wb.Owner.Name,
-			"owner_email":  wb.Owner.Email,
-		}),
+		Charts:     e.buildCharts(dashboardURN, wb),
+		Attributes: dashboardAttrs,
 		CreateTime: timestamppb.New(wb.CreatedAt),
 		UpdateTime: timestamppb.New(wb.UpdatedAt),
 	})
@@ -156,17 +164,22 @@ func (e *Extractor) buildCharts(dashboardURN string, wb *Workbook) []*v1beta2.Ch
 	var charts []*v1beta2.Chart
 	for _, sh := range wb.Sheets {
 		chartURN := models.NewURN("tableau", e.UrnScope, "sheet", sh.ID)
+		chartAttrs, err := utils.TryParseMapToProto(map[string]interface{}{
+			"id":   sh.ID,
+			"name": sh.Name,
+		})
+		if err != nil {
+			e.logger.Warn("error building chart attributes, using empty attributes", "sheet", sh.ID, "error", err)
+			chartAttrs = &structpb.Struct{}
+		}
 		charts = append(charts, &v1beta2.Chart{
 			Urn:          chartURN,
 			Name:         sh.Name,
 			DashboardUrn: dashboardURN,
 			Source:       "tableau",
-			Attributes: utils.TryParseMapToProto(map[string]interface{}{
-				"id":   sh.ID,
-				"name": sh.Name,
-			}),
-			CreateTime: timestamppb.New(sh.CreatedAt),
-			UpdateTime: timestamppb.New(sh.UpdatedAt),
+			Attributes:   chartAttrs,
+			CreateTime:   timestamppb.New(sh.CreatedAt),
+			UpdateTime:   timestamppb.New(sh.UpdatedAt),
 		})
 	}
 	return charts

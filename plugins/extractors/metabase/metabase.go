@@ -15,6 +15,7 @@ import (
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 //go:embed README.md
@@ -109,13 +110,19 @@ func (e *Extractor) buildDashboard(ctx context.Context, d m.Dashboard) (*v1beta2
 	charts := e.buildCharts(ctx, dashboardURN, dashboard)
 	dashboardUpstreams := e.buildDashboardUpstreams(charts)
 
+	dashboardAttrs, err := utils.TryParseMapToProto(map[string]interface{}{
+		"id":            dashboard.ID,
+		"collection_id": dashboard.CollectionID,
+		"creator_id":    dashboard.CreatorID,
+	})
+	if err != nil {
+		e.logger.Warn("error building dashboard attributes, using empty attributes", "dashboard", dashboard.ID, "error", err)
+		dashboardAttrs = &structpb.Struct{}
+	}
+
 	data, err := anypb.New(&v1beta2.Dashboard{
-		Charts: charts,
-		Attributes: utils.TryParseMapToProto(map[string]interface{}{
-			"id":            dashboard.ID,
-			"collection_id": dashboard.CollectionID,
-			"creator_id":    dashboard.CreatorID,
-		}),
+		Charts:     charts,
+		Attributes: dashboardAttrs,
 		CreateTime: dashboard.CreatedAt.ToPB(),
 		UpdateTime: dashboard.UpdatedAt.ToPB(),
 	})
@@ -162,22 +169,28 @@ func (e *Extractor) buildChart(ctx context.Context, card m.Card, dashboardURN st
 		e.logger.Warn("error building upstreams for a card", "card_id", card.ID, "err", err)
 	}
 
+	chartAttrs, err := utils.TryParseMapToProto(map[string]interface{}{
+		"id":                     card.ID,
+		"collection_id":          card.CollectionID,
+		"creator_id":             card.CreatorID,
+		"database_id":            card.DatabaseID,
+		"table_id":               card.TableID,
+		"query_average_duration": card.QueryAverageDuration,
+		"display":                card.Display,
+		"archived":               card.Archived,
+	})
+	if err != nil {
+		e.logger.Warn("error building chart attributes, using empty attributes", "card", card.ID, "error", err)
+		chartAttrs = &structpb.Struct{}
+	}
+
 	return &v1beta2.Chart{
 		Urn:          fmt.Sprintf("metabase::%s/card/%d", e.config.InstanceLabel, card.ID),
 		DashboardUrn: dashboardURN,
 		Source:       "metabase",
 		Name:         card.Name,
 		Description:  card.Description,
-		Attributes: utils.TryParseMapToProto(map[string]interface{}{
-			"id":                     card.ID,
-			"collection_id":          card.CollectionID,
-			"creator_id":             card.CreatorID,
-			"database_id":            card.DatabaseID,
-			"table_id":               card.TableID,
-			"query_average_duration": card.QueryAverageDuration,
-			"display":                card.Display,
-			"archived":               card.Archived,
-		}),
+		Attributes:   chartAttrs,
 		Lineage: &v1beta2.Lineage{
 			Upstreams: upstreams,
 		},

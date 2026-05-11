@@ -9,6 +9,7 @@ sinks:
   name: compass
   config:
     host: https://compass.com
+    concurrency: 10
     headers:
       compass-User-Email: meteor@gotocompany.com
       Header-1: value11,value12

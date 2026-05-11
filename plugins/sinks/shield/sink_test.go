@@ -23,7 +23,15 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func mustParseMapToProto(t *testing.T, m map[string]interface{}) *structpb.Struct {
+	t.Helper()
+	s, err := utils.TryParseMapToProto(m)
+	require.NoError(t, err)
+	return s
+}
 
 var (
 	validConfig = map[string]interface{}{
@@ -74,7 +82,7 @@ func TestSink(t *testing.T) {
 		user, err := anypb.New(&v1beta2.User{
 			Email:    "user@gotocompany.com",
 			FullName: "john",
-			Attributes: utils.TryParseMapToProto(map[string]interface{}{
+			Attributes: mustParseMapToProto(t, map[string]interface{}{
 				"org_unit_path": "/",
 			}),
 		})
@@ -136,7 +144,7 @@ func TestSink(t *testing.T) {
 		u := &v1beta2.User{
 			FullName: "John Doe",
 			Email:    "john.doe@gotocompany.com",
-			Attributes: utils.TryParseMapToProto(map[string]interface{}{
+			Attributes: mustParseMapToProto(t, map[string]interface{}{
 				"org_unit_path": "/",
 				"aliases":       "doe.john@gotocompany.com,johndoe@gotocompany.com",
 			}),
