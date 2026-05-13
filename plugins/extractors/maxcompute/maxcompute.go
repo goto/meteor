@@ -398,7 +398,7 @@ func (e *Extractor) listGroupMapping(ctx context.Context) (map[string]string, er
 	}
 
 	var groupMapping map[string][]interface{}
-	if err = json.NewDecoder(res.Body).Decode(&groupMapping); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&groupMapping); err != nil {
 		return nil, err
 	}
 
@@ -409,17 +409,38 @@ func (e *Extractor) listGroupMapping(ctx context.Context) (map[string]string, er
 
 	groupResult := make(map[string]string)
 	for _, group := range groupDetails {
-		groupDetail := group.(map[string]interface{})
-		groupMetadata, metadataFound := groupDetail["metadata"]
-		if metadataFound {
-			pdgName, pdgFound := groupMetadata.(map[string]interface{})["product-group-name"]
-			if pdgFound {
-				groupResult[groupDetail["slug"].(string)] = pdgName.(string)
-			}
+		slug, pdg, found := extractGroupPDG(group)
+		if found {
+			groupResult[slug] = pdg
 		}
 	}
 
 	return groupResult, nil
+}
+
+func extractGroupPDG(group interface{}) (slug, pdg string, found bool) {
+	groupDetail, ok := group.(map[string]interface{})
+	if !ok {
+		return "", "", false
+	}
+	slug, ok = groupDetail["slug"].(string)
+	if !ok {
+		return "", "", false
+	}
+	metadata, found := groupDetail["metadata"]
+	if !found {
+		return "", "", false
+	}
+	metadataMap, ok := metadata.(map[string]interface{})
+	if !ok {
+		return "", "", false
+	}
+	pdgVal, found := metadataMap["product-group-name"]
+	if !found {
+		return "", "", false
+	}
+	pdg, ok = pdgVal.(string)
+	return slug, pdg, ok
 }
 
 func getUpstreamResources(query string) []*v1beta2.Resource {
