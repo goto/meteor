@@ -292,6 +292,41 @@ func TestExtract(t *testing.T) {
 		return actual, err
 	}
 
+	t.Run("should return empty group mapping when shield_host is not configured", func(t *testing.T) {
+		mockClient := mocks.NewMaxComputeClient(t)
+		mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
+		mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[:1], nil)
+		mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
+		mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
+
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil)
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+
+		err := extr.Init(ctx, plugins.Config{
+			URNScope: "test-maxcompute",
+			RawConfig: map[string]interface{}{
+				"project_name": projectID,
+				"access_key": map[string]interface{}{
+					"id":     "access_key_id",
+					"secret": "access_key_secret",
+				},
+				"endpoint_project": "https://example.com/some-api",
+			},
+		})
+		require.NoError(t, err)
+
+		emitter := mocks2.NewEmitter()
+		require.NoError(t, extr.Extract(ctx, emitter.Push))
+
+		actual := emitter.GetAllData()
+		require.Len(t, actual, 1)
+
+		tableData := &v1beta2.Table{}
+		require.NoError(t, proto.Unmarshal(actual[0].GetData().GetValue(), tableData))
+		assert.NotContains(t, tableData.GetLabels(), "pdg")
+	})
+
 	t.Run("should return no error without lineage", func(t *testing.T) {
 		actual, err := runTest(t, plugins.Config{
 			URNScope: "test-maxcompute",

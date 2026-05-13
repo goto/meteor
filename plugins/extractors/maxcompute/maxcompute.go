@@ -374,6 +374,10 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 }
 
 func (e *Extractor) listGroupMapping(ctx context.Context) (map[string]string, error) {
+	if e.config.ShieldHost == "" {
+		return nil, nil
+	}
+
 	const listGroupMappingRoute = "/admin/v1beta1/groups"
 	targetURL := e.urlb.New().Path(listGroupMappingRoute).URL()
 
