@@ -15,8 +15,10 @@ type Config struct {
 		Tables            []string `mapstructure:"tables"`
 		MinTableLifecycle int      `mapstructure:"min_table_lifecycle"`
 	} `mapstructure:"exclude,omitempty"`
-	MaxPreviewRows   int  `mapstructure:"max_preview_rows,omitempty"`
-	MixValues        bool `mapstructure:"mix_values,omitempty"`
-	Concurrency      int  `mapstructure:"concurrency,omitempty"`
-	BuildViewLineage bool `mapstructure:"build_view_lineage,omitempty"`
+	MaxPreviewRows   int    `mapstructure:"max_preview_rows,omitempty"`
+	MixValues        bool   `mapstructure:"mix_values,omitempty"`
+	Concurrency      int    `mapstructure:"concurrency,omitempty"`
+	BuildViewLineage bool              `mapstructure:"build_view_lineage,omitempty"`
+	ShieldHost       string            `mapstructure:"shield_host,omitempty"`
+	ShieldHeader     map[string]string `mapstructure:"shield_header,omitempty"`
 }
