@@ -19,6 +19,6 @@ type Config struct {
 	MixValues        bool              `mapstructure:"mix_values,omitempty"`
 	Concurrency      int               `mapstructure:"concurrency,omitempty"`
 	BuildViewLineage bool              `mapstructure:"build_view_lineage,omitempty"`
-	ShieldHost       string            `mapstructure:"shield_host,omitempty"`
+	ShieldHost       string            `mapstructure:"shield_host,omitempty" validate:"omitempty,url"`
 	ShieldHeader     map[string]string `mapstructure:"shield_header,omitempty"`
 }

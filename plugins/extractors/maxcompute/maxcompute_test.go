@@ -461,6 +461,30 @@ func TestExtract(t *testing.T) {
 		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets-with-table-exclusion.json", actual)
 	})
 
+	t.Run("should return no error if GetTablePreview fails", func(t *testing.T) {
+		actual, err := runTest(t, plugins.Config{
+			URNScope: "test-maxcompute",
+			RawConfig: map[string]interface{}{
+				"project_name": projectID,
+				"access_key": map[string]interface{}{
+					"id":     "access_key_id",
+					"secret": "access_key_secret",
+				},
+				"endpoint_project": "https://example.com/some-api",
+				"max_preview_rows": 3,
+			},
+		}, func(mockClient *mocks.MaxComputeClient) {
+			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
+			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:2], nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
+			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[1], 3).Return(nil, nil, fmt.Errorf("preview failed"))
+			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
+		}, nil)
+
+		require.NoError(t, err)
+		require.NotEmpty(t, actual)
+	})
+
 	t.Run("should return error if ListSchema fails", func(t *testing.T) {
 		actual, err := runTest(t, plugins.Config{
 			URNScope: "test-maxcompute",
