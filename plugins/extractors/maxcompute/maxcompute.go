@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"regexp"
 	"time"
 
@@ -13,12 +14,14 @@ import (
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/common"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/datatype"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/tableschema"
+	"github.com/goto/meteor/metrics/otelhttpclient"
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/maxcompute/client"
 	"github.com/goto/meteor/plugins/extractors/maxcompute/config"
 	"github.com/goto/meteor/plugins/internal/upstream"
+	"github.com/goto/meteor/plugins/internal/urlbuilder"
 	"github.com/goto/meteor/registry"
 	"github.com/goto/meteor/utils"
 	"github.com/goto/salt/log"
@@ -40,6 +43,8 @@ const (
 	attributesDataLabel           = "label"
 	attributesDataLifecycle       = "lifecycle"
 	attributesDataDDLStatement    = "ddl_statement"
+
+	httpTimeout = 30 * time.Second
 )
 
 type Extractor struct {
@@ -48,9 +53,11 @@ type Extractor struct {
 	config config.Config
 	randFn randFn
 
-	client    Client
-	newClient NewClientFunc
-	eg        *errgroup.Group
+	client     Client
+	newClient  NewClientFunc
+	urlb       urlbuilder.Source
+	httpClient *http.Client
+	eg         *errgroup.Group
 }
 
 type randFn func(rndSeed int64) func(int64) int64
@@ -131,10 +138,27 @@ func (e *Extractor) Init(ctx context.Context, conf plugins.Config) error {
 		return err
 	}
 
+	e.urlb, err = urlbuilder.NewSource(e.config.ShieldHost)
+	if err != nil {
+		return err
+	}
+
+	httpClient := &http.Client{Timeout: httpTimeout}
+	httpClient.Transport = otelhttpclient.NewHTTPTransport(httpClient.Transport)
+	e.httpClient = httpClient
+
+	e.eg = &errgroup.Group{}
+	e.eg.SetLimit(e.config.Concurrency)
+
 	return nil
 }
 
 func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
+	groupMapping, err := e.listGroupMapping(ctx)
+	if err != nil {
+		return err
+	}
+
 	schemas, err := e.client.ListSchema(ctx)
 	if err != nil && len(schemas) == 0 {
 		return err
@@ -152,7 +176,7 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 		e.eg = &errgroup.Group{}
 		e.eg.SetLimit(e.config.Concurrency)
 
-		if err := e.fetchTablesFromSchema(ctx, schema, emit); err != nil {
+		if err := e.fetchTablesFromSchema(ctx, schema, groupMapping, emit); err != nil {
 			return err
 		}
 
@@ -164,7 +188,7 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 	return nil
 }
 
-func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Schema, emit plugins.Emit) error {
+func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Schema, groupMapping map[string]string, emit plugins.Emit) error {
 	tables, err := e.client.ListTable(ctx, schema.Name())
 	if err != nil && len(tables) == 0 {
 		return err
@@ -179,14 +203,14 @@ func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Sche
 
 		tbl := table
 		e.eg.Go(func() error {
-			return e.processTable(ctx, schema, tbl, emit)
+			return e.processTable(ctx, schema, tbl, groupMapping, emit)
 		})
 	}
 
 	return nil
 }
 
-func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table *odps.Table, emit plugins.Emit) error {
+func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table *odps.Table, groupMapping map[string]string, emit plugins.Emit) error {
 	tableType, tableSchema, err := e.client.GetTableSchema(ctx, table)
 	if err != nil {
 		return err
@@ -204,7 +228,7 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 		}
 	}
 
-	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema)
+	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema, groupMapping)
 	if err != nil {
 		e.logger.Error("failed to build asset", "table", table.Name(), "error", err)
 		return err
@@ -216,6 +240,7 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 
 func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	table *odps.Table, tableType string, tableSchema *tableschema.TableSchema,
+	groupMapping map[string]string,
 ) (*v1beta2.Asset, error) {
 	defaultSchema := "default"
 	schemaName := schema.Name()
@@ -318,6 +343,11 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		if desc, ok := decodedComment["description"]; ok {
 			asset.Description = desc
 		}
+		if shieldTeam, ok := decodedComment["data_owner_team"]; ok {
+			if pdgName, ok := groupMapping[shieldTeam]; ok {
+				decodedComment["pdg"] = pdgName
+			}
+		}
 		tableData.Labels = decodedComment
 	}
 
@@ -341,6 +371,80 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	asset.Data = tbl
 
 	return asset, nil
+}
+
+func (e *Extractor) listGroupMapping(ctx context.Context) (map[string]string, error) {
+	if e.config.ShieldHost == "" {
+		return nil, nil
+	}
+
+	const listGroupMappingRoute = "/admin/v1beta1/groups"
+	targetURL := e.urlb.New().Path(listGroupMappingRoute).URL()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range e.config.ShieldHeader {
+		req.Header.Add(key, value)
+	}
+	req = otelhttpclient.AnnotateRequest(req, listGroupMappingRoute)
+
+	res, err := e.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer plugins.DrainBody(res)
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("response with status: %d", res.StatusCode)
+	}
+
+	var groupMapping map[string][]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&groupMapping); err != nil {
+		return nil, err
+	}
+
+	groupDetails, found := groupMapping["groups"]
+	if !found {
+		return nil, nil
+	}
+
+	groupResult := make(map[string]string)
+	for _, group := range groupDetails {
+		slug, pdg, found := extractGroupPDG(group)
+		if found {
+			groupResult[slug] = pdg
+		}
+	}
+
+	return groupResult, nil
+}
+
+func extractGroupPDG(group interface{}) (slug, pdg string, found bool) {
+	groupDetail, ok := group.(map[string]interface{})
+	if !ok {
+		return "", "", false
+	}
+	slug, ok = groupDetail["slug"].(string)
+	if !ok {
+		return "", "", false
+	}
+	metadata, found := groupDetail["metadata"]
+	if !found {
+		return "", "", false
+	}
+	metadataMap, ok := metadata.(map[string]interface{})
+	if !ok {
+		return "", "", false
+	}
+	pdgVal, found := metadataMap["product-group-name"]
+	if !found {
+		return "", "", false
+	}
+	pdg, ok = pdgVal.(string)
+	return slug, pdg, ok
 }
 
 func getUpstreamResources(query string) []*v1beta2.Resource {
