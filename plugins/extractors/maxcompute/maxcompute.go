@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
+	"sync/atomic"
 	"time"
 
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
@@ -66,6 +67,12 @@ type Extractor struct {
 type randFn func(rndSeed int64) func(int64) int64
 
 type NewClientFunc func(ctx context.Context, logger log.Logger, conf config.Config) (Client, error)
+
+type extractionRun struct {
+	groupMapping  map[string]string
+	emit          plugins.Emit
+	tablesSkipped *atomic.Int64
+}
 
 //go:embed README.md
 var summary string
@@ -164,6 +171,14 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 		return err
 	}
 
+	var schemasSkipped int
+	var tablesSkipped atomic.Int64
+	run := &extractionRun{
+		groupMapping:  groupMapping,
+		emit:          emit,
+		tablesSkipped: &tablesSkipped,
+	}
+
 	for _, schema := range schemas {
 		if e.config.SchemaName != "" && schema.Name() != e.config.SchemaName {
 			continue
@@ -176,19 +191,28 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 		e.eg = &errgroup.Group{}
 		e.eg.SetLimit(e.config.Concurrency)
 
-		if err := e.fetchTablesFromSchema(ctx, schema, groupMapping, emit); err != nil {
-			return err
+		if err := e.fetchTablesFromSchema(ctx, schema, run); err != nil {
+			e.logger.Warn("skipping schema due to error fetching tables", "schema", schema.Name(), "error", err)
+			schemasSkipped++
+			continue
 		}
 
 		if err := e.eg.Wait(); err != nil {
-			return err
+			e.logger.Warn("skipping schema due to error processing tables", "schema", schema.Name(), "error", err)
+			schemasSkipped++
+			continue
 		}
+	}
+
+	if schemasSkipped > 0 || tablesSkipped.Load() > 0 {
+		e.logger.Warn("extraction completed with partial failures", "project", e.config.ProjectName,
+			"schemas_skipped", schemasSkipped, "tables_skipped", tablesSkipped.Load())
 	}
 
 	return nil
 }
 
-func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Schema, groupMapping map[string]string, emit plugins.Emit) error {
+func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Schema, run *extractionRun) error {
 	tables, err := e.client.ListTable(ctx, schema.Name())
 	if err != nil && len(tables) == 0 {
 		return err
@@ -203,17 +227,20 @@ func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Sche
 
 		tbl := table
 		e.eg.Go(func() error {
-			return e.processTable(ctx, schema, tbl, groupMapping, emit)
+			return e.processTable(ctx, schema, tbl, run)
 		})
 	}
 
 	return nil
 }
 
-func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table *odps.Table, groupMapping map[string]string, emit plugins.Emit) error {
+func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table *odps.Table, run *extractionRun) error {
+	tableName := fmt.Sprintf("%s.%s", schema.Name(), table.Name())
 	tableType, tableSchema, err := e.client.GetTableSchema(ctx, table)
 	if err != nil {
-		return err
+		e.logger.Error("failed to get table schema", "table", tableName, "error", err)
+		run.tablesSkipped.Add(1)
+		return nil
 	}
 
 	// If the lifecycle is less than the minimum lifecycle (days), skip the table
@@ -221,20 +248,21 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 		lifecyclePermanent := tableSchema.Lifecycle == -1
 		lifecycleNotConfigured := tableSchema.Lifecycle == 0
 		if !lifecyclePermanent && !lifecycleNotConfigured && tableSchema.Lifecycle < e.config.Exclude.MinTableLifecycle {
-			tableName := fmt.Sprintf("%s.%s", schema.Name(), table.Name())
 			e.logger.Info("skipping table due to lifecycle less than minimum configured lifecycle",
 				"table", tableName, "lifecycle", tableSchema.Lifecycle)
+			run.tablesSkipped.Add(1)
 			return nil
 		}
 	}
 
-	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema, groupMapping)
+	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema, run.groupMapping)
 	if err != nil {
-		e.logger.Error("failed to build asset", "table", table.Name(), "error", err)
-		return err
+		e.logger.Error("failed to build asset", "table", tableName, "error", err)
+		run.tablesSkipped.Add(1)
+		return nil
 	}
 
-	emit(models.NewRecord(asset))
+	run.emit(models.NewRecord(asset))
 	return nil
 }
 
