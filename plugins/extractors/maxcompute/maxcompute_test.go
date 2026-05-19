@@ -589,10 +589,16 @@ func TestExtract(t *testing.T) {
 		assert.Contains(t, urns, plugins.MaxComputeURN(projectID, "schema_b", "table_b"))
 	})
 
-	t.Run("error in schema A goroutine causes Extract to return early; schema B is never processed", func(t *testing.T) {
+	t.Run("should skip table with schema error and continue processing remaining schemas", func(t *testing.T) {
 		schemaA := odps.NewSchema(nil, projectID, "schema_a")
 		schemaB := odps.NewSchema(nil, projectID, "schema_b")
 		tableA := odps.NewTable(nil, projectID, "schema_a", "table_a")
+		tableB := odps.NewTable(nil, projectID, "schema_b", "table_b")
+
+		tableBSchemaBuilder := tableschema.NewSchemaBuilder()
+		tableBSchemaBuilder.Name("table_b").Columns(c3)
+		tableBSchema := tableBSchemaBuilder.Build()
+		tableBSchema.TableName = "table_b"
 
 		actual, err := runTest(t, plugins.Config{
 			URNScope: "test-maxcompute",
@@ -609,10 +615,15 @@ func TestExtract(t *testing.T) {
 
 			mockClient.EXPECT().ListTable(mock.Anything, "schema_a").Return([]*odps.Table{tableA}, nil)
 			mockClient.EXPECT().GetTableSchema(mock.Anything, tableA).Return("", nil, fmt.Errorf("schema_a table error"))
+
+			mockClient.EXPECT().ListTable(mock.Anything, "schema_b").Return([]*odps.Table{tableB}, nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, tableB).Return("MANAGED_TABLE", &tableBSchema, nil)
+			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
 		}, nil)
 
-		assert.ErrorContains(t, err, "schema_a table error")
-		assert.Empty(t, actual)
+		assert.NoError(t, err)
+		require.Len(t, actual, 1)
+		assert.Equal(t, plugins.MaxComputeURN(projectID, "schema_b", "table_b"), actual[0].Urn)
 	})
 
 	t.Run("should enrich table labels with pdg when group mapping matches data_owner_team", func(t *testing.T) {
@@ -981,7 +992,7 @@ func TestExtract(t *testing.T) {
 		assert.Equal(t, plugins.MaxComputeURN(projectID, "schema_b", "table_b"), actual[0].Urn)
 	})
 
-	t.Run("should return error if ListTable fails", func(t *testing.T) {
+	t.Run("should skip schema and continue when ListTable fails", func(t *testing.T) {
 		actual, err := runTest(t, plugins.Config{
 			URNScope: "test-maxcompute",
 			RawConfig: map[string]interface{}{
@@ -997,7 +1008,7 @@ func TestExtract(t *testing.T) {
 			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(nil, fmt.Errorf("ListTable fails"))
 		}, nil)
 
-		assert.ErrorContains(t, err, "ListTable fails")
+		assert.NoError(t, err)
 		assert.Empty(t, actual)
 	})
 

@@ -177,11 +177,13 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 		e.eg.SetLimit(e.config.Concurrency)
 
 		if err := e.fetchTablesFromSchema(ctx, schema, groupMapping, emit); err != nil {
-			return err
+			e.logger.Warn("skipping schema due to error fetching tables", "schema", schema.Name(), "error", err)
+			continue
 		}
 
 		if err := e.eg.Wait(); err != nil {
-			return err
+			e.logger.Warn("skipping schema due to error processing tables", "schema", schema.Name(), "error", err)
+			continue
 		}
 	}
 
@@ -211,9 +213,11 @@ func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Sche
 }
 
 func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table *odps.Table, groupMapping map[string]string, emit plugins.Emit) error {
+	tableName := fmt.Sprintf("%s.%s", schema.Name(), table.Name())
 	tableType, tableSchema, err := e.client.GetTableSchema(ctx, table)
 	if err != nil {
-		return err
+		e.logger.Error("failed to get table schema", "table", tableName, "error", err)
+		return nil
 	}
 
 	// If the lifecycle is less than the minimum lifecycle (days), skip the table
@@ -221,7 +225,6 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 		lifecyclePermanent := tableSchema.Lifecycle == -1
 		lifecycleNotConfigured := tableSchema.Lifecycle == 0
 		if !lifecyclePermanent && !lifecycleNotConfigured && tableSchema.Lifecycle < e.config.Exclude.MinTableLifecycle {
-			tableName := fmt.Sprintf("%s.%s", schema.Name(), table.Name())
 			e.logger.Info("skipping table due to lifecycle less than minimum configured lifecycle",
 				"table", tableName, "lifecycle", tableSchema.Lifecycle)
 			return nil
@@ -230,8 +233,8 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 
 	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema, groupMapping)
 	if err != nil {
-		e.logger.Error("failed to build asset", "table", table.Name(), "error", err)
-		return err
+		e.logger.Error("failed to build asset", "table", tableName, "error", err)
+		return nil
 	}
 
 	emit(models.NewRecord(asset))
