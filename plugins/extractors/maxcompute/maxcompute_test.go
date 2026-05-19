@@ -785,7 +785,7 @@ func TestExtract(t *testing.T) {
 		assert.Equal(t, "meteor-app@gojek.com", capturedAuthEmail)
 	})
 
-	t.Run("should return error if listGroupMapping fails", func(t *testing.T) {
+	t.Run("should continue extraction with empty pdg mapping when listGroupMapping fails after retries", func(t *testing.T) {
 		failingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
@@ -802,10 +802,19 @@ func TestExtract(t *testing.T) {
 				"endpoint_project": "https://example.com/some-api",
 				"shield_host":      failingServer.URL,
 			},
-		}, nil, nil)
+		}, func(mockClient *mocks.MaxComputeClient) {
+			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
+			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[:1], nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
+			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
+		}, nil)
 
-		assert.ErrorContains(t, err, "response with status: 500")
-		assert.Empty(t, actual)
+		require.NoError(t, err)
+		require.Len(t, actual, 1)
+
+		tableData := &v1beta2.Table{}
+		require.NoError(t, proto.Unmarshal(actual[0].GetData().GetValue(), tableData))
+		assert.NotContains(t, tableData.GetLabels(), "pdg")
 	})
 
 	t.Run("should continue extraction when shield response has no groups key", func(t *testing.T) {

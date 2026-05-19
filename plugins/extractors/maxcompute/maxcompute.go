@@ -44,7 +44,10 @@ const (
 	attributesDataLifecycle       = "lifecycle"
 	attributesDataDDLStatement    = "ddl_statement"
 
-	httpTimeout = 30 * time.Second
+	httpTimeout                = 30 * time.Second
+	listGroupMappingRoute      = "/admin/v1beta1/groups"
+	listGroupMappingMaxRetry   = 3
+	listGroupMappingRetryDelay = 200 * time.Millisecond
 )
 
 type Extractor struct {
@@ -154,10 +157,7 @@ func (e *Extractor) Init(ctx context.Context, conf plugins.Config) error {
 }
 
 func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
-	groupMapping, err := e.listGroupMapping(ctx)
-	if err != nil {
-		return err
-	}
+	groupMapping := e.listGroupMapping(ctx)
 
 	schemas, err := e.client.ListSchema(ctx)
 	if err != nil && len(schemas) == 0 {
@@ -373,12 +373,36 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	return asset, nil
 }
 
-func (e *Extractor) listGroupMapping(ctx context.Context) (map[string]string, error) {
+func (e *Extractor) listGroupMapping(ctx context.Context) map[string]string {
 	if e.config.ShieldHost == "" {
-		return nil, nil
+		return map[string]string{}
 	}
 
-	const listGroupMappingRoute = "/admin/v1beta1/groups"
+	var lastErr error
+	for attempt := 1; attempt <= listGroupMappingMaxRetry; attempt++ {
+		result, err := e.doListGroupMapping(ctx)
+		if err == nil {
+			return result
+		}
+
+		lastErr = err
+		e.logger.Warn("group mapping fetch attempt failed, retrying",
+			"attempt", attempt, "max_retries", listGroupMappingMaxRetry, "error", err)
+		if attempt < listGroupMappingMaxRetry {
+			select {
+			case <-ctx.Done():
+				e.logger.Warn("context canceled while retrying group mapping fetch", "error", ctx.Err())
+				return map[string]string{}
+			case <-time.After(listGroupMappingRetryDelay):
+			}
+		}
+	}
+
+	e.logger.Warn("failed to fetch group mapping after retries, continuing with empty PDG mapping", "error", lastErr)
+	return map[string]string{}
+}
+
+func (e *Extractor) doListGroupMapping(ctx context.Context) (map[string]string, error) {
 	targetURL := e.urlb.New().Path(listGroupMappingRoute).URL()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL.String(), nil)
@@ -408,7 +432,7 @@ func (e *Extractor) listGroupMapping(ctx context.Context) (map[string]string, er
 
 	groupDetails, found := groupMapping["groups"]
 	if !found {
-		return nil, nil
+		return map[string]string{}, nil
 	}
 
 	groupResult := make(map[string]string)
