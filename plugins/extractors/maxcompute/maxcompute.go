@@ -61,7 +61,6 @@ type Extractor struct {
 	newClient  NewClientFunc
 	urlb       urlbuilder.Source
 	httpClient *http.Client
-	eg         *errgroup.Group
 }
 
 type randFn func(rndSeed int64) func(int64) int64
@@ -157,9 +156,6 @@ func (e *Extractor) Init(ctx context.Context, conf plugins.Config) error {
 	httpClient.Transport = otelhttpclient.NewHTTPTransport(httpClient.Transport)
 	e.httpClient = httpClient
 
-	e.eg = &errgroup.Group{}
-	e.eg.SetLimit(e.config.Concurrency)
-
 	return nil
 }
 
@@ -188,17 +184,8 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 			continue
 		}
 
-		e.eg = &errgroup.Group{}
-		e.eg.SetLimit(e.config.Concurrency)
-
 		if err := e.fetchTablesFromSchema(ctx, schema, run); err != nil {
-			e.logger.Warn("skipping schema due to error fetching tables", "schema", schema.Name(), "error", err)
-			schemasSkipped++
-			continue
-		}
-
-		if err := e.eg.Wait(); err != nil {
-			e.logger.Warn("skipping schema due to error processing tables", "schema", schema.Name(), "error", err)
+			e.logger.Warn("skipping schema due to error", "schema", schema.Name(), "error", err)
 			schemasSkipped++
 			continue
 		}
@@ -212,23 +199,43 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 	return nil
 }
 
+func (e *Extractor) listTablesCopy(ctx context.Context, schemaName string) ([]*odps.Table, error) {
+	rawTables, err := e.client.ListTable(ctx, schemaName)
+	if err != nil && len(rawTables) == 0 {
+		return nil, err
+	}
+
+	tables := make([]*odps.Table, len(rawTables))
+	copy(tables, rawTables)
+	return tables, nil
+}
+
 func (e *Extractor) fetchTablesFromSchema(ctx context.Context, schema *odps.Schema, run *extractionRun) error {
-	tables, err := e.client.ListTable(ctx, schema.Name())
-	if err != nil && len(tables) == 0 {
+	tables, err := e.listTablesCopy(ctx, schema.Name())
+	if err != nil {
 		return err
 	}
 
-	for _, table := range tables {
+	eg := &errgroup.Group{}
+	eg.SetLimit(e.config.Concurrency)
+
+	for i, table := range tables {
 		tableName := fmt.Sprintf("%s.%s", schema.Name(), table.Name())
 		if contains(e.config.Exclude.Tables, tableName) {
 			e.logger.Info("skipping table as it is in the exclude list", "table", tableName)
+			tables[i] = nil
 			continue
 		}
 
 		tbl := table
-		e.eg.Go(func() error {
+		tables[i] = nil
+		eg.Go(func() error {
 			return e.processTable(ctx, schema, tbl, run)
 		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("process tables: %w", err)
 	}
 
 	return nil
