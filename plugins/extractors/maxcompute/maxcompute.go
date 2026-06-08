@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -372,7 +373,10 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	}
 
 	var decodedComment map[string]string
-	_ = json.Unmarshal([]byte(tableSchema.Comment), &decodedComment)
+	comment := strings.NewReplacer("\n", `\n`, "\r", `\r`, "\t", `\t`).Replace(tableSchema.Comment)
+	if err := json.Unmarshal([]byte(comment), &decodedComment); err != nil {
+		e.logger.Warn("error decoding comment", "error", err)
+	}
 
 	if decodedComment != nil {
 		if desc, ok := decodedComment["description"]; ok {
