@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -286,10 +287,7 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 
 	tableURN := plugins.MaxComputeURN(e.config.ProjectName, schemaName, tableSchema.TableName)
 
-	var previewFields []string
-	var previewRows *structpb.ListValue
-	var err error
-	previewFields, previewRows, err = e.buildPreview(ctx, table, tableSchema)
+	previewFields, previewRows, err := e.buildPreview(ctx, table, tableSchema)
 	if err != nil {
 		e.logger.Warn("error building preview", "err", err, "table", tableSchema.TableName)
 	}
@@ -393,7 +391,9 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	maxPreviewRows := e.config.MaxPreviewRows
 	if maxPreviewRows > 0 {
 		tableData.PreviewFields = previewFields
-		tableData.PreviewRows = previewRows
+		if e.config.IncludePreviewRows {
+			tableData.PreviewRows = previewRows
+		}
 	}
 
 	ddl, err := getDDLStatement(tableSchema, e.config.ProjectName, schemaName)
@@ -646,7 +646,130 @@ func (e *Extractor) buildPreview(ctx context.Context, t *odps.Table, tSchema *ta
 		}
 	}
 
+	previewFields, previewRows = flattenJSONColumns(previewFields, previewRows, stringColumnSet(tSchema))
+
 	return previewFields, previewRows, nil
+}
+
+func stringColumnSet(tableSchema *tableschema.TableSchema) map[string]bool {
+	if tableSchema == nil {
+		return nil
+	}
+
+	stringCols := make(map[string]bool, len(tableSchema.Columns))
+	for _, col := range tableSchema.Columns {
+		if dataTypeToString(col.Type) == datatype.STRING.String() {
+			stringCols[col.Name] = true
+		}
+	}
+
+	return stringCols
+}
+
+func flattenJSONColumns(fields []string, rows *structpb.ListValue, isStringCol map[string]bool) ([]string, *structpb.ListValue) {
+	if rows == nil || len(isStringCol) == 0 {
+		return fields, rows
+	}
+
+	subKeysByColumn := jsonSubKeys(fields, rows, isStringCol)
+	if len(subKeysByColumn) == 0 {
+		return fields, rows
+	}
+
+	newFields := make([]string, 0, len(fields))
+	for colIdx, fieldName := range fields {
+		newFields = append(newFields, fieldName)
+		for _, subKey := range subKeysByColumn[colIdx] {
+			newFields = append(newFields, fieldName+"."+subKey)
+		}
+	}
+
+	newRows := make([]*structpb.Value, len(rows.GetValues()))
+	for rowIdx, row := range rows.GetValues() {
+		newRows[rowIdx] = expandJSONRow(row, len(newFields), subKeysByColumn)
+	}
+
+	return newFields, &structpb.ListValue{Values: newRows}
+}
+
+func jsonSubKeys(fields []string, rows *structpb.ListValue, isStringCol map[string]bool) map[int][]string {
+	subKeysByColumn := map[int][]string{}
+	for colIdx, fieldName := range fields {
+		if !isStringCol[fieldName] {
+			continue
+		}
+
+		keySet := map[string]struct{}{}
+		for _, row := range rows.GetValues() {
+			for key := range jsonObjectAt(row, colIdx) {
+				keySet[key] = struct{}{}
+			}
+		}
+
+		if len(keySet) == 0 {
+			continue
+		}
+
+		keys := make([]string, 0, len(keySet))
+		for key := range keySet {
+			keys = append(keys, key)
+		}
+
+		sort.Strings(keys)
+		subKeysByColumn[colIdx] = keys
+	}
+
+	return subKeysByColumn
+}
+
+func expandJSONRow(row *structpb.Value, width int, subKeysByColumn map[int][]string) *structpb.Value {
+	expandedCells := make([]*structpb.Value, 0, width)
+	for colIdx, cell := range row.GetListValue().GetValues() {
+		expandedCells = append(expandedCells, cell)
+		subKeys, ok := subKeysByColumn[colIdx]
+		if !ok {
+			continue
+		}
+
+		jsonObj := jsonObjectAt(row, colIdx)
+		for _, subKey := range subKeys {
+			expandedCells = append(expandedCells, structpb.NewStringValue(jsonText(jsonObj[subKey])))
+		}
+	}
+
+	return structpb.NewListValue(&structpb.ListValue{Values: expandedCells})
+}
+
+func jsonObjectAt(row *structpb.Value, col int) map[string]json.RawMessage {
+	cells := row.GetListValue().GetValues()
+	if col >= len(cells) {
+		return nil
+	}
+
+	text := strings.TrimSpace(cells[col].GetStringValue())
+	if text == "" || text[0] != '{' {
+		return nil
+	}
+
+	var obj map[string]json.RawMessage
+	if json.Unmarshal([]byte(text), &obj) != nil {
+		return nil
+	}
+
+	return obj
+}
+
+func jsonText(raw json.RawMessage) string {
+	if len(raw) == 0 || string(raw) == "null" {
+		return ""
+	}
+
+	var text string
+	if json.Unmarshal(raw, &text) == nil {
+		return text
+	}
+
+	return string(raw)
 }
 
 func (e *Extractor) mixValuesIfNeeded(rows []interface{}, rndSeed int64) ([]interface{}, error) {

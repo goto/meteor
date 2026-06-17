@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"sort"
 
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/account"
@@ -95,11 +96,13 @@ func (*Client) GetTableSchema(_ context.Context, table *odps.Table) (string, *ta
 	return table.Type().String(), &tableSchema, nil
 }
 
-func (c *Client) GetTablePreview(_ context.Context, partitionValue string, table *odps.Table, maxRows int) (
-	previewFields []string, previewRows *structpb.ListValue, err error,
-) {
+func (c *Client) GetTablePreview(_ context.Context, partitionValue string, table *odps.Table, maxRows int) ([]string, *structpb.ListValue, error) {
 	if table.Type().String() == config.TableTypeView {
 		return nil, nil, nil
+	}
+
+	if partitionValue == "" {
+		partitionValue = latestPartitionValue(table)
 	}
 
 	records, err := c.tunnel.Preview(table, partitionValue, int64(maxRows))
@@ -112,18 +115,34 @@ func (c *Client) GetTablePreview(_ context.Context, partitionValue string, table
 		columnNames[i] = column.Name
 	}
 
-	var protoRows []*structpb.Value
+	var previewRows []*structpb.Value
 	for _, record := range records {
 		var rowValues []*structpb.Value
 		for _, value := range record {
 			rowValues = append(rowValues, structpb.NewStringValue(value.String()))
 		}
-		protoRows = append(protoRows, structpb.NewListValue(&structpb.ListValue{Values: rowValues}))
+
+		previewRows = append(previewRows, structpb.NewListValue(&structpb.ListValue{Values: rowValues}))
 	}
 
-	protoList := &structpb.ListValue{Values: protoRows}
+	return columnNames, &structpb.ListValue{Values: previewRows}, nil
+}
 
-	return columnNames, protoList, nil
+func latestPartitionValue(table *odps.Table) string {
+	partitions, err := table.GetPartitions()
+	if err != nil || len(partitions) == 0 {
+		return ""
+	}
+
+	sort.Slice(partitions, func(first, second int) bool {
+		if !partitions[first].LastModifiedTime().Equal(partitions[second].LastModifiedTime()) {
+			return partitions[first].LastModifiedTime().After(partitions[second].LastModifiedTime())
+		}
+
+		return partitions[first].Value() > partitions[second].Value()
+	})
+
+	return partitions[0].Value()
 }
 
 func (*Client) GetMaskingPolicies(table *odps.Table) (maskingPolicies map[Column][]Policy, err error) {
