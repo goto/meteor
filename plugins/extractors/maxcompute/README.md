@@ -36,6 +36,9 @@ source:
 | `exclude.tables`              | `[]string` | `["schema_c.table_a"]`            | List of tables to exclude                                                               | *optional* |
 | `exclude.min_table_lifecycle` | `int`      | `8`                               | Exclude tables with a lifecycle less than this value (in days). Value must more than 1. | *optional* |
 | `concurrency`                 | `int`      | `10`                              | Number of concurrent requests to MaxCompute                                             | *optional* |
+| `max_preview_rows`            | `int`      | `30`                              | Number of rows to fetch for the table preview. Set to `0` to disable preview entirely.  | *optional* |
+| `include_preview_rows`        | `bool`     | `true`                            | Whether to emit preview row data. When `false` (the default), `preview_fields` is still populated but `preview_rows` is omitted. | *optional* |
+| `mix_values`                  | `bool`     | `false`                           | Shuffle each preview column independently across rows to break value correlations.      | *optional* |
 
 ### *Notes*
 

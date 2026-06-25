@@ -336,10 +336,11 @@ func TestExtract(t *testing.T) {
 					"id":     "access_key_id",
 					"secret": "access_key_secret",
 				},
-				"endpoint_project":   "https://example.com/some-api",
-				"max_preview_rows":   3,
-				"mix_values":         false,
-				"build_view_lineage": false,
+				"endpoint_project":     "https://example.com/some-api",
+				"max_preview_rows":     3,
+				"include_preview_rows": true,
+				"mix_values":           false,
+				"build_view_lineage":   false,
 			},
 		}, func(mockClient *mocks.MaxComputeClient) {
 			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
@@ -390,10 +391,11 @@ func TestExtract(t *testing.T) {
 					"id":     "access_key_id",
 					"secret": "access_key_secret",
 				},
-				"endpoint_project":   "https://example.com/some-api",
-				"max_preview_rows":   3,
-				"mix_values":         false,
-				"build_view_lineage": true,
+				"endpoint_project":     "https://example.com/some-api",
+				"max_preview_rows":     3,
+				"include_preview_rows": true,
+				"mix_values":           false,
+				"build_view_lineage":   true,
 			},
 		}, func(mockClient *mocks.MaxComputeClient) {
 			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
@@ -1083,9 +1085,10 @@ func TestExtract(t *testing.T) {
 					"id":     "access_key_id",
 					"secret": "access_key_secret",
 				},
-				"endpoint_project": "https://example.com/some-api",
-				"max_preview_rows": 3,
-				"mix_values":       true,
+				"endpoint_project":     "https://example.com/some-api",
+				"max_preview_rows":     3,
+				"include_preview_rows": true,
+				"mix_values":           true,
 			},
 		}, func(mockClient *mocks.MaxComputeClient) {
 			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
@@ -1131,5 +1134,74 @@ func TestExtract(t *testing.T) {
 		assert.Equal(t, "user2@example.com", firstRow[1].GetStringValue())
 		assert.Equal(t, "1", secondRow[0].GetStringValue())
 		assert.Equal(t, "user1@example.com", secondRow[1].GetStringValue())
+	})
+
+	t.Run("should flatten JSON string columns in preview", func(t *testing.T) {
+		actual, err := runTest(t, plugins.Config{
+			URNScope: "test-maxcompute",
+			RawConfig: map[string]interface{}{
+				"project_name": projectID,
+				"access_key": map[string]interface{}{
+					"id":     "access_key_id",
+					"secret": "access_key_secret",
+				},
+				"endpoint_project":     "https://example.com/some-api",
+				"max_preview_rows":     3,
+				"include_preview_rows": true,
+				"mix_values":           false,
+			},
+		}, func(mockClient *mocks.MaxComputeClient) {
+			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
+			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[1:], nil)
+			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[1]).Return("MANAGED_TABLE", schemaMapping[table1[1].Name()], nil)
+			mockClient.EXPECT().GetTablePreview(mock.Anything, "", table1[1], 3).Return(
+				[]string{"user_id", "email"},
+				&structpb.ListValue{
+					Values: []*structpb.Value{
+						structpb.NewListValue(&structpb.ListValue{
+							Values: []*structpb.Value{
+								structpb.NewStringValue("1"),
+								structpb.NewStringValue(`{"plan":"pro","active":"true"}`),
+							},
+						}),
+						structpb.NewListValue(&structpb.ListValue{
+							Values: []*structpb.Value{
+								structpb.NewStringValue("2"),
+								structpb.NewStringValue(`{"plan":"free"}`),
+							},
+						}),
+					},
+				},
+				nil,
+			)
+			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
+		}, nil)
+
+		require.NoError(t, err)
+		require.Len(t, actual, 1)
+
+		tableData := &v1beta2.Table{}
+		require.NoError(t, proto.Unmarshal(actual[0].GetData().GetValue(), tableData))
+
+		assert.Equal(t, []string{
+			"user_id", "email", "email.active", "email.plan",
+		}, tableData.GetPreviewFields())
+
+		rows := tableData.GetPreviewRows().GetValues()
+		require.Len(t, rows, 2)
+
+		firstRow := rows[0].GetListValue().GetValues()
+		require.Len(t, firstRow, 4)
+		assert.Equal(t, "1", firstRow[0].GetStringValue())
+		assert.Equal(t, `{"plan":"pro","active":"true"}`, firstRow[1].GetStringValue())
+		assert.Equal(t, "true", firstRow[2].GetStringValue())
+		assert.Equal(t, "pro", firstRow[3].GetStringValue())
+
+		secondRow := rows[1].GetListValue().GetValues()
+		require.Len(t, secondRow, 4)
+		assert.Equal(t, "2", secondRow[0].GetStringValue())
+		assert.Equal(t, `{"plan":"free"}`, secondRow[1].GetStringValue())
+		assert.Equal(t, "", secondRow[2].GetStringValue())
+		assert.Equal(t, "free", secondRow[3].GetStringValue())
 	})
 }
