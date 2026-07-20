@@ -52,6 +52,7 @@ const (
 	bytesPerKB = 1024
 	bytesPerMB = 1024 * 1024
 	bytesPerGB = 1024 * 1024 * 1024
+	bytesPerTB = 1024 * 1024 * 1024 * 1024
 
 	httpTimeout                = 30 * time.Second
 	listGroupMappingRoute      = "/admin/v1beta1/groups"
@@ -816,6 +817,8 @@ func (e *Extractor) mixValuesIfNeeded(rows []interface{}, rndSeed int64) ([]inte
 func formatTableSize(sizeInBytes int) string {
 	size := float64(sizeInBytes)
 	switch {
+	case size >= bytesPerTB:
+		return fmt.Sprintf("%.2f TB", math.Round(size/bytesPerTB*100)/100)
 	case size >= bytesPerGB:
 		return fmt.Sprintf("%.2f GB", math.Round(size/bytesPerGB*100)/100)
 	case size >= bytesPerMB:
