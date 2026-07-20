@@ -46,6 +46,7 @@ const (
 	attributesDataLabel           = "label"
 	attributesDataLifecycle       = "lifecycle"
 	attributesDataDDLStatement    = "ddl_statement"
+	attributesDataTableSize       = "table_size"
 
 	httpTimeout                = 30 * time.Second
 	listGroupMappingRoute      = "/admin/v1beta1/groups"
@@ -565,6 +566,8 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 	if tableInfo.Lifecycle != 0 {
 		attributesData[attributesDataLifecycle] = tableInfo.Lifecycle
 	}
+
+	attributesData[attributesDataTableSize] = tableInfo.PhysicalSize
 
 	var partitionNames []interface{}
 	if len(tableInfo.PartitionColumns) > 0 {
