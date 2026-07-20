@@ -47,7 +47,7 @@
                 "schema": "my_schema",
                 "type": "MANAGED_TABLE",
                 "partition_fields": ["start_date"],
-                "table_size": 0
+                "table_size_in_bytes": 0
             },
             "create_time": "2024-11-18T08:00:00Z",
             "update_time": "2024-11-18T08:00:00Z",

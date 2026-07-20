@@ -46,7 +46,7 @@ const (
 	attributesDataLabel           = "label"
 	attributesDataLifecycle       = "lifecycle"
 	attributesDataDDLStatement    = "ddl_statement"
-	attributesDataTableSize       = "table_size"
+	attributesDataTableSize       = "table_size_in_bytes"
 
 	httpTimeout                = 30 * time.Second
 	listGroupMappingRoute      = "/admin/v1beta1/groups"
