@@ -47,8 +47,10 @@ const (
 	attributesDataLabel           = "label"
 	attributesDataLifecycle       = "lifecycle"
 	attributesDataDDLStatement    = "ddl_statement"
-	attributesDataTableSize       = "table_size_in_gb"
+	attributesDataTableSize       = "table_size"
 
+	bytesPerKB = 1024
+	bytesPerMB = 1024 * 1024
 	bytesPerGB = 1024 * 1024 * 1024
 
 	httpTimeout                = 30 * time.Second
@@ -570,7 +572,7 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 		attributesData[attributesDataLifecycle] = tableInfo.Lifecycle
 	}
 
-	attributesData[attributesDataTableSize] = math.Round(float64(tableInfo.PhysicalSize)/bytesPerGB*100) / 100
+	attributesData[attributesDataTableSize] = formatTableSize(tableInfo.PhysicalSize)
 
 	var partitionNames []interface{}
 	if len(tableInfo.PartitionColumns) > 0 {
@@ -809,6 +811,20 @@ func (e *Extractor) mixValuesIfNeeded(rows []interface{}, rndSeed int64) ([]inte
 		mixedRows[i] = row
 	}
 	return mixedRows, nil
+}
+
+func formatTableSize(sizeInBytes int) string {
+	size := float64(sizeInBytes)
+	switch {
+	case size >= bytesPerGB:
+		return fmt.Sprintf("%.2f GB", math.Round(size/bytesPerGB*100)/100)
+	case size >= bytesPerMB:
+		return fmt.Sprintf("%.2f MB", math.Round(size/bytesPerMB*100)/100)
+	case size >= bytesPerKB:
+		return fmt.Sprintf("%.2f KB", math.Round(size/bytesPerKB*100)/100)
+	default:
+		return fmt.Sprintf("%d B", sizeInBytes)
+	}
 }
 
 func dataTypeToString(dataType datatype.DataType) string {
