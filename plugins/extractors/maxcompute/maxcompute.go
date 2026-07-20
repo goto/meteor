@@ -5,6 +5,7 @@ import (
 	_ "embed" // used to print the embedded assets
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"regexp"
@@ -46,7 +47,9 @@ const (
 	attributesDataLabel           = "label"
 	attributesDataLifecycle       = "lifecycle"
 	attributesDataDDLStatement    = "ddl_statement"
-	attributesDataTableSize       = "table_size_in_bytes"
+	attributesDataTableSize       = "table_size_in_gb"
+
+	bytesPerGB = 1024 * 1024 * 1024
 
 	httpTimeout                = 30 * time.Second
 	listGroupMappingRoute      = "/admin/v1beta1/groups"
@@ -567,7 +570,7 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 		attributesData[attributesDataLifecycle] = tableInfo.Lifecycle
 	}
 
-	attributesData[attributesDataTableSize] = tableInfo.PhysicalSize
+	attributesData[attributesDataTableSize] = math.Round(float64(tableInfo.PhysicalSize)/bytesPerGB*100) / 100
 
 	var partitionNames []interface{}
 	if len(tableInfo.PartitionColumns) > 0 {
