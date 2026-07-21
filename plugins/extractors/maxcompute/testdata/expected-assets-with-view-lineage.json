@@ -68,7 +68,8 @@
                 "schema": "my_schema",
                 "sql": "SELECT id, name, user_info\nFROM test-project-id.default.my_dummy_table",
                 "type": "VIRTUAL_VIEW",
-                "partition_fields": ["data_date"]
+                "partition_fields": ["data_date"],
+                "table_size": "0 B"
             },
             "create_time": "2024-11-14T06:41:35Z",
             "update_time": "2024-11-14T06:41:35Z",
@@ -155,7 +156,8 @@
                 "resource_url": "/projects/test-project-id/schemas/my_schema/tables/new_table",
                 "schema": "my_schema",
                 "sql": "SELECT user_id, email FROM test-project-id.my_schema.new_table",
-                "type": "MANAGED_TABLE"
+                "type": "MANAGED_TABLE",
+                "table_size": "0 B"
             },
             "create_time": "2024-11-18T08:00:00Z",
             "update_time": "2024-11-18T08:00:00Z",

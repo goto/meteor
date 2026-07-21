@@ -46,7 +46,8 @@
                 "resource_url": "/projects/test-project-id/schemas/my_schema/tables/auto_partition_table",
                 "schema": "my_schema",
                 "type": "MANAGED_TABLE",
-                "partition_fields": ["start_date"]
+                "partition_fields": ["start_date"],
+                "table_size": "0 B"
             },
             "create_time": "2024-11-18T08:00:00Z",
             "update_time": "2024-11-18T08:00:00Z",

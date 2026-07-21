@@ -5,6 +5,7 @@ import (
 	_ "embed" // used to print the embedded assets
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"regexp"
@@ -46,6 +47,12 @@ const (
 	attributesDataLabel           = "label"
 	attributesDataLifecycle       = "lifecycle"
 	attributesDataDDLStatement    = "ddl_statement"
+	attributesDataTableSize       = "table_size"
+
+	bytesPerKB = 1024
+	bytesPerMB = 1024 * 1024
+	bytesPerGB = 1024 * 1024 * 1024
+	bytesPerTB = 1024 * 1024 * 1024 * 1024
 
 	httpTimeout                = 30 * time.Second
 	listGroupMappingRoute      = "/admin/v1beta1/groups"
@@ -566,6 +573,8 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 		attributesData[attributesDataLifecycle] = tableInfo.Lifecycle
 	}
 
+	attributesData[attributesDataTableSize] = formatTableSize(tableInfo.PhysicalSize)
+
 	var partitionNames []interface{}
 	if len(tableInfo.PartitionColumns) > 0 {
 		partitionNames = make([]interface{}, 0, len(tableInfo.PartitionColumns))
@@ -803,6 +812,22 @@ func (e *Extractor) mixValuesIfNeeded(rows []interface{}, rndSeed int64) ([]inte
 		mixedRows[i] = row
 	}
 	return mixedRows, nil
+}
+
+func formatTableSize(sizeInBytes int) string {
+	size := float64(sizeInBytes)
+	switch {
+	case size >= bytesPerTB:
+		return fmt.Sprintf("%.2f TB", math.Round(size/bytesPerTB*100)/100)
+	case size >= bytesPerGB:
+		return fmt.Sprintf("%.2f GB", math.Round(size/bytesPerGB*100)/100)
+	case size >= bytesPerMB:
+		return fmt.Sprintf("%.2f MB", math.Round(size/bytesPerMB*100)/100)
+	case size >= bytesPerKB:
+		return fmt.Sprintf("%.2f KB", math.Round(size/bytesPerKB*100)/100)
+	default:
+		return fmt.Sprintf("%d B", sizeInBytes)
+	}
 }
 
 func dataTypeToString(dataType datatype.DataType) string {
