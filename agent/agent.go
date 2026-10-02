@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"runtime/debug"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/goto/meteor/registry"
 	"github.com/goto/salt/log"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 // TimerFn of function type
@@ -22,15 +22,16 @@ type TimerFn func() func() int
 
 // Agent runs recipes for specified plugins.
 type Agent struct {
-	extractorFactory *registry.ExtractorFactory
-	processorFactory *registry.ProcessorFactory
-	sinkFactory      *registry.SinkFactory
-	monitor          Monitor
-	logger           log.Logger
-	retrier          *retrier
-	stopOnSinkError  bool
-	timerFn          TimerFn
-	sinkBatchSize    int
+	extractorFactory     *registry.ExtractorFactory
+	processorFactory     *registry.ProcessorFactory
+	sinkFactory          *registry.SinkFactory
+	monitor              Monitor
+	logger               log.Logger
+	retrier              *retrier
+	stopOnSinkError      bool
+	timerFn              TimerFn
+	sinkBatchSize        int
+	maxConcurrentRecipes int
 }
 
 // NewAgent returns an Agent with plugin factories.
@@ -44,15 +45,16 @@ func NewAgent(config Config) *Agent {
 
 	retrier := newRetrier(config.MaxRetries, config.RetryInitialInterval)
 	return &Agent{
-		extractorFactory: config.ExtractorFactory,
-		processorFactory: config.ProcessorFactory,
-		sinkFactory:      config.SinkFactory,
-		stopOnSinkError:  config.StopOnSinkError,
-		monitor:          mt,
-		logger:           config.Logger,
-		retrier:          retrier,
-		timerFn:          timerFn,
-		sinkBatchSize:    config.SinkBatchSize,
+		extractorFactory:     config.ExtractorFactory,
+		processorFactory:     config.ProcessorFactory,
+		sinkFactory:          config.SinkFactory,
+		stopOnSinkError:      config.StopOnSinkError,
+		monitor:              mt,
+		logger:               config.Logger,
+		retrier:              retrier,
+		timerFn:              timerFn,
+		sinkBatchSize:        config.SinkBatchSize,
+		maxConcurrentRecipes: config.MaxConcurrentRecipes,
 	}
 }
 
@@ -95,21 +97,24 @@ func (r *Agent) Validate(rcp recipe.Recipe) []error {
 	return errs
 }
 
-// RunMultiple executes multiple recipes.
+// RunMultiple executes multiple recipes, running at most maxConcurrentRecipes
+// of them at a time.
 func (r *Agent) RunMultiple(ctx context.Context, recipes []recipe.Recipe) []Run {
-	var wg sync.WaitGroup
 	runs := make([]Run, len(recipes))
 
-	wg.Add(len(recipes))
-	for i, rcp := range recipes {
-		go func(i int, rcp recipe.Recipe) {
-			run := r.Run(ctx, rcp)
-			runs[i] = run
-			wg.Done()
-		}(i, rcp)
+	var eg errgroup.Group
+	if r.maxConcurrentRecipes > 0 {
+		eg.SetLimit(r.maxConcurrentRecipes)
 	}
 
-	wg.Wait()
+	for i, rcp := range recipes {
+		eg.Go(func() error {
+			runs[i] = r.Run(ctx, rcp)
+			return nil
+		})
+	}
+
+	_ = eg.Wait()
 
 	return runs
 }

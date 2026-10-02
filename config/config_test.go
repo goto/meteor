@@ -32,6 +32,7 @@ func TestLoad(t *testing.T) {
 				RetryInitialIntervalSeconds: 5,
 				StopOnSinkError:             false,
 				SinkBatchSize:               1,
+				MaxConcurrentRecipes:        0,
 			},
 		},
 		{
@@ -48,6 +49,7 @@ func TestLoad(t *testing.T) {
 				MaxRetries:                  5,
 				RetryInitialIntervalSeconds: 5,
 				SinkBatchSize:               1,
+				MaxConcurrentRecipes:        0,
 			},
 			expectedErr: "",
 		},
