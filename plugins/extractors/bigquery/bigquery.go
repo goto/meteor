@@ -328,7 +328,6 @@ func (e *Extractor) extractTable(ctx context.Context, ds *bigquery.Dataset, emit
 				continue
 			}
 
-			table := table
 			e.eg.Go(func() error {
 				tableFQN := table.FullyQualifiedName()
 

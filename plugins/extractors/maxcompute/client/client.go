@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"sort"
+	"strings"
 
 	"github.com/aliyun/aliyun-odps-go-sdk/odps"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/account"
@@ -11,6 +11,8 @@ import (
 	"github.com/goto/meteor/plugins/extractors/maxcompute/config"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+const nullPartitionKey = "__NULL__"
 
 type (
 	Column = string
@@ -129,20 +131,29 @@ func (c *Client) GetTablePreview(_ context.Context, partitionValue string, table
 }
 
 func latestPartitionValue(table *odps.Table) string {
-	partitions, err := table.GetPartitions()
-	if err != nil || len(partitions) == 0 {
+	partitions, err := table.GetPartitionValues()
+	if err != nil {
 		return ""
 	}
 
-	sort.Slice(partitions, func(first, second int) bool {
-		if !partitions[first].LastModifiedTime().Equal(partitions[second].LastModifiedTime()) {
-			return partitions[first].LastModifiedTime().After(partitions[second].LastModifiedTime())
+	var latestPartition string
+	for _, partitionValue := range partitions {
+		if partitionValue > latestPartition && !hasNullPartitionKey(partitionValue) {
+			latestPartition = partitionValue
 		}
+	}
 
-		return partitions[first].Value() > partitions[second].Value()
-	})
+	return latestPartition
+}
 
-	return partitions[0].Value()
+func hasNullPartitionKey(partitionValue string) bool {
+	for _, column := range strings.Split(partitionValue, "/") {
+		if _, value, found := strings.Cut(column, "="); found && value == nullPartitionKey {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (*Client) GetMaskingPolicies(table *odps.Table) (maskingPolicies map[Column][]Policy, err error) {
