@@ -1,3 +1,6 @@
+//go:build plugins
+// +build plugins
+
 package upstream_test
 
 import (
@@ -55,6 +58,22 @@ func TestParseTopLevelUpstreamsFromQuery(t *testing.T) {
 						Project: "data-engineering",
 						Dataset: "testing",
 						Name:    "table1",
+					},
+				},
+			},
+			{
+				Name:       "maxcompute-style partial backticks on project",
+				InputQuery: "select transaction_id from `p_mtrns_id_presentation`.commission.fact_commission where outlet_id in (select distinct outlet_id from `p_mtrns_id_presentation`.shared_merchant.dim_outlet)",
+				ExpectedSources: []upstream.Resource{
+					{
+						Project: "p_mtrns_id_presentation",
+						Dataset: "commission",
+						Name:    "fact_commission",
+					},
+					{
+						Project: "p_mtrns_id_presentation",
+						Dataset: "shared_merchant",
+						Name:    "dim_outlet",
 					},
 				},
 			},
