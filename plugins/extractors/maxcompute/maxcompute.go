@@ -392,8 +392,8 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 				decodedComment["pdg"] = pdgName
 			}
 		}
-		tableData.Labels = decodedComment
 	}
+	tableData.Labels = decodedComment
 
 	maxPreviewRows := e.config.MaxPreviewRows
 	if maxPreviewRows > 0 {
@@ -587,8 +587,8 @@ func (e *Extractor) buildTableAttributesData(schemaName, tableType string, table
 			}
 			partitionNames = append(partitionNames, name)
 		}
-		attributesData[attributesDataPartitionFields] = partitionNames
 	}
+	attributesData[attributesDataPartitionFields] = partitionNames
 
 	return attributesData
 }
