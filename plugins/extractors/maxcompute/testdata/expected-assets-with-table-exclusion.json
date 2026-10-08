@@ -47,7 +47,8 @@
         "schema": "my_schema",
         "sql": "SELECT user_id, email FROM test-project-id.my_schema.new_table",
         "type": "MANAGED_TABLE",
-        "table_size": "0 B"
+        "table_size": "0 B",
+        "partition_fields": []
       },
       "create_time": "2024-11-18T08:00:00Z",
       "update_time": "2024-11-18T08:00:00Z",
@@ -111,7 +112,8 @@
         "schema": "my_schema",
         "sql": "SELECT user_id, email FROM test-project-id.my_schema.table_lifecycle_8",
         "type": "MANAGED_TABLE",
-        "table_size": "0 B"
+        "table_size": "0 B",
+        "partition_fields": []
       },
       "create_time": "2024-11-18T08:00:00Z",
       "update_time": "2024-11-18T08:00:00Z",

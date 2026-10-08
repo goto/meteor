@@ -59,6 +59,22 @@ func TestParseTopLevelUpstreamsFromQuery(t *testing.T) {
 				},
 			},
 			{
+				Name:       "maxcompute-style partial backticks on project",
+				InputQuery: "select * from `data-engineering`.testing.table1 where id in (select distinct id from `data-engineering`.testing.table2)",
+				ExpectedSources: []upstream.Resource{
+					{
+						Project: "data-engineering",
+						Dataset: "testing",
+						Name:    "table1",
+					},
+					{
+						Project: "data-engineering",
+						Dataset: "testing",
+						Name:    "table2",
+					},
+				},
+			},
+			{
 				Name:            "simple query without project name",
 				InputQuery:      "select * from testing.table1",
 				ExpectedSources: []upstream.Resource{},
