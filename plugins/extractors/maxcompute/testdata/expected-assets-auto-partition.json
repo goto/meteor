@@ -51,7 +51,8 @@
             },
             "create_time": "2024-11-18T08:00:00Z",
             "update_time": "2024-11-18T08:00:00Z",
-            "labels": {}
+            "labels": {},
+            "partition_detail": {}
         },
         "owners": [],
         "lineage": null,

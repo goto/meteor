@@ -11,6 +11,7 @@
                 "namespace": "namespace-A",
                 "owner": "john_doe@example.com",
                 "project": "project-A",
+                "schedulerState": "disabled",
                 "sql": "SELECT * FROM projectA.datasetB.tableC",
                 "startDate": "2019-09-16",
                 "task": {
@@ -80,6 +81,7 @@
                 "namespace": "namespace-A",
                 "owner": "jane_doe@example.com",
                 "project": "project-A",
+                "schedulerState": null,
                 "sql": "SELECT * FROM projectZ.datasetY.tableX",
                 "startDate": "2021-01-01",
                 "task": {
@@ -155,6 +157,7 @@
                 "namespace": "namespace-A",
                 "owner": "jane_doe@example.com",
                 "project": "project-A",
+                "schedulerState": null,
                 "sql": "SELECT * FROM projectZ.datasetY.tableX",
                 "startDate": "2021-01-01",
                 "task": {
@@ -210,6 +213,7 @@
                 "namespace": "namespaceMaxCompute-A",
                 "owner": "jane_doe@example.com",
                 "project": "projectMaxCompute-A",
+                "schedulerState": null,
                 "sql": "SELECT * FROM projectZ.schemaY.tableX",
                 "startDate": "2021-01-01",
                 "task": {
@@ -285,6 +289,7 @@
                 "namespace": "namespaceMaxCompute-A",
                 "owner": "jane_doe@example.com",
                 "project": "projectMaxCompute-A",
+                "schedulerState": null,
                 "sql": "SELECT * FROM projectZ.schemaY.tableX",
                 "startDate": "2021-01-01",
                 "task": {

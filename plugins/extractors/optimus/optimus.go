@@ -160,8 +160,9 @@ func (e *Extractor) buildJob(ctx context.Context, jobSpec *pb.JobSpecification, 
 		"endDate":       strOrNil(jobSpec.EndDate),
 		"interval":      jobSpec.Interval,
 		"dependsOnPast": jobSpec.DependsOnPast,
-		"catchUp":       jobSpec.CatchUp, //nolint:staticcheck
-		"sql":           jobSpec.Assets["query.sql"],
+		"catchUp":         jobSpec.CatchUp, //nolint:staticcheck
+		"schedulerState":  strOrNil(jobSpec.SchedulerState),
+		"sql":             jobSpec.Assets["query.sql"],
 		"task": map[string]interface{}{
 			"name":        task.Name,
 			"description": task.Description,
