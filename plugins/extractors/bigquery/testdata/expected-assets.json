@@ -186,7 +186,8 @@
                 "usage_count": "0"
             },
             "update_time": "2023-06-13T03:46:12.372974Z",
-            "labels": {}
+            "labels": {},
+            "partition_detail": {}
         },
         "description": "",
         "event": null,

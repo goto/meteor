@@ -22,7 +22,8 @@
             "preview_rows": null,
             "profile": null,
             "update_time": null,
-            "labels": {}
+            "labels": {},
+            "partition_detail": {}
         },
         "description": "",
         "event": null,
@@ -61,7 +62,8 @@
             "preview_rows": null,
             "profile": null,
             "update_time": null,
-            "labels": {}
+            "labels": {},
+            "partition_detail": {}
         },
         "description": "",
         "event": null,
@@ -100,7 +102,8 @@
             "preview_rows": null,
             "profile": null,
             "update_time": null,
-            "labels": {}
+            "labels": {},
+            "partition_detail": {}
         },
         "description": "",
         "event": null,
@@ -139,7 +142,8 @@
             "preview_rows": null,
             "profile": null,
             "update_time": null,
-            "labels": {}
+            "labels": {},
+            "partition_detail": {}
         },
         "description": "",
         "event": null,
