@@ -17,8 +17,10 @@ import (
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/datatype"
 	"github.com/aliyun/aliyun-odps-go-sdk/odps/tableschema"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/maxcompute"
+	"github.com/goto/meteor/plugins/extractors/maxcompute/client"
 	"github.com/goto/meteor/plugins/extractors/maxcompute/config"
 	"github.com/goto/meteor/plugins/extractors/maxcompute/mocks"
 	mocks2 "github.com/goto/meteor/test/mocks"
@@ -32,7 +34,8 @@ import (
 )
 
 const (
-	projectID = "test-project-id"
+	projectID       = "test-project-id"
+	testOptimusHost = "optimus.test:9101"
 )
 
 func createClient(client *mocks.MaxComputeClient) func(ctx context.Context, logger log.Logger, config config.Config) (maxcompute.Client, error) {
@@ -57,11 +60,61 @@ func newGroupMappingServer(t *testing.T, groups []map[string]interface{}) *httpt
 	}))
 }
 
+func extractDummyTableWithOptimusResources(
+	t *testing.T,
+	shieldHost string,
+	resources []*pb.ResourceSpecification,
+	dummyTable *odps.Table,
+	dummyTableSchema *tableschema.TableSchema,
+) *v1beta2.Asset {
+	t.Helper()
+
+	mockOptimus := mocks.NewOptimusClientMock(t)
+	mockOptimus.EXPECT().Connect(mock.Anything, testOptimusHost, mock.Anything).Return(nil)
+	mockOptimus.EXPECT().Close().Return(nil)
+	mockOptimus.EXPECT().ListResourceSpecification(mock.Anything, mock.Anything).Return(&pb.ListResourceSpecificationResponse{
+		Resources: resources,
+	}, nil)
+
+	mockClient := mocks.NewMaxComputeClient(t)
+	mockClient.EXPECT().ListSchema(mock.Anything).Return([]*odps.Schema{odps.NewSchema(nil, projectID, "my_schema")}, nil)
+	mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return([]*odps.Table{dummyTable}, nil)
+	mockClient.EXPECT().GetTableSchema(mock.Anything, dummyTable).Return("VIRTUAL_VIEW", dummyTableSchema, nil)
+	mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
+
+	extr := maxcompute.New(utils.Logger, createClient(mockClient), nil, func() client.OptimusClient { return mockOptimus })
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	require.NoError(t, extr.Init(ctx, plugins.Config{
+		URNScope: "test-maxcompute",
+		RawConfig: map[string]interface{}{
+			"project_name": projectID,
+			"access_key": map[string]interface{}{
+				"id":     "access_key_id",
+				"secret": "access_key_secret",
+			},
+			"endpoint_project": "https://example.com/some-api",
+			"shield_host":      shieldHost,
+			"optimus": map[string]interface{}{
+				"host": testOptimusHost,
+			},
+		},
+	}))
+
+	emitter := mocks2.NewEmitter()
+	require.NoError(t, extr.Extract(ctx, emitter.Push))
+	actual := emitter.GetAllData()
+	require.Len(t, actual, 1)
+
+	return actual[0]
+}
+
 func TestInit(t *testing.T) {
 	mockClient := mocks.NewMaxComputeClient(t)
 
 	t.Run("should return error if config is invalid", func(t *testing.T) {
-		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil)
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil, nil)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
@@ -75,7 +128,7 @@ func TestInit(t *testing.T) {
 	})
 
 	t.Run("should return error if access_key id is empty", func(t *testing.T) {
-		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil)
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil, nil)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
@@ -94,7 +147,7 @@ func TestInit(t *testing.T) {
 	})
 
 	t.Run("should return error if access_key secret is empty", func(t *testing.T) {
-		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil)
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil, nil)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
@@ -113,7 +166,7 @@ func TestInit(t *testing.T) {
 	})
 
 	t.Run("should return error if endpoint_project is empty", func(t *testing.T) {
-		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil)
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil, nil)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
@@ -135,7 +188,7 @@ func TestInit(t *testing.T) {
 		shieldServer := newGroupMappingServer(t, nil)
 		defer shieldServer.Close()
 
-		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil)
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil, nil)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		err := extr.Init(ctx, plugins.Config{
@@ -277,7 +330,7 @@ func TestExtract(t *testing.T) {
 		if mockSetup != nil {
 			mockSetup(mockClient)
 		}
-		extr := maxcompute.New(utils.Logger, createClient(mockClient), randomizer)
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), randomizer, nil)
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 		err := extr.Init(ctx, cfg)
@@ -299,7 +352,7 @@ func TestExtract(t *testing.T) {
 		mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
 		mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
 
-		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil)
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil, nil)
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
@@ -639,7 +692,35 @@ func TestExtract(t *testing.T) {
 		})
 		defer shieldServer.Close()
 
-		actual, err := runTest(t, plugins.Config{
+		mockClient := mocks.NewMaxComputeClient(t)
+		mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
+		mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[:1], nil)
+		mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
+		mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
+
+		mockOptimus := mocks.NewOptimusClientMock(t)
+		mockOptimus.EXPECT().Connect(mock.Anything, testOptimusHost, mock.Anything).Return(nil)
+		mockOptimus.EXPECT().Close().Return(nil)
+		mockOptimus.EXPECT().ListResourceSpecification(mock.Anything, mock.MatchedBy(func(req *pb.ListResourceSpecificationRequest) bool {
+			return req.GetDatastoreName() == "maxcompute" &&
+				req.GetResourceFilter() == fmt.Sprintf("%s.my_schema.*", projectID)
+		})).Return(&pb.ListResourceSpecificationResponse{
+			Resources: []*pb.ResourceSpecification{
+				{
+					Name: fmt.Sprintf("%s.my_schema.dummy_table", projectID),
+					Labels: map[string]string{
+						"data_owner_team": "dummy_team",
+						"description":     "optimus table description",
+						"category":        "internal",
+					},
+				},
+			},
+		}, nil)
+
+		extr := maxcompute.New(utils.Logger, createClient(mockClient), nil, func() client.OptimusClient { return mockOptimus })
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		require.NoError(t, extr.Init(ctx, plugins.Config{
 			URNScope: "test-maxcompute",
 			RawConfig: map[string]interface{}{
 				"project_name": projectID,
@@ -649,20 +730,123 @@ func TestExtract(t *testing.T) {
 				},
 				"endpoint_project": "https://example.com/some-api",
 				"shield_host":      shieldServer.URL,
+				"optimus": map[string]interface{}{
+					"host": testOptimusHost,
+				},
 			},
-		}, func(mockClient *mocks.MaxComputeClient) {
-			mockClient.EXPECT().ListSchema(mock.Anything).Return(schema1, nil)
-			mockClient.EXPECT().ListTable(mock.Anything, "my_schema").Return(table1[:1], nil)
-			mockClient.EXPECT().GetTableSchema(mock.Anything, table1[0]).Return("VIRTUAL_VIEW", schemaMapping[table1[0].Name()], nil)
-			mockClient.EXPECT().GetMaskingPolicies(mock.Anything).Return(map[string][]string{}, nil)
-		}, nil)
+		}))
 
-		require.NoError(t, err)
+		emitter := mocks2.NewEmitter()
+		require.NoError(t, extr.Extract(ctx, emitter.Push))
+		actual := emitter.GetAllData()
+
 		require.Len(t, actual, 1)
 
 		tableData := &v1beta2.Table{}
 		require.NoError(t, proto.Unmarshal(actual[0].GetData().GetValue(), tableData))
+		assert.Equal(t, "dummy_team", tableData.GetLabels()["data_owner_team"])
+		assert.Equal(t, "optimus table description", tableData.GetLabels()["description"])
+		assert.Equal(t, "internal", tableData.GetLabels()["category"])
 		assert.Equal(t, "Dummy PDG", tableData.GetLabels()["pdg"])
+		assert.Equal(t, "optimus table description", actual[0].GetDescription())
+	})
+
+	t.Run("should match golden assets when labels come from optimus resource specification", func(t *testing.T) {
+		shieldServer := newGroupMappingServer(t, []map[string]interface{}{
+			{
+				"slug": "governance_team",
+				"metadata": map[string]interface{}{
+					"product-group-name": "Example PDG",
+				},
+			},
+		})
+		defer shieldServer.Close()
+
+		actual := []*v1beta2.Asset{extractDummyTableWithOptimusResources(t, shieldServer.URL, []*pb.ResourceSpecification{
+			{
+				Name: fmt.Sprintf("%s.my_schema.dummy_table", projectID),
+				Labels: map[string]string{
+					"description":     "optimus governance description",
+					"data_owner_team": "governance_team",
+					"category":        "internal",
+				},
+			},
+		}, table1[0], schemaMapping[table1[0].Name()])}
+
+		utils.AssertProtosWithJSONFile(t, "testdata/expected-assets-with-optimus-labels.json", actual)
+	})
+
+	t.Run("should apply optimus resource labels from ListResourceSpecification", func(t *testing.T) {
+		shieldServer := newGroupMappingServer(t, nil)
+		defer shieldServer.Close()
+
+		t.Run("three-part resource name", func(t *testing.T) {
+			asset := extractDummyTableWithOptimusResources(t, shieldServer.URL, []*pb.ResourceSpecification{
+				{
+					Name: fmt.Sprintf("%s.my_schema.dummy_table", projectID),
+					Labels: map[string]string{
+						"description":     "from optimus",
+						"data_owner_team": "team-a",
+						"category":        "pii",
+					},
+				},
+			}, table1[0], schemaMapping[table1[0].Name()])
+
+			tableData := &v1beta2.Table{}
+			require.NoError(t, proto.Unmarshal(asset.GetData().GetValue(), tableData))
+			assert.Equal(t, map[string]string{
+				"description":     "from optimus",
+				"data_owner_team": "team-a",
+				"category":        "pii",
+			}, tableData.GetLabels())
+			assert.Equal(t, "from optimus", asset.GetDescription())
+		})
+
+		t.Run("empty labels when resource has no labels", func(t *testing.T) {
+			asset := extractDummyTableWithOptimusResources(t, shieldServer.URL, []*pb.ResourceSpecification{
+				{Name: fmt.Sprintf("%s.my_schema.dummy_table", projectID)},
+			}, table1[0], schemaMapping[table1[0].Name()])
+
+			tableData := &v1beta2.Table{}
+			require.NoError(t, proto.Unmarshal(asset.GetData().GetValue(), tableData))
+			assert.Empty(t, tableData.GetLabels())
+		})
+
+		t.Run("identity and description from spec", func(t *testing.T) {
+			spec, err := structpb.NewStruct(map[string]interface{}{
+				"project":     projectID,
+				"database":    "my_schema",
+				"name":        "dummy_table",
+				"description": "plain description",
+			})
+			require.NoError(t, err)
+
+			asset := extractDummyTableWithOptimusResources(t, shieldServer.URL, []*pb.ResourceSpecification{
+				{
+					Name:   "urn:optimus:resource",
+					Labels: map[string]string{"category": "internal"},
+					Spec:   spec,
+				},
+			}, table1[0], schemaMapping[table1[0].Name()])
+
+			tableData := &v1beta2.Table{}
+			require.NoError(t, proto.Unmarshal(asset.GetData().GetValue(), tableData))
+			assert.Equal(t, map[string]string{
+				"category":    "internal",
+				"description": "plain description",
+			}, tableData.GetLabels())
+		})
+
+		t.Run("skips invalid optimus resource name", func(t *testing.T) {
+			asset := extractDummyTableWithOptimusResources(t, shieldServer.URL, []*pb.ResourceSpecification{
+				{Name: "bad"},
+				{Name: fmt.Sprintf("%s.my_schema.dummy_table", projectID), Labels: map[string]string{"category": "ok"}},
+			}, table1[0], schemaMapping[table1[0].Name()])
+
+			tableData := &v1beta2.Table{}
+			require.NoError(t, proto.Unmarshal(asset.GetData().GetValue(), tableData))
+			assert.Equal(t, map[string]string{"category": "ok"}, tableData.GetLabels())
+		})
 	})
 
 	t.Run("should not add pdg label when group mapping has no match for data_owner_team", func(t *testing.T) {

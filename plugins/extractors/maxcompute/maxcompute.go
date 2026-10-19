@@ -21,6 +21,7 @@ import (
 	"github.com/goto/meteor/metrics/otelhttpclient"
 	"github.com/goto/meteor/models"
 	v1beta2 "github.com/goto/meteor/models/gotocompany/assets/v1beta2"
+	pb "github.com/goto/meteor/models/gotocompany/optimus/core/v1beta1"
 	"github.com/goto/meteor/plugins"
 	"github.com/goto/meteor/plugins/extractors/maxcompute/client"
 	"github.com/goto/meteor/plugins/extractors/maxcompute/config"
@@ -46,7 +47,6 @@ const (
 	attributesDataPartitionFields = "partition_fields"
 	attributesDataLabel           = "label"
 	attributesDataLifecycle       = "lifecycle"
-	attributesDataDDLStatement    = "ddl_statement"
 	attributesDataTableSize       = "table_size"
 
 	bytesPerKB = 1024
@@ -58,6 +58,8 @@ const (
 	listGroupMappingRoute      = "/admin/v1beta1/groups"
 	listGroupMappingMaxRetry   = 3
 	listGroupMappingRetryDelay = 200 * time.Millisecond
+
+	optimusDatastoreMaxcompute = "maxcompute"
 )
 
 type Extractor struct {
@@ -66,18 +68,23 @@ type Extractor struct {
 	config config.Config
 	randFn randFn
 
-	client     Client
-	newClient  NewClientFunc
-	urlb       urlbuilder.Source
-	httpClient *http.Client
+	client           Client
+	newClient        NewClientFunc
+	newOptimusClient NewOptimusClientFunc
+	optimusClient    client.OptimusClient
+	urlb             urlbuilder.Source
+	httpClient       *http.Client
 }
 
 type randFn func(rndSeed int64) func(int64) int64
 
 type NewClientFunc func(ctx context.Context, logger log.Logger, conf config.Config) (Client, error)
 
+type NewOptimusClientFunc func() client.OptimusClient
+
 type extractionRun struct {
 	groupMapping  map[string]string
+	labelsByURN   map[string]map[string]string
 	emit          plugins.Emit
 	tablesSkipped *atomic.Int64
 }
@@ -120,11 +127,16 @@ type Client interface {
 	GetMaskingPolicies(table *odps.Table) (map[client.Column][]client.Policy, error)
 }
 
-func New(logger log.Logger, clientFunc NewClientFunc, randFn randFn) *Extractor {
+func New(logger log.Logger, clientFunc NewClientFunc, randFn randFn, optimusClientFunc NewOptimusClientFunc) *Extractor {
+	if optimusClientFunc == nil {
+		optimusClientFunc = client.NewOptimusClient
+	}
+
 	e := &Extractor{
-		logger:    logger,
-		newClient: clientFunc,
-		randFn:    randFn,
+		logger:           logger,
+		newClient:        clientFunc,
+		randFn:           randFn,
+		newOptimusClient: optimusClientFunc,
 	}
 	e.BaseExtractor = plugins.NewBaseExtractor(info, &e.config)
 	e.ScopeNotRequired = true
@@ -165,10 +177,29 @@ func (e *Extractor) Init(ctx context.Context, conf plugins.Config) error {
 	httpClient.Transport = otelhttpclient.NewHTTPTransport(httpClient.Transport)
 	e.httpClient = httpClient
 
+	if e.config.Optimus.Host != "" {
+		e.optimusClient = e.newOptimusClient()
+		maxSize := e.config.Optimus.MaxSizeInMB
+		if maxSize <= 0 {
+			maxSize = client.OptimusGRPCMaxClientRecvSizeMB
+		}
+		if err := e.optimusClient.Connect(ctx, e.config.Optimus.Host, maxSize); err != nil {
+			return fmt.Errorf("connect to optimus: %w", err)
+		}
+	}
+
 	return nil
 }
 
 func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
+	if e.optimusClient != nil {
+		defer func() {
+			if err := e.optimusClient.Close(); err != nil {
+				e.logger.Warn("error closing optimus client", "error", err)
+			}
+		}()
+	}
+
 	groupMapping := e.listGroupMapping(ctx)
 
 	schemas, err := e.client.ListSchema(ctx)
@@ -191,6 +222,15 @@ func (e *Extractor) Extract(ctx context.Context, emit plugins.Emit) error {
 		if contains(e.config.Exclude.Schemas, schema.Name()) {
 			e.logger.Info("skipping schema as it is in the exclude list", "schema", schema.Name())
 			continue
+		}
+
+		run.labelsByURN = map[string]map[string]string{}
+		if e.optimusClient != nil {
+			labelsByURN, err := e.buildResourceLabels(ctx, schema.Name(), groupMapping)
+			if err != nil {
+				return err
+			}
+			run.labelsByURN = labelsByURN
 		}
 
 		if err := e.fetchTablesFromSchema(ctx, schema, run); err != nil {
@@ -271,7 +311,7 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 		}
 	}
 
-	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema, run.groupMapping)
+	asset, err := e.buildAsset(ctx, schema, table, tableType, tableSchema, run)
 	if err != nil {
 		e.logger.Error("failed to build asset", "table", tableName, "error", err)
 		run.tablesSkipped.Add(1)
@@ -284,7 +324,7 @@ func (e *Extractor) processTable(ctx context.Context, schema *odps.Schema, table
 
 func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	table *odps.Table, tableType string, tableSchema *tableschema.TableSchema,
-	groupMapping map[string]string,
+	run *extractionRun,
 ) (*v1beta2.Asset, error) {
 	defaultSchema := "default"
 	schemaName := schema.Name()
@@ -300,13 +340,12 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 	}
 
 	asset := &v1beta2.Asset{
-		Urn:         tableURN,
-		Name:        tableSchema.TableName,
-		Type:        "table",
-		Description: tableSchema.Comment,
-		CreateTime:  timestamppb.New(time.Time(tableSchema.CreateTime)),
-		UpdateTime:  timestamppb.New(time.Time(tableSchema.LastModifiedTime)),
-		Service:     maxcomputeService,
+		Urn:        tableURN,
+		Name:       tableSchema.TableName,
+		Type:       "table",
+		CreateTime: timestamppb.New(time.Time(tableSchema.CreateTime)),
+		UpdateTime: timestamppb.New(time.Time(tableSchema.LastModifiedTime)),
+		Service:    maxcomputeService,
 	}
 
 	tableAttributesData := e.buildTableAttributesData(schemaName, tableType, tableSchema)
@@ -377,23 +416,15 @@ func (e *Extractor) buildAsset(ctx context.Context, schema *odps.Schema,
 		UpdateTime: timestamppb.New(time.Time(tableSchema.LastModifiedTime)),
 	}
 
-	var decodedComment map[string]string
-	comment := strings.NewReplacer("\n", `\n`, "\r", `\r`, "\t", `\t`).Replace(tableSchema.Comment)
-	if err := json.Unmarshal([]byte(comment), &decodedComment); err != nil {
-		e.logger.Warn("error decoding comment", "error", err)
+	tableLabels := optimusLabelsForURN(tableURN, run.labelsByURN)
+	if desc, ok := tableLabels["description"]; ok {
+		asset.Description = desc
 	}
+	tableData.Labels = tableLabels
 
-	if decodedComment != nil {
-		if desc, ok := decodedComment["description"]; ok {
-			asset.Description = desc
-		}
-		if shieldTeam, ok := decodedComment["data_owner_team"]; ok {
-			if pdgName, ok := groupMapping[shieldTeam]; ok {
-				decodedComment["pdg"] = pdgName
-			}
-		}
+	if len(tableSchema.PartitionColumns) == 0 {
+		tableData.PartitionDetail = map[string]string{}
 	}
-	tableData.Labels = decodedComment
 
 	maxPreviewRows := e.config.MaxPreviewRows
 	if maxPreviewRows > 0 {
@@ -867,9 +898,150 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
+func (e *Extractor) optimusListResourceRequest(resourceFilter string) *pb.ListResourceSpecificationRequest {
+	datastore := e.config.Optimus.DatastoreName
+	if datastore == "" {
+		datastore = optimusDatastoreMaxcompute
+	}
+
+	req := &pb.ListResourceSpecificationRequest{
+		DatastoreName:  datastore,
+		ResourceFilter: resourceFilter,
+	}
+	if e.config.Optimus.ProjectName != "" {
+		req.ProjectName = e.config.Optimus.ProjectName
+	}
+	if e.config.Optimus.NamespaceName != "" {
+		req.NamespaceName = e.config.Optimus.NamespaceName
+	}
+	return req
+}
+
+func (e *Extractor) buildResourceLabels(ctx context.Context, schemaName string, groupMapping map[string]string) (map[string]map[string]string, error) {
+	if e.optimusClient == nil {
+		return nil, nil
+	}
+
+	resp, err := e.optimusClient.ListResourceSpecification(ctx, e.optimusListResourceRequest(
+		fmt.Sprintf("%s.%s.*", e.config.ProjectName, schemaName),
+	))
+	if err != nil {
+		return nil, fmt.Errorf("optimus list resource for schema %s: %w", schemaName, err)
+	}
+
+	labelsByURN := make(map[string]map[string]string)
+	for _, res := range resp.GetResources() {
+		if res == nil {
+			continue
+		}
+
+		governance, err := filterLabelsFromOptimusResource(res, groupMapping)
+		if err != nil {
+			e.logger.Warn("skipping optimus resource", "name", res.GetName(), "error", err)
+			continue
+		}
+
+		urn := plugins.MaxComputeURN(governance.Project, governance.Schema, governance.Table)
+		labelsByURN[urn] = governance.Labels
+	}
+
+	return labelsByURN, nil
+}
+
+type optimusResourceGovernance struct {
+	Project string
+	Schema  string
+	Table   string
+	Labels  map[string]string
+}
+
+func filterLabelsFromOptimusResource(
+	res *pb.ResourceSpecification,
+	groupMapping map[string]string,
+) (optimusResourceGovernance, error) {
+	var spec map[string]interface{}
+	if res.GetSpec() != nil {
+		spec = res.GetSpec().AsMap()
+	}
+
+	var project, schema, table string
+	parts := strings.Split(res.GetName(), ".")
+	if len(parts) == 3 {
+		project, schema, table = parts[0], parts[1], parts[2]
+	} else {
+		if spec == nil {
+			return optimusResourceGovernance{}, fmt.Errorf("invalid resource name: %s", res.GetName())
+		}
+
+		project, _ = stringFromMap(spec, "project")
+		schema, _ = stringFromMap(spec, "database")
+		table, _ = stringFromMap(spec, "name")
+		if project == "" || schema == "" || table == "" {
+			return optimusResourceGovernance{}, fmt.Errorf("invalid resource spec for %s", res.GetName())
+		}
+	}
+
+	labels := make(map[string]string)
+	for key, value := range res.GetLabels() {
+		labels[key] = value
+	}
+
+	if spec != nil {
+		if description, _ := stringFromMap(spec, "description"); description != "" {
+			labels["description"] = description
+		}
+	}
+
+	enrichLabelsWithPDG(labels, groupMapping)
+
+	return optimusResourceGovernance{
+		Project: project,
+		Schema:  schema,
+		Table:   table,
+		Labels:  labels,
+	}, nil
+}
+
+func stringFromMap(m map[string]interface{}, key string) (string, bool) {
+	v, ok := m[key]
+	if !ok || v == nil {
+		return "", false
+	}
+	s, ok := v.(string)
+	return s, ok
+}
+
+func enrichLabelsWithPDG(labels, groupMapping map[string]string) {
+	if labels == nil {
+		return
+	}
+
+	shieldTeam, ok := labels["data_owner_team"]
+	if !ok {
+		return
+	}
+
+	if pdgName, ok := groupMapping[shieldTeam]; ok {
+		labels["pdg"] = pdgName
+	}
+}
+
+func optimusLabelsForURN(tableURN string, labelsByURN map[string]map[string]string) map[string]string {
+	if labelsByURN == nil {
+		return map[string]string{}
+	}
+
+	labels, ok := labelsByURN[tableURN]
+	if !ok || labels == nil {
+		return map[string]string{}
+	}
+
+	return labels
+}
+
 func init() {
 	if err := registry.Extractors.Register(maxcomputeService, func() plugins.Extractor {
-		return New(plugins.GetLog(), CreateClient, seededRandom)
+		return New(plugins.GetLog(), CreateClient, seededRandom, nil)
 	}); err != nil {
 		panic(err)
 	}

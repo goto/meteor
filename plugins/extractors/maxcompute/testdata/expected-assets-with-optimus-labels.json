@@ -1,0 +1,93 @@
+[
+    {
+        "urn": "urn:maxcompute:test-project-id:table:test-project-id.my_schema.dummy_table",
+        "name": "dummy_table",
+        "service": "maxcompute",
+        "type": "table",
+        "url": "",
+        "description": "optimus governance description",
+        "data": {
+            "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
+            "profile": {
+              "common_joins": [],
+              "filters": [],
+              "partition_key": "",
+              "partition_value": "",
+              "total_rows": "0",
+              "usage_count": "0"
+            },
+            "columns": [
+                {
+                    "name": "id",
+                    "description": "",
+                    "data_type": "BIGINT",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "columns": [],
+                    "attributes": {}
+                },
+                {
+                    "name": "name",
+                    "description": "",
+                    "data_type": "STRUCT",
+                    "is_nullable": true,
+                    "length": "0",
+                    "profile": null,
+                    "attributes": {},
+                    "columns": [
+                        {
+                            "attributes": null,
+                            "columns": [],
+                            "data_type": "STRING",
+                            "description": "",
+                            "is_nullable": false,
+                            "length": "0",
+                            "name": "first_name",
+                            "profile": null
+                        },
+                        {
+                            "attributes": null,
+                            "columns": [],
+                            "data_type": "STRING",
+                            "description": "",
+                            "is_nullable": false,
+                            "length": "0",
+                            "name": "last_name",
+                            "profile": null
+                        }
+                    ]
+                }
+            ],
+            "preview_fields": [],
+            "preview_rows": null,
+            "ddl_statement": "create table if not exists test-project-id.`my_schema`.`dummy_table` (\n    `id` BIGINT  ,\n    `name` STRUCT<`first_name`:STRING,`last_name`:STRING>  \n)\ncomment '{\"description\": \"dummy table description\", \"data_owner_team\": \"dummy_team\"}'\npartitioned by (`data_date` DATE);",
+            "attributes": {
+                "project_name": "test-project-id",
+                "resource_url": "/projects/test-project-id/schemas/my_schema/tables/dummy_table",
+                "schema": "my_schema",
+                "sql": "SELECT id, name, user_info\nFROM test-project-id.default.my_dummy_table",
+                "type": "VIRTUAL_VIEW",
+                "partition_fields": ["data_date"],
+                "table_size": "0 B"
+            },
+            "create_time": "2024-11-14T06:41:35Z",
+            "update_time": "2024-11-14T06:41:35Z",
+            "labels": {
+                "category": "internal",
+                "data_owner_team": "governance_team",
+                "description": "optimus governance description",
+                "pdg": "Example PDG"
+            },
+            "partition_detail": {}
+        },
+        "owners": [],
+        "lineage": null,
+        "is_deleted": false,
+        "labels": {},
+        "refreshed_at": null,
+        "event": null,
+        "create_time": "2024-11-14T06:41:35Z",
+        "update_time": "2024-11-14T06:41:35Z"
+    }
+]

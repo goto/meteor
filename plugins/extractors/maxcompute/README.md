@@ -39,6 +39,12 @@ source:
 | `max_preview_rows`            | `int`      | `30`                              | Number of rows to fetch for the table preview. Set to `0` to disable preview entirely.  | *optional* |
 | `include_preview_rows`        | `bool`     | `true`                            | Whether to emit preview row data. When `false` (the default), `preview_fields` is still populated but `preview_rows` is omitted. | *optional* |
 | `mix_values`                  | `bool`     | `false`                           | Shuffle each preview column independently across rows to break value correlations.      | *optional* |
+| `shield_host`                 | `string`   | `https://shield.example.com`      | Shield base URL for PDG enrichment on `data_owner_team`                               | *optional* |
+| `optimus.host`                | `string`   | `optimus.local:9101`              | Optimus gRPC host. When set, table `data.labels` (and asset `description` from the `description` label) come from Optimus resource specs. | *optional* |
+| `optimus.project_name`        | `string`   | `p-gojekdata-gl`                  | Optional Optimus project scope for `ListResourceSpecification`                        | *optional* |
+| `optimus.namespace_name`      | `string`   | `default`                         | Optional Optimus namespace scope for `ListResourceSpecification`                      | *optional* |
+| `optimus.datastore_name`      | `string`   | `maxcompute`                      | Optimus datastore name sent on `ListResourceSpecification` (defaults to `maxcompute`) | *optional* |
+| `optimus.max_size_in_mb`      | `int`      | `100`                             | gRPC max message size for Optimus client                                              | *optional* |
 
 ### *Notes*
 

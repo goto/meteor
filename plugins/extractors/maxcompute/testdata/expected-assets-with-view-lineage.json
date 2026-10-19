@@ -5,7 +5,7 @@
         "service": "maxcompute",
         "type": "table",
         "url": "",
-        "description": "dummy table description",
+        "description": "",
         "data": {
             "@type": "type.googleapis.com/gotocompany.assets.v1beta2.Table",
             "profile": {
@@ -73,10 +73,8 @@
             },
             "create_time": "2024-11-14T06:41:35Z",
             "update_time": "2024-11-14T06:41:35Z",
-            "labels": {
-                "description": "dummy table description",
-                "data_owner_team": "dummy_team"
-            }
+            "labels": {},
+            "partition_detail": {}
         },
         "owners": [],
         "lineage": {
@@ -162,7 +160,8 @@
             },
             "create_time": "2024-11-18T08:00:00Z",
             "update_time": "2024-11-18T08:00:00Z",
-            "labels": {}
+            "labels": {},
+            "partition_detail": {}
         },
         "owners": [],
         "lineage": null,

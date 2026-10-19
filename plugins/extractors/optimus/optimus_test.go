@@ -355,14 +355,15 @@ func setupExtractExpectation(ctx context.Context, client *mockClient) {
 	}, mock.Anything).Return(&pb.ListJobSpecificationResponse{
 		Jobs: []*pb.JobSpecification{
 			{
-				Version:       1,
-				Name:          "job-A",
-				Owner:         "john_doe@example.com",
-				StartDate:     "2019-09-16",
-				EndDate:       "",
-				Interval:      "0 19 * * *",
-				DependsOnPast: false,
-				CatchUp:       false,
+				Version:        1,
+				Name:           "job-A",
+				Owner:          "john_doe@example.com",
+				StartDate:      "2019-09-16",
+				EndDate:        "",
+				Interval:       "0 19 * * *",
+				SchedulerState: "disabled",
+				DependsOnPast:  false,
+				CatchUp:        false,
 				Task: &pb.JobSpecTask{
 					Name: "bq2bq",
 					Config: []*pb.JobConfigItem{

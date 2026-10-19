@@ -2,6 +2,14 @@ package config
 
 const TableTypeView = "VIRTUAL_VIEW"
 
+type OptimusConfig struct {
+	Host          string `mapstructure:"host"`
+	MaxSizeInMB   int    `mapstructure:"max_size_in_mb"`
+	ProjectName   string `mapstructure:"project_name"`
+	NamespaceName string `mapstructure:"namespace_name"`
+	DatastoreName string `mapstructure:"datastore_name"`
+}
+
 type Config struct {
 	ProjectName     string `mapstructure:"project_name"`
 	EndpointProject string `mapstructure:"endpoint_project"`
@@ -22,4 +30,5 @@ type Config struct {
 	BuildViewLineage   bool              `mapstructure:"build_view_lineage,omitempty"`
 	ShieldHost         string            `mapstructure:"shield_host,omitempty" validate:"omitempty,url"`
 	ShieldHeader       map[string]string `mapstructure:"shield_header,omitempty"`
+	Optimus            OptimusConfig     `mapstructure:"optimus,omitempty"`
 }
