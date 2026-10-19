@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	mockCtx = mock.AnythingOfType("*context.emptyCtx")
+	mockCtx = mock.Anything
 	ctx     = context.TODO()
 )
 

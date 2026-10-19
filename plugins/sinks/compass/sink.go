@@ -111,7 +111,6 @@ func (s *Sink) Sink(ctx context.Context, batch []models.Record) error {
 	errGroup.SetLimit(concurrency)
 
 	for _, record := range batch {
-		record := record
 		errGroup.Go(func() error {
 			asset := record.Data()
 			s.logger.Info("sinking record to compass", "record", asset.GetUrn())
@@ -159,7 +158,7 @@ func (s *Sink) send(ctx context.Context, record RequestPayload) error {
 
 	res, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return plugins.NewRetryError(err)
 	}
 	defer plugins.DrainBody(res)
 

@@ -18,4 +18,5 @@ type Config struct {
 	StopOnSinkError      bool
 	TimerFn              TimerFn
 	SinkBatchSize        int
+	MaxConcurrentRecipes int
 }
