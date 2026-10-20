@@ -28,7 +28,12 @@ import (
 //go:embed README.md
 var summary string
 
-const defaultConcurrency = 10
+const (
+	defaultConcurrency = 10
+
+	dataFieldLabels          = "labels"
+	dataFieldPartitionDetail = "partition_detail"
+)
 
 type Config struct {
 	Host    string            `mapstructure:"host" validate:"required"`
@@ -228,7 +233,29 @@ func (s *Sink) buildCompassData(anyData *anypb.Any) (map[string]interface{}, err
 		return nil, fmt.Errorf("unmarshalling to mapdata: %w", err)
 	}
 
+	replaceEmptyTableMapsWithNull(mapData)
 	return mapData, nil
+}
+
+func replaceEmptyTableMapsWithNull(data map[string]interface{}) {
+	for _, key := range []string{dataFieldLabels, dataFieldPartitionDetail} {
+		if isEmptyStringMap(data[key]) {
+			data[key] = nil
+		}
+	}
+}
+
+func isEmptyStringMap(v interface{}) bool {
+	if v == nil {
+		return false
+	}
+
+	m, ok := v.(map[string]interface{})
+	if !ok {
+		return false
+	}
+
+	return len(m) == 0
 }
 
 func (s *Sink) buildLineage(asset *v1beta2.Asset) (upstreams, downstreams []LineageRecord) {
