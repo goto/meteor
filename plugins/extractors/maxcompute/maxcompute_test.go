@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -800,6 +801,21 @@ func TestExtract(t *testing.T) {
 				"category":        "pii",
 			}, tableData.GetLabels())
 			assert.Equal(t, "from optimus", asset.GetDescription())
+		})
+
+		t.Run("created_at from resource specification", func(t *testing.T) {
+			createdAt := time.Date(2024, 11, 14, 6, 41, 35, 0, time.UTC)
+			asset := extractDummyTableWithOptimusResources(t, shieldServer.URL, []*pb.ResourceSpecification{
+				{
+					Name:      fmt.Sprintf("%s.my_schema.dummy_table", projectID),
+					CreatedAt: timestamppb.New(createdAt),
+					Labels:    map[string]string{"category": "internal"},
+				},
+			}, table1[0], schemaMapping[table1[0].Name()])
+
+			tableData := &v1beta2.Table{}
+			require.NoError(t, proto.Unmarshal(asset.GetData().GetValue(), tableData))
+			assert.Equal(t, "2024-11-14T06:41:35Z", tableData.GetLabels()["created_at"])
 		})
 
 		t.Run("empty labels when resource has no labels", func(t *testing.T) {

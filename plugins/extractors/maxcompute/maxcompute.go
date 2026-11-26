@@ -992,6 +992,10 @@ func filterLabelsFromOptimusResource(
 		}
 	}
 
+	if createdAt := res.GetCreatedAt(); createdAt != nil {
+		labels["created_at"] = createdAt.AsTime().UTC().Format(time.RFC3339)
+	}
+
 	enrichLabelsWithPDG(labels, groupMapping)
 
 	return optimusResourceGovernance{
